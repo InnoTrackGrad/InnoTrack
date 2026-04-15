@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="InnoTrack.API/InnoTrack.API.csproj" />
+  <Project Path="InnoTrack.Application/InnoTrack.Application.csproj" />
+  <Project Path="InnoTrack.Domain/InnoTrack.Domain.csproj" />
+  <Project Path="InnoTrack.Infrastructure/InnoTrack.Infrastructure.csproj" />
+</Solution>

@@ -1,0 +1,50 @@
+﻿
+using InnoTrack.Domain.Entities.Enums;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Net.Mime;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace InnoTrack.Domain.Entities
+{
+    public class Project
+    {
+        public int Id { get; set; }
+
+        [Required, MaxLength(255)]
+        public string Title { get; set; }
+
+        [Required, Column(TypeName = "nvarchar(max)")]
+        public string Abstract { get; set; }
+
+        [Required, Column(TypeName = "nvarchar(max)")]
+        public string Description { get; set; }
+
+        [Required]
+        public ProjectStatus Status { get; set; }
+
+        [Column(TypeName = "decimal(5,2)"), Range(0, 100)]
+        public decimal OriginalityScore { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? SubmittedAt { get; set; }
+
+        [Required]
+        public int TeamId { get; set; }
+        public Team Team { get; set; }
+
+        public int DomainId { get; set; }
+        public Domain Domain { get; set; }
+
+        public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
+        public ICollection<ProjectAttachment> Attachments { get; set; } = new HashSet<ProjectAttachment>();
+        public ICollection<Feedback> Feedbacks { get; set; } = new HashSet<Feedback>();
+
+        public VectorEmbedding? VectorEmbedding { get; set; }
+        public OriginalityReport? OriginalityReport { get; set; }
+    }
+}
