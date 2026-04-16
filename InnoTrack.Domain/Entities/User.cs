@@ -1,10 +1,5 @@
 ﻿using InnoTrack.Domain.Entities.Enums;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Domain.Entities
 {
@@ -22,7 +17,6 @@ namespace InnoTrack.Domain.Entities
         public string FirstName { get; set; }
         [Required, MaxLength(50)]
         public string LastName { get; set; }
-        [Required, MaxLength(150)]
         public string FullName => $"{FirstName} {LastName}";
 
         public bool IsActive { get; set; } = true;

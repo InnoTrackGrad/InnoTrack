@@ -1,11 +1,6 @@
 ﻿using InnoTrack.Domain.Entities.Enums;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Domain.Entities
 {
@@ -13,7 +8,10 @@ namespace InnoTrack.Domain.Entities
     {
         public int Id { get; set; }
 
-        [Required, MaxLength(255)]
+        [Required, MaxLength(150)]
+        public string Title { get; set; } = null!;
+
+        [Required, MaxLength(1000)]
         public string Message { get; set; } = null!;
 
         public NotificationType Type { get; set; } = NotificationType.Info;

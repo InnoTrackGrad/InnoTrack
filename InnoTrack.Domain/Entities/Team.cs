@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace InnoTrack.Domain.Entities
 {
@@ -21,13 +16,14 @@ namespace InnoTrack.Domain.Entities
         public int MaxSize { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? JoinCodeExpiry { get; set; }
 
         public int? ProfessorId { get; set; }
-        public Professor Supervisor { get; set; }
+        public Professor? Supervisor { get; set; }
 
-        public Project Project { get; set; }
-        public ChatRoom ChatRoom { get; set; }
+        public Project? Project { get; set; }
+        public ChatRoom? ChatRoom { get; set; }
 
-        public ICollection<TeamMember> Members { get; set; } = new HashSet<TeamMember>();  
+        public ICollection<TeamMember> Members { get; set; } = new HashSet<TeamMember>();
     }
 }

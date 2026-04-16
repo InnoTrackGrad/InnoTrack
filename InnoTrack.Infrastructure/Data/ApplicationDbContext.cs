@@ -1,18 +1,13 @@
 ﻿using InnoTrack.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Infrastructure.Data
 {
-    public class ApplicationDbContext: DbContext
+    public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
                     : base(options)
-        { 
+        {
         }
 
         // --- 1. Users & Roles (Inheritance TPT) ---
@@ -35,7 +30,7 @@ namespace InnoTrack.Infrastructure.Data
         public DbSet<Project> Projects { get; set; }
         public DbSet<Domain> Domains { get; set; }
         public DbSet<Technology> Technologies { get; set; }
-        public DbSet<ProjectTechnology> ProjectTechnologies { get; set; } 
+        public DbSet<ProjectTechnology> ProjectTechnologies { get; set; }
         public DbSet<ProjectAttachment> ProjectAttachments { get; set; }
 
         // --- 5. AI Analysis Data ---
@@ -46,6 +41,7 @@ namespace InnoTrack.Infrastructure.Data
         // --- 6. Communication & Feedback ---
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<ChatMessageAttachment> ChatMessageAttachments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Feedback> Feedbacks { get; set; }
 
@@ -77,9 +73,38 @@ namespace InnoTrack.Infrastructure.Data
                         .HasIndex(d => d.Code)
                         .IsUnique();
 
-            //modelBuilder.Entity<TeamMember>()
-            //            .HasIndex(m => m.StudentId)
-            //            .IsUnique();
+            modelBuilder.Entity<TeamMember>()
+                        .HasIndex(m => m.StudentId)
+                        .IsUnique();
+
+            modelBuilder.Entity<JoinRequest>()
+                        .HasIndex(r => new { r.StudentId, r.TeamId })
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+            // Notification inbox query — the most frequent read in the app:
+            modelBuilder.Entity<Notification>()
+                        .HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+
+            // Finding a team's project (used on every project page load):
+            modelBuilder.Entity<Project>()
+                        .HasIndex(p => p.TeamId)
+                        .IsUnique(); // enforce one project per team at the DB level too
+
+            // Similarity engine — fetching embeddings by project:
+            modelBuilder.Entity<VectorEmbedding>()
+                        .HasIndex(v => v.ProjectId);
+
+            // Checking pending requests:
+            modelBuilder.Entity<JoinRequest>()
+                        .HasIndex(r => new { r.TeamId, r.Status });
+
+            // Chat history — most recent messages first:
+            modelBuilder.Entity<ChatMessage>()
+                        .HasIndex(m => new { m.ChatRoomId, m.SentAt });
+
+            // Reports ordered by generation time:
+            modelBuilder.Entity<OriginalityReport>()
+                        .HasIndex(r => new { r.ProjectId, r.GeneratedAt });
 
 
             modelBuilder.Entity<JoinRequest>()
@@ -101,6 +126,21 @@ namespace InnoTrack.Infrastructure.Data
             modelBuilder.Entity<User>()
                         .Property(u => u.Role)
                         .HasConversion<string>();
+
+            modelBuilder.Entity<TeamMember>()
+                        .Property(m => m.Role)
+                        .HasConversion<string>()
+                        .HasMaxLength(25);
+
+            modelBuilder.Entity<Technology>()
+                        .Property(t => t.Category)
+                        .HasConversion<string>()
+                        .HasMaxLength(50);
+
+            modelBuilder.Entity<ChatMessage>()
+                        .Property(m => m.Type)
+                        .HasConversion<string>()
+                        .HasMaxLength(20);
 
 
             modelBuilder.Entity<ProjectTechnology>()
@@ -136,11 +176,11 @@ namespace InnoTrack.Infrastructure.Data
                         .HasForeignKey<Project>(p => p.TeamId)
                         .OnDelete(DeleteBehavior.Cascade);
 
-            //modelBuilder.Entity<Team>()
-            //            .HasOne(t => t.Supervisor)
-            //            .WithMany(p => p.SupervisedTeams)
-            //            .HasForeignKey(t => t.ProfessorId)
-            //            .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Team>()
+                        .HasOne(t => t.Supervisor)
+                        .WithMany(p => p.SupervisedTeams)
+                        .HasForeignKey(t => t.ProfessorId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
 
             modelBuilder.Entity<Project>()
@@ -149,10 +189,10 @@ namespace InnoTrack.Infrastructure.Data
                         .HasForeignKey<VectorEmbedding>(v => v.ProjectId)
                         .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Project>()
-                        .HasOne(p => p.OriginalityReport)
-                        .WithOne(r => r.Project)
-                        .HasForeignKey<OriginalityReport>(r => r.ProjectId)
+            modelBuilder.Entity<OriginalityReport>()
+                        .HasOne(r => r.Project)
+                        .WithMany(p => p.OriginalityReports)
+                        .HasForeignKey(r => r.ProjectId)
                         .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Team>()
@@ -177,8 +217,9 @@ namespace InnoTrack.Infrastructure.Data
                      .HasOne(sp => sp.ReferencedProject)
                      .WithMany() // المشروع المرجعي ملوش 'كوليكشن' تشير للمشاريع اللي بتشبهه. *مش محتاجينها
                      .HasForeignKey(sp => sp.ReferencedProjectId)
-                     .OnDelete(DeleteBehavior.ClientSetNull);
+                     .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<User>().Ignore(u => u.FullName);
 
             modelBuilder.Entity<Student>()
                         .Property(s => s.GPA)

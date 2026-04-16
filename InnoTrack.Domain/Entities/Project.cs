@@ -1,13 +1,7 @@
 ﻿
 using InnoTrack.Domain.Entities.Enums;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Net.Mime;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Domain.Entities
 {
@@ -31,6 +25,7 @@ namespace InnoTrack.Domain.Entities
         public decimal OriginalityScore { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; }
         public DateTime? SubmittedAt { get; set; }
 
         [Required]
@@ -45,6 +40,6 @@ namespace InnoTrack.Domain.Entities
         public ICollection<Feedback> Feedbacks { get; set; } = new HashSet<Feedback>();
 
         public VectorEmbedding? VectorEmbedding { get; set; }
-        public OriginalityReport? OriginalityReport { get; set; }
+        public ICollection<OriginalityReport> OriginalityReports { get; set; } = new HashSet<OriginalityReport>();
     }
 }
