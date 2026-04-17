@@ -18,10 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\InnoTrack.Application\InnoTrack.Application.csproj" />
     <ProjectReference Include="..\InnoTrack.Infrastructure\InnoTrack.Infrastructure.csproj" />
   </ItemGroup>

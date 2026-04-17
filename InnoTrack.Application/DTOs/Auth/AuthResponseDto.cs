@@ -7,13 +7,6 @@ using System.Threading.Tasks;
 
 namespace InnoTrack.Application.DTOs.Auth
 {
-    public class AuthResponseDto
-    {
-        public string Token { get; set; }
-        public string RefreshToken { get; set; }
-        public DateTime Expiration { get; set; }
-        public string Name { get; set; }
-        public UserRole Role { get; set; }
-
-    }
+    public record AuthResponseDto
+        (string AccessToken, string RefreshToken, DateTime RefreshTokenExpiration, string Name, UserRole Role);
 }
