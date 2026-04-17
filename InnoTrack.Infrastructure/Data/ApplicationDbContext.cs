@@ -121,6 +121,7 @@ namespace InnoTrack.Infrastructure.Data
             modelBuilder.Entity<OriginalityReport>()
                         .HasIndex(r => new { r.ProjectId, r.GeneratedAt });
 
+            modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
 
             modelBuilder.Entity<JoinRequest>()
                         .Property(r => r.Status)

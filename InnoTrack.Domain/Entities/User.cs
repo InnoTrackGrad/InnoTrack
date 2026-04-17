@@ -20,6 +20,7 @@ namespace InnoTrack.Domain.Entities
         public string FullName => $"{FirstName} {LastName}";
 
         public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
 
         [MaxLength(2048)]
         public string? ProfilePictureURL { get; set; }

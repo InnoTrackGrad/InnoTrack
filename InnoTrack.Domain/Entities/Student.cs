@@ -8,12 +8,9 @@ namespace InnoTrack.Domain.Entities
         [Required]
         public int DepartmentId { get; set; }
 
-        [Required]
-        public int GraduationYear { get; set; }
-
         [Column(TypeName = "decimal(3,2)")]
         [Range(0, 4.0)]
-        public decimal GPA { get; set; }
+        public decimal? GPA { get; set; }
 
         public Department Department { get; set; }
         public TeamMember? TeamMember { get; set; }
