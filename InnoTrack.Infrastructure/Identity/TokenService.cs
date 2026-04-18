@@ -63,7 +63,27 @@ namespace InnoTrack.Infrastructure.Identity
 
         public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
         {
-            throw new NotImplementedException();
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidIssuer = _jwtSettings.Issuer,
+                ValidAudience = _jwtSettings.Audience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret)),
+                ValidateLifetime = false
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+
+            if (!(securityToken is JwtSecurityToken jwtSecurityToken) ||
+                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256Signature, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("Invalid token");
+            }
+
+            return principal;
         }
     }
 }

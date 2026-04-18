@@ -1,7 +1,9 @@
+using FluentValidation;
 using InnoTrack.API.Middlewares;
 using InnoTrack.Application;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Services;
+using InnoTrack.Application.Validators;
 using InnoTrack.Domain.Interfaces;
 using InnoTrack.Infrastructure.Data;
 using InnoTrack.Infrastructure.Identity;
@@ -32,6 +34,8 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

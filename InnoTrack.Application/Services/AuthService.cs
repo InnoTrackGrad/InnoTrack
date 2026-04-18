@@ -3,6 +3,7 @@ using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.IdentityModel.JsonWebTokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,9 +76,28 @@ namespace InnoTrack.Application.Services
 
         }
 
-        public Task<AuthResponseDto> RefreshTokenAsync(string token, string refreshToken)
+        public async Task<AuthResponseDto> RefreshTokenAsync(string token, string refreshToken)
         {
-            throw new NotImplementedException();
+            var principal = _tokenService.GetPrincipalFromExpiredToken(token);
+            var userEmail = principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email)?.Value;
+
+            var user = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == userEmail);
+
+            if(user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                throw new UnauthorizedAccessException("Invalid client request or refresh token expired.");
+            }
+
+            var newAccessToken = _tokenService.GenerateAccessToken(user);
+            var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            _unitOfWork.Repository<User>().Update(user);
+            await _unitOfWork.CompleteAsync();
+
+            return new AuthResponseDto(newAccessToken, newRefreshToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
         }
     }
 }
