@@ -1,5 +1,7 @@
 ﻿using FluentValidation;
 using InnoTrack.Application.DTOs.Auth;
+using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +12,7 @@ namespace InnoTrack.Application.Validators
 {
     public class RegisterRequestValidator : AbstractValidator<RegisterRequestDto>
     {
-        public RegisterRequestValidator()
+        public RegisterRequestValidator(IUnitOfWork _unitOfWork)
         {
             RuleFor(x => x.FirstName)
                 .NotEmpty().WithMessage("First Name is required.")
@@ -36,7 +38,9 @@ namespace InnoTrack.Application.Validators
 
             RuleFor(x => x.DepartmentId)
                 .GreaterThan(0).WithMessage("Valid Department is required.")
-                .LessThanOrEqualTo(5).WithMessage("Invalid Department.");
+                .MustAsync(async (id, ct) =>
+                    await _unitOfWork.Repository<Department>().GetByIdAsync(id) is not null)
+                .WithMessage("The specified department does not exist.");
         }
     }
 }

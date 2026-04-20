@@ -11,7 +11,7 @@ namespace InnoTrack.Application.Interfaces
     public interface ITokenService
     {
         string GenerateAccessToken(User user);
-        string GenerateRefreshToken();
+        (string rawToken, string hashedToken, DateTime expiryDate) GenerateRefreshToken();
         ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
     }
 }

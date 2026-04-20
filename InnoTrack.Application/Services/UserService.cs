@@ -13,10 +13,12 @@ namespace InnoTrack.Application.Services
     public class UserService : IUserService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IPasswordHasher _passwordHasher;
 
-        public UserService(IUnitOfWork unitOfWork)
+        public UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         {
             _unitOfWork = unitOfWork;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task UpdateProfileAsync(int userId, UpdateProfileDto request)
@@ -30,7 +32,6 @@ namespace InnoTrack.Application.Services
 
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
-
         }
 
         public async Task ChangePasswordAsync(int userId, ChangePasswordDto request)
@@ -39,16 +40,13 @@ namespace InnoTrack.Application.Services
             if (user == null)
                 throw new KeyNotFoundException("User not found.");
 
-            if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
+            if (!_passwordHasher.Verify(request.OldPassword, user.PasswordHash))
                 throw new ArgumentException("Incorrect old password.");
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
 
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
-
-        }
-
-        
+        }       
     }
 }

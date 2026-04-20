@@ -1,5 +1,4 @@
-﻿using InnoTrack.Application;
-using InnoTrack.Application.Interfaces;
+﻿using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -35,7 +34,7 @@ namespace InnoTrack.Infrastructure.Identity
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
 
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -53,12 +52,14 @@ namespace InnoTrack.Infrastructure.Identity
             return tokenHandler.WriteToken(token);
         }
 
-        public string GenerateRefreshToken()
+        public (string rawToken, string hashedToken, DateTime expiryDate) GenerateRefreshToken()
         {
-            var randomNumber = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
+            var randomBytes = new byte[64];
+            RandomNumberGenerator.Fill(randomBytes);
+            var rawToken = Convert.ToBase64String(randomBytes);
+            var hashedToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+            var expiryDate = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+            return (rawToken, hashedToken, expiryDate);
         }
 
         public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
@@ -78,7 +79,7 @@ namespace InnoTrack.Infrastructure.Identity
             var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
 
             if (!(securityToken is JwtSecurityToken jwtSecurityToken) ||
-                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256Signature, StringComparison.InvariantCultureIgnoreCase))
+                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new SecurityTokenException("Invalid token");
             }

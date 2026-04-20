@@ -11,7 +11,14 @@ namespace InnoTrack.Domain.Interfaces
     {
         Task<T?> GetByIdAsync(int id);
         Task<T?> FindAsync(Expression<Func<T, bool>> predicate);
-        Task<IReadOnlyList<T>> GetAllAsync();
+        IQueryable<T> Query();
+        IQueryable<T> QueryAsNoTracking();
+        Task<IReadOnlyList<T>> GetAllAsync(
+            Expression<Func<T, bool>>? filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            int pageIndex = 0,
+            int pageSize = 20
+            );
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

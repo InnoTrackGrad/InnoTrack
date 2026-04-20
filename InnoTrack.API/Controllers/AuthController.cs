@@ -1,5 +1,6 @@
 ﻿using InnoTrack.Application.DTOs.Auth;
 using InnoTrack.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InnoTrack.API.Controllers
@@ -16,17 +17,27 @@ namespace InnoTrack.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterRequestDto request)
+        [AllowAnonymous]
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
-            var result = await _authService.RegisterAsync(request);
-            return Ok(result);
+            var response = await _authService.RegisterAsync(request);
+            return CreatedAtAction(nameof(Login), response);
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginRequestDto request)
+        [AllowAnonymous]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            var result = await _authService.LoginAsync(request);
-            return Ok(result);
+            var response = await _authService.LoginAsync(request);
+            return Ok(response);
+        }
+
+        [HttpPost("refresh-token")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
+        {
+            var response = await _authService.RefreshTokenAsync(request.AccessToken, request.RefreshToken);
+            return Ok(response);
         }
     }
 }

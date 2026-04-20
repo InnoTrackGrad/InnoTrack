@@ -33,6 +33,7 @@ namespace InnoTrack.Domain.Entities
         [Required]
         public UserRole Role { get; set; }
 
+        [MaxLength(512)]
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
 

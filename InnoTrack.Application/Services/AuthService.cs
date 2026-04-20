@@ -3,10 +3,12 @@ using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
-using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,22 +18,26 @@ namespace InnoTrack.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ITokenService _tokenService;
+        private readonly IPasswordHasher _passwordHasher;
 
-        public AuthService(IUnitOfWork unitOfWork, ITokenService tokenService)
+        public AuthService(IUnitOfWork unitOfWork, ITokenService tokenService, IPasswordHasher passwordHasher)
         {
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
             var existingUser = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == request.Email);
             if (existingUser != null)
-                throw new Exception("Email is already registered.");
+                throw new ArgumentException("Email is already registered.");
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var passwordHash = _passwordHasher.Hash(request.Password);
 
-            var newUser = new User
+            var refreshTokens = _tokenService.GenerateRefreshToken();
+
+            var newStudent = new Student
             {
                 FirstName = request.FirstName,
                 LastName = request.LastName,
@@ -39,40 +45,35 @@ namespace InnoTrack.Application.Services
                 PasswordHash = passwordHash,
                 DepartmentId = request.DepartmentId,
                 CreatedAt = DateTime.UtcNow,
-                Role = UserRole.Student
+                Role = UserRole.Student,
+                RefreshToken = refreshTokens.hashedToken,
+                RefreshTokenExpiryTime = refreshTokens.expiryDate
             };
 
-            await _unitOfWork.Repository<User>().AddAsync(newUser);
+            await _unitOfWork.Repository<Student>().AddAsync(newStudent);
             await _unitOfWork.CompleteAsync();
 
-            var accessToken = _tokenService.GenerateAccessToken(newUser);
-            var refreshToken = _tokenService.GenerateRefreshToken();
+            var accessToken = _tokenService.GenerateAccessToken(newStudent);
 
-            newUser.RefreshToken = refreshToken;
-            newUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-
-            _unitOfWork.Repository<User>().Update(newUser);
-            await _unitOfWork.CompleteAsync();
-
-            return new AuthResponseDto(accessToken, refreshToken, newUser.RefreshTokenExpiryTime.Value, newUser.FullName, newUser.Role);
+            return new AuthResponseDto(accessToken, refreshTokens.rawToken, newStudent.RefreshTokenExpiryTime.Value, newStudent.FullName, newStudent.Role);
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
             var user = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == request.Email);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Inavlid email or password.");
+            if (user == null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
+                throw new UnauthorizedAccessException("Invalid email or password.");
 
             var accessToken = _tokenService.GenerateAccessToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
+            var refreshTokens = _tokenService.GenerateRefreshToken();
 
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshToken = refreshTokens.hashedToken;
+            user.RefreshTokenExpiryTime = refreshTokens.expiryDate;
 
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
 
-            return new AuthResponseDto(accessToken, refreshToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
+            return new AuthResponseDto(accessToken, refreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
 
         }
 
@@ -83,21 +84,23 @@ namespace InnoTrack.Application.Services
 
             var user = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == userEmail);
 
-            if(user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            var hashedIncomingToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
+
+            if (user == null || user.RefreshToken != hashedIncomingToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
                 throw new UnauthorizedAccessException("Invalid client request or refresh token expired.");
             }
 
             var newAccessToken = _tokenService.GenerateAccessToken(user);
-            var newRefreshToken = _tokenService.GenerateRefreshToken();
+            var newRefreshTokens = _tokenService.GenerateRefreshToken();
 
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshToken = newRefreshTokens.hashedToken;
+            user.RefreshTokenExpiryTime = newRefreshTokens.expiryDate;
 
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
 
-            return new AuthResponseDto(newAccessToken, newRefreshToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
+            return new AuthResponseDto(newAccessToken, newRefreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
         }
     }
 }
