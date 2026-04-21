@@ -13,8 +13,8 @@ namespace InnoTrack.API.Middlewares
         }
 
         public async ValueTask<bool> TryHandleAsync
-            (HttpContext httpContext, 
-             Exception exception, 
+            (HttpContext httpContext,
+             Exception exception,
              CancellationToken cancellationToken)
         {
             _logger.LogError(exception, "Exception occured: {Message}", exception.Message);
@@ -29,7 +29,7 @@ namespace InnoTrack.API.Middlewares
                     title = "Not Found";
                     break;
 
-                case UnauthorizedAccessException: 
+                case UnauthorizedAccessException:
                     statusCode = StatusCodes.Status401Unauthorized;
                     title = "Unauthorized";
                     break;

@@ -11,7 +11,7 @@ namespace InnoTrack.Domain.Entities
         public string Name { get; set; }
 
         [Column(TypeName = "nvarchar(max)")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public ICollection<Project> Projects { get; set; } = new HashSet<Project>();
     }

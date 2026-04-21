@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
 
 namespace InnoTrack.Domain.Interfaces
 {
@@ -13,12 +8,13 @@ namespace InnoTrack.Domain.Interfaces
         Task<T?> FindAsync(Expression<Func<T, bool>> predicate);
         IQueryable<T> Query();
         IQueryable<T> QueryAsNoTracking();
-        Task<IReadOnlyList<T>> GetAllAsync(
+        Task<(IReadOnlyList<T> Data, int TotalCount)> GetPagedAsync(
             Expression<Func<T, bool>>? filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
-            int pageIndex = 0,
+            int pageNumber = 1,
             int pageSize = 20
             );
+
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

@@ -43,9 +43,12 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<ITechnologyService, TechnologyService>();
+builder.Services.AddScoped<IDomainService, DomainService>();
+builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
-
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 if (string.IsNullOrWhiteSpace(jwtSettings?.Secret) || jwtSettings.Secret.Length < 32)

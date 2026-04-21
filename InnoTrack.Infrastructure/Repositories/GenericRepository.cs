@@ -1,13 +1,7 @@
 ﻿using InnoTrack.Domain.Interfaces;
 using InnoTrack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Infrastructure.Repositories
 {
@@ -25,25 +19,29 @@ namespace InnoTrack.Infrastructure.Repositories
 
         public IQueryable<T> Query() => _context.Set<T>();
         public IQueryable<T> QueryAsNoTracking() => _context.Set<T>().AsNoTracking();
-        public async Task<IReadOnlyList<T>> GetAllAsync(
-                    Expression<Func<T, bool>>? filter = null,
-                    Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
-                    int pageIndex = 0,
-                    int pageSize = 20)
+        public async Task<(IReadOnlyList<T> Data, int TotalCount)> GetPagedAsync(
+            Expression<Func<T, bool>>? filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            int pageNumber = 1,
+            int pageSize = 20)
         {
             IQueryable<T> query = _context.Set<T>().AsNoTracking();
-            
-            if(filter != null)
+
+            if (filter != null)
                 query = query.Where(filter);
+
+            int totalCount = await query.CountAsync();
 
             if (orderBy != null)
                 query = orderBy(query);
 
-            return await query
-                .Skip(pageSize * pageIndex)
+            var data = await query
+                .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-        }     
+
+            return (data, totalCount);
+        }
         public async Task AddAsync(T entity) => await _context.Set<T>().AddAsync(entity);
         public void Update(T entity) => _context.Set<T>().Update(entity);
         public void Delete(T entity) => _context.Set<T>().Remove(entity);

@@ -6,7 +6,7 @@ namespace InnoTrack.Domain.Entities
     public class User
     {
         public int Id { get; set; }
-    
+
         [Required, EmailAddress, MaxLength(255)]
         public string Email { get; set; }
 

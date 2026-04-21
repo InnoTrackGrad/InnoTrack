@@ -1,12 +1,6 @@
 ﻿using InnoTrack.Domain.Interfaces;
 using InnoTrack.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Infrastructure.Repositories
 {
