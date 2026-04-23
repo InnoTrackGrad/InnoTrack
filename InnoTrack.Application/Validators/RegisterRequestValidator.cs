@@ -7,7 +7,7 @@ namespace InnoTrack.Application.Validators
 {
     public class RegisterRequestValidator : AbstractValidator<RegisterRequestDto>
     {
-        public RegisterRequestValidator(IUnitOfWork _unitOfWork)
+        public RegisterRequestValidator(IUnitOfWork unitOfWork)
         {
             RuleFor(x => x.FirstName)
                 .NotEmpty().WithMessage("First Name is required.")
@@ -34,8 +34,13 @@ namespace InnoTrack.Application.Validators
             RuleFor(x => x.DepartmentId)
                 .GreaterThan(0).WithMessage("Valid Department is required.")
                 .MustAsync(async (id, ct) =>
-                    await _unitOfWork.Repository<Department>().GetByIdAsync(id) is not null)
+                    await unitOfWork.Repository<Department>().GetByIdAsync(id) is not null)
                 .WithMessage("The specified department does not exist.");
+
+            RuleFor(x => x.GraduationYear)
+                .InclusiveBetween(DateTime.UtcNow.Year, DateTime.UtcNow.Year + 5)
+                .WithMessage("Graduation year must be within the next 5 years.");
+
         }
     }
 }

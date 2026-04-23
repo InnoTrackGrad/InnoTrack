@@ -2,6 +2,7 @@
 using InnoTrack.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace InnoTrack.API.Controllers
 {
@@ -18,6 +19,7 @@ namespace InnoTrack.API.Controllers
 
         [HttpPost("register")]
         [AllowAnonymous]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             var response = await _authService.RegisterAsync(request);
@@ -26,6 +28,7 @@ namespace InnoTrack.API.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             var response = await _authService.LoginAsync(request);
@@ -34,6 +37,7 @@ namespace InnoTrack.API.Controllers
 
         [HttpPost("refresh-token")]
         [AllowAnonymous]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
             var response = await _authService.RefreshTokenAsync(request.AccessToken, request.RefreshToken);

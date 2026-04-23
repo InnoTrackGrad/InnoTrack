@@ -6,10 +6,12 @@ namespace InnoTrack.API.Middlewares
     public class GlobalExceptionHandler : IExceptionHandler
     {
         private readonly ILogger<GlobalExceptionHandler> _logger;
+        private readonly IHostEnvironment _env;
 
-        public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+        public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment env)
         {
             _logger = logger;
+            _env = env;
         }
 
         public async ValueTask<bool> TryHandleAsync
@@ -19,32 +21,27 @@ namespace InnoTrack.API.Middlewares
         {
             _logger.LogError(exception, "Exception occured: {Message}", exception.Message);
 
-            int statusCode = StatusCodes.Status500InternalServerError;
-            string title = "Server Error";
-
-            switch (exception)
+            var (statusCode, title) = exception switch
             {
-                case KeyNotFoundException:
-                    statusCode = StatusCodes.Status404NotFound;
-                    title = "Not Found";
-                    break;
+                KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
+                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
 
-                case UnauthorizedAccessException:
-                    statusCode = StatusCodes.Status401Unauthorized;
-                    title = "Unauthorized";
-                    break;
+                ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
 
-                case ArgumentException:
-                case InvalidOperationException:
-                    statusCode = StatusCodes.Status400BadRequest;
-                    title = "Bad Request";
-                    break;
-            }
+                InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
+
+                _ => (StatusCodes.Status500InternalServerError, "Server Error")
+            };
+
+            var detail = _env.IsDevelopment() 
+                ? exception.Message
+                : "An unexpected error occurred. Please contact support.";
+
             var problemDetails = new ProblemDetails
             {
                 Status = statusCode,
                 Title = title,
-                Detail = exception.Message
+                Detail = detail
             };
 
             httpContext.Response.StatusCode = statusCode;

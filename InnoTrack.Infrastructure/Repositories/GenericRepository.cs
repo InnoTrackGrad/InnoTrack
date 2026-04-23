@@ -17,11 +17,10 @@ namespace InnoTrack.Infrastructure.Repositories
         public async Task<T?> GetByIdAsync(int id) => await _context.Set<T>().FindAsync(id);
         public async Task<T?> FindAsync(Expression<Func<T, bool>> predicate) => await _context.Set<T>().FirstOrDefaultAsync(predicate);
 
-        public IQueryable<T> Query() => _context.Set<T>();
-        public IQueryable<T> QueryAsNoTracking() => _context.Set<T>().AsNoTracking();
         public async Task<(IReadOnlyList<T> Data, int TotalCount)> GetPagedAsync(
             Expression<Func<T, bool>>? filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            List<Expression<Func<T, object>>>? includes = null,
             int pageNumber = 1,
             int pageSize = 20)
         {
@@ -30,6 +29,9 @@ namespace InnoTrack.Infrastructure.Repositories
             if (filter != null)
                 query = query.Where(filter);
 
+            if(includes != null)
+                query = includes.Aggregate(query, (currentQuery, includeProperty) => currentQuery.Include(includeProperty));
+            
             int totalCount = await query.CountAsync();
 
             if (orderBy != null)

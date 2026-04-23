@@ -19,10 +19,6 @@ namespace InnoTrack.Domain.Entities
         public string LastName { get; set; }
         public string FullName => $"{FirstName} {LastName}";
 
-        [Required]
-        public int DepartmentId { get; set; }
-        public Department Department { get; set; }
-
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
 

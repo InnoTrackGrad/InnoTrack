@@ -30,7 +30,7 @@ namespace InnoTrack.Application.Services
                 pageNumber: pageNumber,
                 pageSize: pageSize);
 
-            var mappedData = _mapper.Map<IEnumerable<DepartmentDto>>(data);
+            var mappedData = _mapper.Map<IReadOnlyList<DepartmentDto>>(data);
             return new PagedResult<DepartmentDto>(mappedData, totalCount, pageNumber, pageSize);
         }
 

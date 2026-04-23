@@ -19,7 +19,7 @@ namespace InnoTrack.Application.Services
 
         public async Task<DomainDto> CreateDomainAsync(CreateDomainDto request)
         {
-            var domain = new Domain.Entities.Domain { Name = request.Name };
+            var domain = new Domain.Entities.Domain { Name = request.Name, Description = request.Description };
             await _unitOfWork.Repository<Domain.Entities.Domain>().AddAsync(domain);
             await _unitOfWork.CompleteAsync();
             return _mapper.Map<DomainDto>(domain);
@@ -31,7 +31,7 @@ namespace InnoTrack.Application.Services
                 pageNumber: pageNumber,
                 pageSize: pageSize);
 
-            var mappedData = _mapper.Map<IEnumerable<DomainDto>>(data);
+            var mappedData = _mapper.Map<IReadOnlyList<DomainDto>>(data);
             return new PagedResult<DomainDto>(mappedData, totalCount, pageNumber, pageSize);
         }
 
@@ -48,6 +48,8 @@ namespace InnoTrack.Application.Services
             if (domain == null) throw new KeyNotFoundException("Domain not found.");
 
             domain.Name = request.Name;
+            domain.Description = request.Description;
+
             _unitOfWork.Repository<Domain.Entities.Domain>().Update(domain);
             await _unitOfWork.CompleteAsync();
         }

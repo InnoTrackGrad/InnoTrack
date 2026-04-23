@@ -9,7 +9,7 @@ namespace InnoTrack.Domain.Entities
         [Required, MaxLength(100)]
         public string Name { get; set; }
 
-        [Required, MaxLength(50)]
+        [Required, MaxLength(8)]
         public string Code { get; set; }
 
         public ICollection<Student> Students { get; set; } = new HashSet<Student>();

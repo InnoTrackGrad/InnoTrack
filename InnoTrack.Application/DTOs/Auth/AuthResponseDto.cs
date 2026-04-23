@@ -3,5 +3,5 @@
 namespace InnoTrack.Application.DTOs.Auth
 {
     public record AuthResponseDto
-        (string AccessToken, string RefreshToken, DateTime RefreshTokenExpiration, string Name, UserRole Role);
+        (string AccessToken, string RefreshToken, DateTime RefreshTokenExpiration, string Name, string Role);
 }

@@ -10,8 +10,8 @@ namespace InnoTrack.Application.Mappings
         {
             CreateMap<Department, DepartmentDto>().ReverseMap();
             CreateMap<Domain.Entities.Domain, DomainDto>().ReverseMap();
-            CreateMap<Technology, TechnologyDto>().ReverseMap();
-
+            CreateMap<Technology, TechnologyDto>()
+                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()));
         }
     }
 }

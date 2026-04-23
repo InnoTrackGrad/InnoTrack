@@ -8,25 +8,14 @@ namespace InnoTrack.Infrastructure.Repositories
     {
         private readonly ApplicationDbContext _context;
         private readonly IServiceProvider _serviceProvider;
-        private readonly Dictionary<Type, object> _repositories = new();
         public UnitOfWork(ApplicationDbContext context, IServiceProvider serviceProvider)
         {
             _context = context;
             _serviceProvider = serviceProvider;
         }
 
-        public IGenericRepository<T> Repository<T>() where T : class
-        {
-            var type = typeof(T);
-
-            if (!_repositories.TryGetValue(type, out var repo))
-            {
-                repo = _serviceProvider.GetRequiredService<IGenericRepository<T>>();
-                _repositories[type] = repo;
-            }
-
-            return (IGenericRepository<T>)repo;
-        }
+        public IGenericRepository<T> Repository<T>() where T : class => 
+            _serviceProvider.GetRequiredService<IGenericRepository<T>>();
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();
 

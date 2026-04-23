@@ -6,11 +6,11 @@ namespace InnoTrack.Domain.Interfaces
     {
         Task<T?> GetByIdAsync(int id);
         Task<T?> FindAsync(Expression<Func<T, bool>> predicate);
-        IQueryable<T> Query();
-        IQueryable<T> QueryAsNoTracking();
+
         Task<(IReadOnlyList<T> Data, int TotalCount)> GetPagedAsync(
             Expression<Func<T, bool>>? filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            List<Expression<Func<T, object>>>? includes = null,
             int pageNumber = 1,
             int pageSize = 20
             );

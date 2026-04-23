@@ -168,11 +168,6 @@ namespace InnoTrack.Infrastructure.Data
                         .HasKey(pt => new { pt.ProjectId, pt.TechnologyId });
 
             modelBuilder.Entity<ProjectTechnology>()
-                        .HasOne(pt => pt.Project)
-                        .WithMany(p => p.ProjectTechnologies)
-                        .HasForeignKey(pt => pt.ProjectId);
-
-            modelBuilder.Entity<ProjectTechnology>()
                         .HasOne(pt => pt.Technology)
                         .WithMany(t => t.ProjectTechnologies)
                         .HasForeignKey(pt => pt.TechnologyId);

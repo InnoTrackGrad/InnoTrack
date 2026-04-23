@@ -4,6 +4,9 @@ namespace InnoTrack.Domain.Entities
 {
     public class Professor : User
     {
+        [Required]
+        public int DepartmentId { get; set; }
+        public Department Department { get; set; } = null!;
 
         [Required, MaxLength(100)]
         public string Specialization { get; set; }

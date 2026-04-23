@@ -23,7 +23,15 @@ namespace InnoTrack.Application.Services
 
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
-            user.DepartmentId = request.DepartmentId;
+            if (user is Student student)
+            {
+                student.DepartmentId = request.DepartmentId;
+                student.GraduationYear = request.GraduationYear;
+            }
+            else if (user is Professor professor)
+            {
+                professor.DepartmentId = request.DepartmentId;
+            }
 
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();

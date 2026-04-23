@@ -26,7 +26,7 @@ namespace InnoTrack.Application.Services
         {
             var existingUser = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == request.Email);
             if (existingUser != null)
-                throw new ArgumentException("Email is already registered.");
+                throw new InvalidOperationException("Email is already registered.");
 
             var passwordHash = _passwordHasher.Hash(request.Password);
 
@@ -39,6 +39,7 @@ namespace InnoTrack.Application.Services
                 Email = request.Email,
                 PasswordHash = passwordHash,
                 DepartmentId = request.DepartmentId,
+                GraduationYear = request.GraduationYear,
                 CreatedAt = DateTime.UtcNow,
                 Role = UserRole.Student,
                 RefreshToken = refreshTokens.hashedToken,
@@ -50,7 +51,7 @@ namespace InnoTrack.Application.Services
 
             var accessToken = _tokenService.GenerateAccessToken(newStudent);
 
-            return new AuthResponseDto(accessToken, refreshTokens.rawToken, newStudent.RefreshTokenExpiryTime.Value, newStudent.FullName, newStudent.Role);
+            return new AuthResponseDto(accessToken, refreshTokens.rawToken, newStudent.RefreshTokenExpiryTime.Value, newStudent.FullName, newStudent.Role.ToString());
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -68,7 +69,7 @@ namespace InnoTrack.Application.Services
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
 
-            return new AuthResponseDto(accessToken, refreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
+            return new AuthResponseDto(accessToken, refreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role.ToString());
 
         }
 
@@ -95,7 +96,7 @@ namespace InnoTrack.Application.Services
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
 
-            return new AuthResponseDto(newAccessToken, newRefreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role);
+            return new AuthResponseDto(newAccessToken, newRefreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role.ToString());
         }
     }
 }

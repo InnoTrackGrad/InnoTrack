@@ -3,6 +3,7 @@ using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Lookups;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 
 namespace InnoTrack.Application.Services
@@ -20,7 +21,9 @@ namespace InnoTrack.Application.Services
 
         public async Task<TechnologyDto> CreateTechnologyAsync(CreateTechnologyDto request)
         {
-            var technology = new Technology { Name = request.Name, Category = request.Category };
+            if (!Enum.TryParse<TechnologyCategory>(request.Category, true, out var categoryEnum))
+                throw new ArgumentException($"Invalid category: {request.Category}");
+            var technology = new Technology { Name = request.Name, Category = categoryEnum };
             await _unitOfWork.Repository<Technology>().AddAsync(technology);
             await _unitOfWork.CompleteAsync();
             return _mapper.Map<TechnologyDto>(technology);
@@ -32,7 +35,7 @@ namespace InnoTrack.Application.Services
                 pageNumber: pageNumber,
                 pageSize: pageSize);
 
-            var mappedData = _mapper.Map<IEnumerable<TechnologyDto>>(data);
+            var mappedData = _mapper.Map<IReadOnlyList<TechnologyDto>>(data);
             return new PagedResult<TechnologyDto>(mappedData, totalCount, pageNumber, pageSize);
         }
 
@@ -47,8 +50,11 @@ namespace InnoTrack.Application.Services
             var technology = await _unitOfWork.Repository<Technology>().GetByIdAsync(id);
             if (technology == null) throw new KeyNotFoundException("Technology not found.");
 
+            if (!Enum.TryParse<TechnologyCategory>(request.Category, true, out var categoryEnum))
+                throw new ArgumentException($"Invalid category: {request.Category}");
+           
             technology.Name = request.Name;
-            technology.Category = request.Category;
+            technology.Category = categoryEnum;
 
             _unitOfWork.Repository<Technology>().Update(technology);
             await _unitOfWork.CompleteAsync();
