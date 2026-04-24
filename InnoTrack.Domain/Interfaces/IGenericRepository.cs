@@ -6,6 +6,7 @@ namespace InnoTrack.Domain.Interfaces
     {
         Task<T?> GetByIdAsync(int id);
         Task<T?> FindAsync(Expression<Func<T, bool>> predicate);
+        Task<IReadOnlyList<T>> GetAllAsync(Expression<Func<T, bool>> predicate);
 
         Task<(IReadOnlyList<T> Data, int TotalCount)> GetPagedAsync(
             Expression<Func<T, bool>>? filter = null,
@@ -15,6 +16,8 @@ namespace InnoTrack.Domain.Interfaces
             int pageSize = 20
             );
 
+        Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
+        Task<int> CountAsync(Expression<Func<T, bool>> filter);
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

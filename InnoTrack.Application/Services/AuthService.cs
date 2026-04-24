@@ -4,8 +4,10 @@ using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+
 
 namespace InnoTrack.Application.Services
 {
@@ -40,6 +42,7 @@ namespace InnoTrack.Application.Services
                 PasswordHash = passwordHash,
                 DepartmentId = request.DepartmentId,
                 GraduationYear = request.GraduationYear,
+                GPA = request.GPA,
                 CreatedAt = DateTime.UtcNow,
                 Role = UserRole.Student,
                 RefreshToken = refreshTokens.hashedToken,
@@ -70,13 +73,13 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
 
             return new AuthResponseDto(accessToken, refreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role.ToString());
-
         }
 
         public async Task<AuthResponseDto> RefreshTokenAsync(string token, string refreshToken)
         {
             var principal = _tokenService.GetPrincipalFromExpiredToken(token);
-            var userEmail = principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email)?.Value;
+            var userEmail = principal.FindFirst(ClaimTypes.Email)?.Value
+                         ?? principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email)?.Value;
 
             var user = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == userEmail);
 

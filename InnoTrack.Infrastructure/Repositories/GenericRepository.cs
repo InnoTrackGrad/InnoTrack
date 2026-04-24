@@ -17,6 +17,10 @@ namespace InnoTrack.Infrastructure.Repositories
         public async Task<T?> GetByIdAsync(int id) => await _context.Set<T>().FindAsync(id);
         public async Task<T?> FindAsync(Expression<Func<T, bool>> predicate) => await _context.Set<T>().FirstOrDefaultAsync(predicate);
 
+        public async Task<IReadOnlyList<T>> GetAllAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _context.Set<T>().Where(predicate).ToListAsync();
+        }
         public async Task<(IReadOnlyList<T> Data, int TotalCount)> GetPagedAsync(
             Expression<Func<T, bool>>? filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
@@ -44,6 +48,13 @@ namespace InnoTrack.Infrastructure.Repositories
 
             return (data, totalCount);
         }
+
+        public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _context.Set<T>().AnyAsync(predicate);
+        }
+        public async Task<int> CountAsync(Expression<Func<T, bool>> filter)
+            => await _context.Set<T>().CountAsync(filter);
         public async Task AddAsync(T entity) => await _context.Set<T>().AddAsync(entity);
         public void Update(T entity) => _context.Set<T>().Update(entity);
         public void Delete(T entity) => _context.Set<T>().Remove(entity);

@@ -9,7 +9,7 @@ namespace InnoTrack.Domain.Entities
         public int DepartmentId { get; set; }
         public Department Department { get; set; } = null!;
 
-        [Column(TypeName = "decimal(3,3)")]
+        [Column(TypeName = "decimal(4,2)")]
         [Range(0, 4.0)]
         public decimal? GPA { get; set; }
 

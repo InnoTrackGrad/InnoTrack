@@ -21,8 +21,9 @@ namespace InnoTrack.Domain.Entities
         [Required]
         public ProjectStatus Status { get; set; }
 
-        [Column(TypeName = "decimal(5,2)"), Range(0, 100)]
-        public decimal OriginalityScore { get; set; }
+        [Column(TypeName = "decimal(5,2)")]
+        [Range(0, 100)]
+        public decimal? OriginalityScore { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

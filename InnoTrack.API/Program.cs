@@ -5,6 +5,7 @@ using InnoTrack.Application.Services;
 using InnoTrack.Application.Validators;
 using InnoTrack.Domain.Interfaces;
 using InnoTrack.Infrastructure.Data;
+using InnoTrack.Infrastructure.Helpers;
 using InnoTrack.Infrastructure.Identity;
 using InnoTrack.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -66,6 +67,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -75,10 +77,16 @@ builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<ITechnologyService, TechnologyService>();
 builder.Services.AddScoped<IDomainService, DomainService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IJoinRequestService, JoinRequestService>();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
+builder.Services.AddSingleton<IJoinCodeGenerator, JoinCodeGenerator>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
+var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSettingsSection);
+    
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 if (string.IsNullOrWhiteSpace(jwtSettings?.Secret) || jwtSettings.Secret.Length < 32)
     throw new InvalidOperationException(
@@ -92,13 +100,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
     var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
         ?? throw new InvalidOperationException("JwtSettings section is missing.");
     if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
         throw new InvalidOperationException("JwtSettings:Secret is not configured or too short.");
 
-    builder.Services.Configure<JwtSettings>(jwtSettingsSection);
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -159,5 +165,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+await DbSeeder.SeedAdminAsync(app.Services);
 
 app.Run();
