@@ -26,7 +26,7 @@ namespace InnoTrack.API.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] CreateTeamDto dto)
         {
-            var userId = int.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var result = await _teamService.CreateTeamAsync(userId, dto);
             return Ok(result);
         }
@@ -35,7 +35,7 @@ namespace InnoTrack.API.Controllers
         [HttpPost("join-request")]
         public async Task<IActionResult> JoinRequest(JoinRequestDto dto)
         {
-            var userId = int.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _joinRequestService.RequestToJoinAsync(userId, dto.JoinCode);
             return Ok(new { message = "Request sent successfully." });
         }
@@ -44,7 +44,7 @@ namespace InnoTrack.API.Controllers
         [HttpPost("handle-request")]
         public async Task<IActionResult> HandleRequest([FromBody] HandleRequestDto dto)
         {
-            var userId = int.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _joinRequestService.HandleRequestAsync(userId, dto);
             return Ok(new { message = "Request handled successfully." });
         }

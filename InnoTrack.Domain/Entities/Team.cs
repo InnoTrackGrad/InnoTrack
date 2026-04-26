@@ -9,7 +9,7 @@ namespace InnoTrack.Domain.Entities
         [Required, MaxLength(100)]
         public string Name { get; set; }
 
-        [Required, MaxLength(20)]
+        [Required, MaxLength(30)]
         public string JoinCode { get; set; }
 
         [Required, Range(1, 20)]

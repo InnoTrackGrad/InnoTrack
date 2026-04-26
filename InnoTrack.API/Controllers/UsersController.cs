@@ -23,7 +23,7 @@ namespace InnoTrack.API.Controllers
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request)
         {
-            var userId = int.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _userService.UpdateProfileAsync(userId, request);
             return NoContent();
         }
@@ -31,7 +31,7 @@ namespace InnoTrack.API.Controllers
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
         {
-            var userId = int.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _userService.ChangePasswordAsync(userId, request);
             return NoContent();
         }
