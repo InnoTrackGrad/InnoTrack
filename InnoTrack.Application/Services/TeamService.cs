@@ -29,15 +29,23 @@ namespace InnoTrack.Application.Services
         public async Task<TeamResponseDto> CreateTeamAsync(int leaderStudentId, CreateTeamDto request)
         {
             var alreadyInTeam = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.StudentId == leaderStudentId);
-            if (alreadyInTeam != null) throw new InvalidOperationException("You are already a member of a team.");
-
-            string code;
-            do { code = _codeGenerator.GenerateJoinCode(); }
-            while (await _unitOfWork.Repository<Team>().FindAsync(t => t.JoinCode == code) != null);
+            if (alreadyInTeam != null) 
+                throw new InvalidOperationException("You are already a member of a team.");
 
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                string code;
+                const int maxAttempts = 5;
+                int attempt = 0;
+                do 
+                {
+                    if(++attempt > maxAttempts)
+                        throw new InvalidOperationException("Failed to generate a unique join code. Try again.");
+                    code = _codeGenerator.GenerateJoinCode(); 
+                }
+                while (await _unitOfWork.Repository<Team>().FindAsync(t => t.JoinCode == code) != null);
+
                 var team = new Team 
                 { 
                     Name = request.Name, 
@@ -54,9 +62,8 @@ namespace InnoTrack.Application.Services
                     Role = TeamMemberRole.Leader
                 };
                 await _unitOfWork.Repository<TeamMember>().AddAsync(member);
-                await _unitOfWork.CompleteAsync();
-
                 await _unitOfWork.CommitTransactionAsync();
+
                 return _mapper.Map<TeamResponseDto>(team);
             }
             catch (Exception)

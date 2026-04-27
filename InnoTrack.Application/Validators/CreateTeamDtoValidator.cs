@@ -17,7 +17,7 @@ namespace InnoTrack.Application.Validators
                 .MaximumLength(100).WithMessage("Team name cannot exceed 100 characters.");
 
             RuleFor(x => x.MaxSize)
-                .InclusiveBetween(2, 10)
+                .InclusiveBetween(2, 11)
                 .WithMessage("Team size must be between 2 and 11 members according to faculty regulations.");
         }
     }

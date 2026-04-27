@@ -73,6 +73,15 @@ namespace InnoTrack.Application.Services
 
                 if (dto.Accept)
                 {
+                    var currentCount = await _unitOfWork.Repository<TeamMember>()
+                        .CountAsync(tm => tm.TeamId == request.TeamId);
+
+                    var team = await _unitOfWork.Repository<Team>().GetByIdAsync(request.TeamId)
+                        ?? throw new KeyNotFoundException("Team not found.");
+
+                    if (currentCount >= team.MaxSize)
+                        throw new InvalidOperationException("Team is already full. Cannot accept this request.");
+
                     request.Status = RequestStatus.Approved;
                     var newMember = new TeamMember
                     {
@@ -82,18 +91,36 @@ namespace InnoTrack.Application.Services
                     };
                     await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
 
-                    var otherRequests = await _unitOfWork.Repository<JoinRequest>()
-                        .GetAllAsync(r => r.StudentId == request.StudentId && r.Id != request.Id);
+                    var otherPendingRequests = await _unitOfWork.Repository<JoinRequest>()
+                        .GetAllAsync(r => r.StudentId == request.StudentId 
+                                       && r.Id != request.Id
+                                       && r.Status == RequestStatus.Pending);
                     
-                    foreach (var otherRequest in otherRequests)
+                    foreach (var other in otherPendingRequests)
                     {
-                        otherRequest.Status = RequestStatus.Rejected;
-                        _unitOfWork.Repository<JoinRequest>().Update(otherRequest);
+                        other.Status = RequestStatus.Rejected;
+                        _unitOfWork.Repository<JoinRequest>().Update(other);
                     }
+
+                    await _unitOfWork.Repository<Notification>().AddAsync(new Notification
+                    {
+                        UserId = request.StudentId,
+                        Title = "Join Request Accepted",
+                        Message = "Your request to join the team has been accepted.",
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
                 else
                 {
                     request.Status = RequestStatus.Rejected;
+
+                    await _unitOfWork.Repository<Notification>().AddAsync(new Notification
+                    {
+                        UserId = request.StudentId,
+                        Title = "Join Request Rejected",
+                        Message = "Your request to join the team has been rejected.",
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
                 await _unitOfWork.CommitTransactionAsync();
             }

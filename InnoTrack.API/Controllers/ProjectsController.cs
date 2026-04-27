@@ -44,15 +44,12 @@ namespace InnoTrack.API.Controllers
                 stream,
                 file.FileName,
                 file.ContentType,
+                file.Length,
                 projectId,
                 userId
             );
 
-            return Ok(new
-            {
-                message = "File uploaded successfully",
-                filePath = attachment.FilePath
-            });
+            return Ok(attachment);
         }
     }
 }

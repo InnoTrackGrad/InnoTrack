@@ -10,7 +10,7 @@ namespace InnoTrack.Application.Mappings
         public MappingProfile()
         {
             CreateMap<Department, DepartmentDto>().ReverseMap();
-            CreateMap<TeamResponseDto, Team>().ReverseMap();
+            CreateMap<Team, TeamResponseDto>().ReverseMap();
             CreateMap<Domain.Entities.Domain, DomainDto>().ReverseMap();
             CreateMap<Technology, TechnologyDto>()
                 .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()));

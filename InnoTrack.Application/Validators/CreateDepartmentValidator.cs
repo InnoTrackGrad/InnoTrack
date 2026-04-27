@@ -15,14 +15,10 @@ namespace InnoTrack.Application.Validators
 
             RuleFor(x => x.Code)
                 .NotEmpty().WithMessage("Department code is required.")
-                .MustAsync(async (code, cancellationToken) =>
-                {
-                    var existingDepartment = await unitOfWork.Repository<Department>()
-                        .FindAsync(d => d.Code == code);
-
-                    return existingDepartment == null;
-                }).WithMessage("Department code already exists.")
-                .MaximumLength(8).WithMessage("Department code cannot exceed 8 characters.");
+                .MaximumLength(8).WithMessage("Department code cannot exceed 8 characters.")
+                .MustAsync(async (code, ct) =>
+                    await unitOfWork.Repository<Department>().FindAsync(d => d.Code == code) == null)
+                .WithMessage("Department code already exists.");
         }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,12 +10,12 @@ namespace InnoTrack.Infrastructure.Helpers
 {
     public class JoinCodeGenerator : IJoinCodeGenerator
     {
+        private const string Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         public string GenerateJoinCode(int length = 8)
         {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            var bytes = new byte[length];
+            RandomNumberGenerator.Fill(bytes); // cryptographically secure
+            return new string(bytes.Select(b => Chars[b % Chars.Length]).ToArray());
         }
     }
 }

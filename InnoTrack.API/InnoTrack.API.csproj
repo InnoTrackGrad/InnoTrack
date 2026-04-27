@@ -26,4 +26,8 @@
     <ProjectReference Include="..\InnoTrack.Infrastructure\InnoTrack.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

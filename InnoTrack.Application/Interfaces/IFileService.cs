@@ -1,4 +1,5 @@
-﻿using InnoTrack.Domain.Entities;
+﻿using InnoTrack.Application.DTOs.Projects;
+using InnoTrack.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +10,14 @@ namespace InnoTrack.Application.Interfaces
 {
     public interface IFileService
     {
-        Task<ProjectAttachment> UploadFileAsync(
+        Task<ProjectAttachmentDto> UploadFileAsync(
                     Stream fileStream,
                     string fileName,
                     string contentType,
+                    long fileSize,
                     int projectId,
                     int uploaderId);
+
+        Task<ProjectAttachment> GetAttachmentIfAuthorizedAsync(int attachmentId, int userId);
     }
 }

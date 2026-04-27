@@ -25,7 +25,11 @@ namespace InnoTrack.Application.Validators
                 .MinimumLength(50).WithMessage("The detailed description must be at least 50 characters.");
 
             RuleFor(x => x.TechnologyIds)
-                .NotEmpty().WithMessage("At least one technology must be selected for the project.");
+                .NotEmpty().WithMessage("At least one technology must be selected for the project.")
+                .Must(ids => ids.All(id => id > 0))
+                .WithMessage("All technology IDs must be valid positive integers.")
+                .Must(ids => ids.Distinct().Count() == ids.Count)
+                .WithMessage("Duplicate technology IDs are not allowed.");
 
             RuleFor(x => x.DomainId)
                 .GreaterThan(0).WithMessage("A valid project domain must be selected.");
