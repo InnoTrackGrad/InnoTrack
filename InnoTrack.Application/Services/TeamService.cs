@@ -62,6 +62,14 @@ namespace InnoTrack.Application.Services
                     Role = TeamMemberRole.Leader
                 };
                 await _unitOfWork.Repository<TeamMember>().AddAsync(member);
+
+                var chatRoom = new ChatRoom
+                {
+                    TeamId = team.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _unitOfWork.Repository<ChatRoom>().AddAsync(chatRoom);
+
                 await _unitOfWork.CommitTransactionAsync();
 
                 return _mapper.Map<TeamResponseDto>(team);

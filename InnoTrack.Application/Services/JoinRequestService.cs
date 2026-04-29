@@ -14,8 +14,14 @@ namespace InnoTrack.Application.Services
     public class JoinRequestService : IJoinRequestService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public JoinRequestService(IUnitOfWork unitOfWork) => _unitOfWork = unitOfWork;
+
+        public JoinRequestService(IUnitOfWork unitOfWork, INotificationService notificationService)
+        {
+            _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
+        }
 
         public async Task RequestToJoinAsync(int studentId, string joinCode)
         {
@@ -39,23 +45,21 @@ namespace InnoTrack.Application.Services
             };
 
             await _unitOfWork.Repository<JoinRequest>().AddAsync(request);
+            await _unitOfWork.CompleteAsync();
 
             var leader = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.TeamId == team.Id && tm.Role == TeamMemberRole.Leader);
             
             if (leader != null)
             {
-                var notification = new Notification
-                {
-                    UserId = leader.StudentId,
-                    Title = "New Join Request",
-                    Message = $"A new student wants to join your team ({team.Name}).",
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-                await _unitOfWork.Repository<Notification>().AddAsync(notification);
+                var student = await _unitOfWork.Repository<User>().GetByIdAsync(studentId);
+
+                await _notificationService.SendNotificationAsync(
+                    leader.StudentId,
+                    "New Join Request",
+                    $"{student.FirstName} {student.LastName} wants to join your team: {team.Name}",
+                    NotificationType.Info);
             }
-            await _unitOfWork.CompleteAsync();
         }
 
         public async Task HandleRequestAsync(int leaderId, HandleRequestDto dto)

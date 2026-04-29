@@ -69,5 +69,26 @@ namespace InnoTrack.Application.Services
                 throw;
             }
         }
+
+        public async Task VerifyProjectForSubmissionAsync(int projectId, int userId)
+        {
+            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
+            if (project == null)
+                throw new KeyNotFoundException("Project not found.");
+
+            if (project.Status != ProjectStatus.Draft)
+                throw new InvalidOperationException("Only projects in Draft status can be submitted.");
+
+            var leaderRecord = await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId);
+
+            if (leaderRecord == null || leaderRecord.Role != TeamMemberRole.Leader)
+                throw new UnauthorizedAccessException("Only the team leader can submit the project.");
+
+            project.Status = ProjectStatus.Submitted;
+
+            _unitOfWork.Repository<Project>().Update(project);
+            await _unitOfWork.CompleteAsync();
+        }
     }
 }

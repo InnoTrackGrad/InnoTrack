@@ -1,9 +1,12 @@
 using FluentValidation;
+using InnoTrack.API.Hubs;
 using InnoTrack.API.Middlewares;
+using InnoTrack.API.Services;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Services;
 using InnoTrack.Application.Validators;
 using InnoTrack.Domain.Interfaces;
+using InnoTrack.Infrastructure.BackgroundJobs;
 using InnoTrack.Infrastructure.Data;
 using InnoTrack.Infrastructure.Helpers;
 using InnoTrack.Infrastructure.Identity;
@@ -82,8 +85,15 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IJoinRequestService, JoinRequestService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IProjectAnalysisService, ProjectAnalysisService>();
+builder.Services.AddHttpClient<IPythonAiClient, PythonAiClient>();
+builder.Services.AddHostedService<AiProcessingBackgroundService>();
+builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
 builder.Services.AddSingleton<IJoinCodeGenerator, JoinCodeGenerator>();
+builder.Services.AddSingleton<ProjectAnalysisQueue>();
+
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
@@ -108,7 +118,6 @@ builder.Services.AddAuthentication(options =>
     if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
         throw new InvalidOperationException("JwtSettings:Secret is not configured or too short.");
 
-
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -118,6 +127,20 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -170,6 +193,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 await DbSeeder.SeedAdminAsync(app.Services);
 
