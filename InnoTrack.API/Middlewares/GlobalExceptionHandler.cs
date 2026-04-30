@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using InnoTrack.Application.Exceptions;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InnoTrack.API.Middlewares
@@ -29,6 +30,8 @@ namespace InnoTrack.API.Middlewares
                 ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
 
                 InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
+
+                ExternalServiceException => (StatusCodes.Status502BadGateway, "Bad Gateway"),
 
                 _ => (StatusCodes.Status500InternalServerError, "Server Error")
             };

@@ -3,6 +3,7 @@
     public enum ProjectStatus
     {
         Draft,
+        Processing,
         Submitted,
         Completed,
         Rejected

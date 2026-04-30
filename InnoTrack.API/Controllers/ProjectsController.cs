@@ -26,7 +26,7 @@ namespace InnoTrack.API.Controllers
         }
 
         [HttpPost("create")]
-        public async Task<IActionResult> CreateProject(CreateProjectDto dto)
+        public async Task<IActionResult> CreateProject([FromBody] CreateProjectDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var result = await _projectService.CreateProjectAsync(userId, dto);

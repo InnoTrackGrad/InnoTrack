@@ -8,7 +8,7 @@ namespace InnoTrack.Domain.Entities
     {
         public int Id { get; set; }
 
-        [Required, Column(TypeName = "nvarchar(max)")]
+        [Required, MaxLength(2000)]
         public string Content { get; set; } = null!;
         public MessageType Type { get; set; } = MessageType.Text;
 

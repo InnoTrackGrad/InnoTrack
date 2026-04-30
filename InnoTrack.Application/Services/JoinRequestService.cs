@@ -3,6 +3,7 @@ using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +16,13 @@ namespace InnoTrack.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<JoinRequestService> _logger;
 
-
-        public JoinRequestService(IUnitOfWork unitOfWork, INotificationService notificationService)
+        public JoinRequestService(IUnitOfWork unitOfWork, INotificationService notificationService, ILogger<JoinRequestService> logger)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task RequestToJoinAsync(int studentId, string joinCode)
@@ -65,7 +67,6 @@ namespace InnoTrack.Application.Services
         public async Task HandleRequestAsync(int leaderId, HandleRequestDto dto)
         {
             await _unitOfWork.BeginTransactionAsync();
-
             try
             {
                 var request = await _unitOfWork.Repository<JoinRequest>().GetByIdAsync(dto.RequestId);
@@ -74,6 +75,10 @@ namespace InnoTrack.Application.Services
                 var leader = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.TeamId == request.TeamId && tm.StudentId == leaderId);
                 if (leader == null || leader.Role != TeamMemberRole.Leader)
                     throw new UnauthorizedAccessException("Only the team leader can handle requests.");
+
+                int userId = request.StudentId;
+                string notifTitle, notifMessage;
+                NotificationType notifType;
 
                 if (dto.Accept)
                 {
@@ -106,27 +111,27 @@ namespace InnoTrack.Application.Services
                         _unitOfWork.Repository<JoinRequest>().Update(other);
                     }
 
-                    await _unitOfWork.Repository<Notification>().AddAsync(new Notification
-                    {
-                        UserId = request.StudentId,
-                        Title = "Join Request Accepted",
-                        Message = "Your request to join the team has been accepted.",
-                        CreatedAt = DateTime.UtcNow
-                    });
+                    notifTitle = "Join Request Accepted";
+                    notifMessage = "Your request to join the team has been accepted.";
+                    notifType = NotificationType.Success;
                 }
                 else
                 {
                     request.Status = RequestStatus.Rejected;
-
-                    await _unitOfWork.Repository<Notification>().AddAsync(new Notification
-                    {
-                        UserId = request.StudentId,
-                        Title = "Join Request Rejected",
-                        Message = "Your request to join the team has been rejected.",
-                        CreatedAt = DateTime.UtcNow
-                    });
+                    notifTitle = "Join Request Rejected";
+                    notifMessage = "Your request to join the team has been rejected.";
+                    notifType = NotificationType.Error;
                 }
                 await _unitOfWork.CommitTransactionAsync();
+
+                try
+                {
+                    await _notificationService.SendNotificationAsync(userId, notifTitle, notifMessage, notifType);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send notification to user {UserId} after handling join request.", userId);
+                }
             }
             catch (Exception)
             {

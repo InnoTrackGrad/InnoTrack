@@ -37,6 +37,16 @@ namespace InnoTrack.API.Hubs
 
         public async Task SendMessage(int teamId, string messageContent)
         {
+            if (string.IsNullOrWhiteSpace(messageContent))
+                throw new HubException("Message cannot be empty.");
+
+            if (messageContent.Length > 2000)
+                throw new HubException("Message exceeds the maximum allowed length of 2000 characters.");
+
+            if (teamId <= 0)
+                throw new HubException("Invalid team ID.");
+
+
             var claimValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(claimValue) || !int.TryParse(claimValue, out int userId))
             {

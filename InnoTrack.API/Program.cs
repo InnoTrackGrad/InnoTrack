@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Polly;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
@@ -27,6 +28,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddHttpClient<IPythonAiClient, PythonAiClient>(client =>
+{
+    var aiUrl = builder.Configuration["AiService:BaseUrl"]
+        ?? throw new InvalidOperationException("AiService:BaseUrl is not configured.");
+    client.BaseAddress = new Uri(aiUrl);
+    client.Timeout = TimeSpan.FromSeconds(120);
+})
+    .AddTransientHttpErrorPolicy(policy =>
+        policy.WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))))
+    .AddTransientHttpErrorPolicy(policy =>
+        policy.CircuitBreakerAsync(5, TimeSpan.FromMinutes(1)));
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -87,13 +99,11 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IProjectAnalysisService, ProjectAnalysisService>();
-builder.Services.AddHttpClient<IPythonAiClient, PythonAiClient>();
 builder.Services.AddHostedService<AiProcessingBackgroundService>();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
 builder.Services.AddSingleton<IJoinCodeGenerator, JoinCodeGenerator>();
-builder.Services.AddSingleton<ProjectAnalysisQueue>();
-
+builder.Services.AddSingleton<IProjectAnalysisQueue, ProjectAnalysisQueue>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 

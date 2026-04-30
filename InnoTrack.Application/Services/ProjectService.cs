@@ -85,7 +85,8 @@ namespace InnoTrack.Application.Services
             if (leaderRecord == null || leaderRecord.Role != TeamMemberRole.Leader)
                 throw new UnauthorizedAccessException("Only the team leader can submit the project.");
 
-            project.Status = ProjectStatus.Submitted;
+            project.Status = ProjectStatus.Processing;
+            project.SubmittedAt = DateTime.UtcNow;
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();

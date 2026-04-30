@@ -1,4 +1,5 @@
 ﻿using InnoTrack.Application.DTOs.AI;
+using InnoTrack.Application.Exceptions;
 using InnoTrack.Application.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,6 @@ namespace InnoTrack.Application.Services
         public PythonAiClient(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _httpClient.BaseAddress = new Uri("http://localhost:8000/api/");
         }
 
         public async Task<PythonAiResponseDto> AnalyzeProjectAsync(PythonAiRequestDto request)
@@ -25,12 +25,12 @@ namespace InnoTrack.Application.Services
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"AI Service Error ({response.StatusCode}): {errorContent}");
+                throw new ExternalServiceException($"AI Service Error ({response.StatusCode}): {errorContent}");
             }
             var result = await response.Content.ReadFromJsonAsync<PythonAiResponseDto>();
 
             if (result == null)
-                throw new Exception("AI Service returned an empty or invalid response.");
+                throw new ExternalServiceException("AI Service returned an empty or invalid response.");
 
             return result;
         }

@@ -1,4 +1,5 @@
 ﻿using InnoTrack.API.Hubs;
+using InnoTrack.Application.DTOs.Notifications;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -29,12 +30,24 @@ namespace InnoTrack.API.Services
                 UserId = userId,
                 Title = title,
                 Message = message,
-                Type = type
+                Type = type,
+                CreatedAt = DateTime.UtcNow,
+                IsRead = false
             };
+
             await _unitOfWork.Repository<Notification>().AddAsync(notification);
             await _unitOfWork.CompleteAsync();
 
-            await _hubContext.Clients.Group($"User_{userId}").SendAsync("ReceiveNotification", notification);
+            var dto = new NotificationDto(
+                    notification.Id,
+                    notification.Title,
+                    notification.Message,
+                    notification.Type.ToString(),
+                    notification.IsRead,
+                    notification.CreatedAt
+                );
+
+            await _hubContext.Clients.Group($"User_{userId}").SendAsync("ReceiveNotification", dto);
         }
     }
 }
