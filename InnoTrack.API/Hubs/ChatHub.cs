@@ -1,7 +1,6 @@
 ﻿using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
-using InnoTrack.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
@@ -55,7 +54,7 @@ namespace InnoTrack.API.Hubs
 
             using var scope = _scopeFactory.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-            
+
             var isMember = await unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.TeamId == teamId && tm.StudentId == userId);
             if (isMember == null)

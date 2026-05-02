@@ -55,6 +55,9 @@ namespace InnoTrack.Infrastructure.Repositories
         }
         public async Task<int> CountAsync(Expression<Func<T, bool>> filter)
             => await _context.Set<T>().CountAsync(filter);
+
+        public IQueryable<T> GetQueryable() => _context.Set<T>().AsQueryable();
+
         public async Task AddAsync(T entity) => await _context.Set<T>().AddAsync(entity);
         public void Update(T entity) => _context.Set<T>().Update(entity);
         public void Delete(T entity) => _context.Set<T>().Remove(entity);

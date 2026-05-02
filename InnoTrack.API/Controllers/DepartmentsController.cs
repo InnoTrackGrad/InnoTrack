@@ -3,6 +3,7 @@ using InnoTrack.Application.DTOs.Lookups;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
 {
@@ -11,9 +12,21 @@ namespace InnoTrack.API.Controllers
     public class DepartmentsController : ControllerBase
     {
         private readonly IDepartmentService _departmentService;
-        public DepartmentsController(IDepartmentService departmentService)
+        private readonly IAuditService _auditService;
+        public DepartmentsController(IDepartmentService departmentService, IAuditService auditService)
         {
             _departmentService = departmentService;
+            _auditService = auditService;
+        }
+
+        private int GetAdminId()
+        {
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claimValue) || !int.TryParse(claimValue, out int adminId))
+            {
+                throw new UnauthorizedAccessException("Invalid User Token.");
+            }
+            return adminId;
         }
 
         [HttpGet]
@@ -35,6 +48,13 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> Create([FromBody] CreateDepartmentDto request)
         {
             var result = await _departmentService.CreateDepartmentAsync(request);
+
+            var adminId = GetAdminId();
+            await _auditService.LogActionAsync(
+                adminId,
+                "Created Department",
+                $"Admin created a new Department with ID: {result.Id}");
+
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
@@ -43,6 +63,13 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] CreateDepartmentDto request)
         {
             await _departmentService.UpdateDepartmentAsync(id, request);
+
+            var adminId = GetAdminId();
+            await _auditService.LogActionAsync(
+                adminId,
+                "Updated Department",
+                $"Admin updated Department with ID: {id}");
+
             return NoContent();
         }
 
@@ -52,6 +79,13 @@ namespace InnoTrack.API.Controllers
         {
             //In the future, check if department has students at it or not
             await _departmentService.DeleteDepartmentAsync(id);
+
+            var adminId = GetAdminId();
+            await _auditService.LogActionAsync(
+                adminId,
+                "Deleted Department",
+                $"Admin deleted Department with ID: {id}");
+
             return NoContent();
         }
 

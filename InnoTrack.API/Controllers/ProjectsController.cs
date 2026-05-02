@@ -1,11 +1,8 @@
 ﻿using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
-using InnoTrack.Application.Services;
 using InnoTrack.Domain.Entities.Enums;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
@@ -40,7 +37,7 @@ namespace InnoTrack.API.Controllers
                 return BadRequest("No file was uploaded.");
 
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            
+
             using var stream = file.OpenReadStream();
             var attachment = await _fileService.UploadFileAsync(
                 stream,
@@ -54,6 +51,11 @@ namespace InnoTrack.API.Controllers
             return Ok(attachment);
         }
 
+        /// <summary>
+        /// Submits a project proposal for AI Originality Check.
+        /// </summary>
+        /// <param name="projectId">The ID of the project to submit.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpPost("{projectId}/submit")]
         public async Task<IActionResult> SubmitProject(int projectId)
         {

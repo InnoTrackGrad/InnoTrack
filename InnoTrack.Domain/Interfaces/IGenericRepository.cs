@@ -18,6 +18,7 @@ namespace InnoTrack.Domain.Interfaces
 
         Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
         Task<int> CountAsync(Expression<Func<T, bool>> filter);
+        IQueryable<T> GetQueryable();
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

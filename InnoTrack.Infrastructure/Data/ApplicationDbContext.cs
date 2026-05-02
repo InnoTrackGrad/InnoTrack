@@ -45,6 +45,8 @@ namespace InnoTrack.Infrastructure.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Feedback> Feedbacks { get; set; }
 
+        public DbSet<AuditLog> AuditLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder); // Always call base first
@@ -257,6 +259,12 @@ namespace InnoTrack.Infrastructure.Data
                         .WithMany(p => p.Feedbacks)
                         .HasForeignKey(f => f.ProjectId)
                         .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Feedback>()
+                        .HasOne(f => f.Professor)
+                        .WithMany(p => p.Feedbacks)
+                        .HasForeignKey(f => f.ProfessorId)
+                        .OnDelete(DeleteBehavior.Restrict); 
 
             modelBuilder.Entity<ChatMessage>()
                         .HasOne(m => m.ChatRoom)

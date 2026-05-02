@@ -2,9 +2,7 @@
 using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers

@@ -3,6 +3,7 @@ using InnoTrack.Application.DTOs.Lookups;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
 {
@@ -11,10 +12,22 @@ namespace InnoTrack.API.Controllers
     public class TechnologiesController : ControllerBase
     {
         private readonly ITechnologyService _technologyService;
+        private readonly IAuditService _auditService;
 
-        public TechnologiesController(ITechnologyService technologyService)
+        public TechnologiesController(ITechnologyService technologyService, IAuditService auditService)
         {
             _technologyService = technologyService;
+            _auditService = auditService;
+        }
+
+        private int GetAdminId()
+        {
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claimValue) || !int.TryParse(claimValue, out int adminId))
+            {
+                throw new UnauthorizedAccessException("Invalid User Token.");
+            }
+            return adminId;
         }
 
         [HttpGet]
@@ -34,6 +47,12 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> Create([FromBody] CreateTechnologyDto request)
         {
             var result = await _technologyService.CreateTechnologyAsync(request);
+
+            await _auditService.LogActionAsync(
+                GetAdminId(),
+                "Created Technology",
+                $"Admin created a new Technology with ID: {result.Id}");
+
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
@@ -42,6 +61,13 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] CreateTechnologyDto request)
         {
             await _technologyService.UpdateTechnologyAsync(id, request);
+
+            var adminId = GetAdminId();
+            await _auditService.LogActionAsync(
+                adminId,
+                "Updated Technology",
+                $"Admin updated Technology with ID: {id}");
+
             return NoContent();
         }
 
@@ -50,6 +76,13 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             await _technologyService.DeleteTechnologyAsync(id);
+
+            var adminId = GetAdminId();
+            await _auditService.LogActionAsync(
+                adminId,
+                "Deleted Technology",
+                $"Admin deleted Technology with ID: {id}");
+
             return NoContent();
         }
     }

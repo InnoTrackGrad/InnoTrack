@@ -71,7 +71,6 @@ namespace InnoTrack.Application.Services
 
                 project.OriginalityScore = aiResponse.OriginalityScore;
                 project.UpdatedAt = DateTime.UtcNow;
-                project.SubmittedAt ??= DateTime.UtcNow;
 
                 var (status, notifTitle, notifMessage, notifType) = aiResponse.OriginalityScore switch
                 {

@@ -46,7 +46,7 @@ namespace InnoTrack.Infrastructure.BackgroundJobs
                         using var errorScope = _scopeFactory.CreateScope();
                         var uow = errorScope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                         var project = await uow.Repository<Project>().GetByIdAsync(projectId);
-                        if (project is not null && project.Status == ProjectStatus.Submitted)
+                        if (project is not null && project.Status == ProjectStatus.Processing)
                         {
                             project.Status = ProjectStatus.Draft;
                             uow.Repository<Project>().Update(project);

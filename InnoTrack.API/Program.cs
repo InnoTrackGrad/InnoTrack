@@ -11,6 +11,7 @@ using InnoTrack.Infrastructure.Data;
 using InnoTrack.Infrastructure.Helpers;
 using InnoTrack.Infrastructure.Identity;
 using InnoTrack.Infrastructure.Repositories;
+using InnoTrack.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -73,6 +73,10 @@ builder.Services.AddSwaggerGen(options =>
             Array.Empty<string>()
         }
     });
+
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
 });
 
 
@@ -99,6 +103,10 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IProjectAnalysisService, ProjectAnalysisService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IProfessorProjectService, ProfessorProjectService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddHostedService<AiProcessingBackgroundService>();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
@@ -109,7 +117,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>()
 
 var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
 builder.Services.Configure<JwtSettings>(jwtSettingsSection);
-    
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 if (string.IsNullOrWhiteSpace(jwtSettings?.Secret) || jwtSettings.Secret.Length < 32)
     throw new InvalidOperationException(

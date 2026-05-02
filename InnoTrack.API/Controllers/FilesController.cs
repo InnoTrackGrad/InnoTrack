@@ -1,5 +1,4 @@
 ﻿using InnoTrack.Application.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -23,7 +22,7 @@ namespace InnoTrack.API.Controllers
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var attachment = await _fileService.GetAttachmentIfAuthorizedAsync(attachmentId, userId);
             var fullPath = Path.Combine(_env.ContentRootPath, "private-uploads", attachment.FileName);
-            
+
             if (!System.IO.File.Exists(fullPath))
                 return NotFound("The physical file was not found on the server.");
 

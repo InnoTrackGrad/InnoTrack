@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1433:1433"
+
+  innotrack-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - ConnectionStrings__InnoTrackConnection=Server=sqlserver;Database=InnoTrackDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+    depends_on:
+      - sqlserver
