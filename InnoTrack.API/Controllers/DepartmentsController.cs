@@ -50,7 +50,7 @@ namespace InnoTrack.API.Controllers
             var result = await _departmentService.CreateDepartmentAsync(request);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Created Department",
                 $"Admin created a new Department with ID: {result.Id}");
@@ -65,7 +65,7 @@ namespace InnoTrack.API.Controllers
             await _departmentService.UpdateDepartmentAsync(id, request);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Updated Department",
                 $"Admin updated Department with ID: {id}");
@@ -81,7 +81,7 @@ namespace InnoTrack.API.Controllers
             await _departmentService.DeleteDepartmentAsync(id);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Deleted Department",
                 $"Admin deleted Department with ID: {id}");

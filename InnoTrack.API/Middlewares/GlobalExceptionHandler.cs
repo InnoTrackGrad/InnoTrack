@@ -31,7 +31,7 @@ namespace InnoTrack.API.Middlewares
 
                 InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
 
-                ExternalServiceException => (StatusCodes.Status502BadGateway, "Bad Gateway"),
+                AppException appEx => (appEx.StatusCode, appEx.GetType().Name.Replace("Exception", string.Empty)),
 
                 _ => (StatusCodes.Status500InternalServerError, "Server Error")
             };

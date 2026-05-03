@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace InnoTrack.Application.Exceptions
 {
-    public class ExternalServiceException : Exception
+    public class ExternalServiceException : AppException
     {
-        public ExternalServiceException(string message) : base(message)
+        public ExternalServiceException(string message) : base(message, 502)
         {
         }
     }

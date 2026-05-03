@@ -49,7 +49,7 @@ namespace InnoTrack.API.Controllers
             var result = await _domainService.CreateDomainAsync(request);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Created Domain",
                 $"Admin created a new Domain with ID: {result.Id}");
@@ -64,7 +64,7 @@ namespace InnoTrack.API.Controllers
             await _domainService.UpdateDomainAsync(id, request);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Updated Domain",
                 $"Admin updated Domain with ID: {id}");
@@ -79,7 +79,7 @@ namespace InnoTrack.API.Controllers
             await _domainService.DeleteDomainAsync(id);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Deleted Domain",
                 $"Admin deleted Domain with ID: {id}");

@@ -8,6 +8,6 @@ namespace InnoTrack.Application.Interfaces
 {
     public interface IAuditService
     {
-        Task LogActionAsync(int userId, string action, string details);
+        void LogAction(int userId, string action, string details);
     }
 }

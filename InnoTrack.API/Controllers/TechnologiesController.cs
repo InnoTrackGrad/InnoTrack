@@ -48,7 +48,7 @@ namespace InnoTrack.API.Controllers
         {
             var result = await _technologyService.CreateTechnologyAsync(request);
 
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 GetAdminId(),
                 "Created Technology",
                 $"Admin created a new Technology with ID: {result.Id}");
@@ -63,7 +63,7 @@ namespace InnoTrack.API.Controllers
             await _technologyService.UpdateTechnologyAsync(id, request);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Updated Technology",
                 $"Admin updated Technology with ID: {id}");
@@ -78,7 +78,7 @@ namespace InnoTrack.API.Controllers
             await _technologyService.DeleteTechnologyAsync(id);
 
             var adminId = GetAdminId();
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 adminId,
                 "Deleted Technology",
                 $"Admin deleted Technology with ID: {id}");

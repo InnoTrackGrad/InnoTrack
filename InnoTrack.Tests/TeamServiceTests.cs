@@ -5,13 +5,7 @@ using InnoTrack.Application.Services;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Interfaces;
 using Moq;
-using Xunit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Tests
 {
@@ -21,7 +15,7 @@ namespace InnoTrack.Tests
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IJoinCodeGenerator> _mockCodeGenerator;
         private readonly TeamService _teamService;
-        
+
         public TeamServiceTests()
         {
             _mockUnitOfWork = new Mock<IUnitOfWork>();

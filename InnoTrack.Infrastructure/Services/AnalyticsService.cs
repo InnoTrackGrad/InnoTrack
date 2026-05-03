@@ -20,15 +20,20 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task<SystemAnalyticsDto> GetSystemAnalyticsAsync()
         {
+            var stats = await _context.Projects
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    TotalProjects = g.Count(),
+                    AverageOriginalityScore = g.Where(p => p.OriginalityScore.HasValue)
+                                               .Average(p => (decimal?)p.OriginalityScore) ?? 0m
+                })
+                .FirstOrDefaultAsync();
+
             var totalUsers = await _context.Users.CountAsync(u => !u.IsDeleted);
             var totalTeams = await _context.Teams.CountAsync();
-            var totalProjects = await _context.Projects.CountAsync();
 
-            var averageScore = await _context.Projects
-                .Where(p => p.OriginalityScore.HasValue)
-                .AverageAsync(p => p.OriginalityScore) ?? 0;
-
-            return new SystemAnalyticsDto(totalUsers, totalTeams, totalProjects, averageScore);
+            return new SystemAnalyticsDto(totalUsers, totalTeams, stats?.TotalProjects ?? 0, stats?.AverageOriginalityScore ?? 0m);
         }
     }
 }

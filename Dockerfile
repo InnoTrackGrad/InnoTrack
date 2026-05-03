@@ -17,5 +17,16 @@ RUN dotnet publish "InnoTrack.API.csproj" -c Release -o /app/publish
 # Final Run Stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
 COPY --from=publish /app/publish .
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+
 ENTRYPOINT ["dotnet", "InnoTrack.API.dll"]

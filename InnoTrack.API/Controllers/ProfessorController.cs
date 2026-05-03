@@ -40,7 +40,7 @@ namespace InnoTrack.API.Controllers
             await _professorProjectService.ReviewProjectAsync(profId, projectId, request.Approve);
 
             string decision = request.Approve ? "Approved" : "Rejected";
-            await _auditService.LogActionAsync(
+            _auditService.LogAction(
                 profId,
                 "Project Review",
                 $"Professor formally {decision} project with ID: {projectId}");

@@ -43,7 +43,7 @@ namespace InnoTrack.Application.Services
                     p.Title,
                     p.Abstract,
                     p.OriginalityScore,
-                    p.Status
+                    p.Status.ToString()
                 ))
                 .ToListAsync();
 
@@ -54,19 +54,20 @@ namespace InnoTrack.Application.Services
         {
 
             var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
-            
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
+
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId);
+            if (team is null || team.ProfessorId != professorId)
+                throw new UnauthorizedAccessException("You are not authorized to review this project.");
+
             if (project.Status != ProjectStatus.Submitted)
                 throw new InvalidOperationException("Project is not currently submitted for review.");
 
-            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId);
-
-            if (team == null || team.ProfessorId != professorId)
-                throw new UnauthorizedAccessException("You are not authorized to review this project.");
-
             project.Status = approve ? ProjectStatus.Completed : ProjectStatus.Rejected;
+            project.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.Repository<Project>().Update(project);
+            await _unitOfWork.CompleteAsync();
 
             var teamMembers = await _unitOfWork.Repository<TeamMember>()
                 .GetAllAsync(tm => tm.TeamId == project.TeamId);
@@ -87,7 +88,6 @@ namespace InnoTrack.Application.Services
                 }
             }
 
-            await _unitOfWork.CompleteAsync();
         }
     }
 }

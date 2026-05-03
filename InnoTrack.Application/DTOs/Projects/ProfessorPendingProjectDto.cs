@@ -7,6 +7,6 @@ namespace InnoTrack.Application.DTOs.Projects
         string Title,
         string Abstract,
         decimal? OriginalityScore,
-        ProjectStatus Status
+        string Status
     );
 }

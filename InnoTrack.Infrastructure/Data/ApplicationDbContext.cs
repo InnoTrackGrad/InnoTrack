@@ -123,6 +123,27 @@ namespace InnoTrack.Infrastructure.Data
             modelBuilder.Entity<OriginalityReport>()
                         .HasIndex(r => new { r.ProjectId, r.GeneratedAt });
 
+            modelBuilder.Entity<AuditLog>(b =>
+            {
+                b.Property(a => a.Action)
+                 .IsRequired()
+                 .HasMaxLength(100);
+
+                b.Property(a => a.Details)
+                 .HasMaxLength(2000);
+
+                b.HasIndex(a => a.UserId);
+                b.HasIndex(a => a.Timestamp);
+
+                b.HasIndex(a => new { a.UserId, a.Timestamp });
+
+            });
+            modelBuilder.Entity<AuditLog>()
+                        .HasOne<User>()
+                        .WithMany()
+                        .HasForeignKey(a => a.UserId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
 
             modelBuilder.Entity<JoinRequest>()

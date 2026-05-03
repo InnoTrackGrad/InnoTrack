@@ -42,17 +42,13 @@ namespace InnoTrack.Application.Services
             var teamMembers = await _unitOfWork.Repository<TeamMember>()
                 .GetAllAsync(tm => tm.TeamId == project.TeamId);
 
-            if(teamMembers != null && teamMembers.Any())
-            {
-                foreach(var member in teamMembers)
-                {
-                    await _notificationService.SendNotificationAsync(
-                        member.StudentId,
-                        "New Feedback",
-                        message,
-                        notifType);
-                }
-            }
+            var notificationTasks = teamMembers.Select(member =>
+                _notificationService.SendNotificationAsync(
+                    member.StudentId, "New Feedback",
+                    message,
+                    notifType));
+
+            await Task.WhenAll(notificationTasks);
         }
     }
 }
