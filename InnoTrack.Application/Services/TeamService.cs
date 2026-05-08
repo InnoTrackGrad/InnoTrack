@@ -120,7 +120,7 @@ namespace InnoTrack.Application.Services
             if (currentCount >= team.MaxSize)
                 throw new InvalidOperationException("Team is full.");
 
-            await _unitOfWork.BeginTransactionAsync();
+            await _unitOfWork.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             try
             {
                 var newMember = new TeamMember

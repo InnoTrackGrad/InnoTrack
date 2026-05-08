@@ -30,16 +30,20 @@ namespace InnoTrack.Infrastructure.Services
 
             var topTechnologies = await _context.ProjectTechnologies
                     .GroupBy(pt => pt.Technology.Name)
-                    .Select(g => new TechStatDto(g.Key, g.Count()))
+                    .Select(g => new { Name = g.Key, Count = g.Count() })
                     .OrderByDescending(t => t.Count)
                     .Take(5)
                     .ToListAsync();
+
+            var topTechnologiesDto = topTechnologies
+                    .Select(t => new TechStatDto(t.Name, t.Count))
+                    .ToList();
 
             return new GlobalDashboardStatsDto(
                 totalProjects,
                 completedThisYear,
                 inProgress,
-                topTechnologies.AsReadOnly()
+                topTechnologiesDto.AsReadOnly()
             );
         }
 
@@ -72,12 +76,16 @@ namespace InnoTrack.Infrastructure.Services
                    .AsNoTracking()
                    .Where(pt => pt.Project.CreatedAt.Year == currentYear)
                    .GroupBy(pt => pt.Technology.Name)
-                   .Select(g => new TrendingTechnologyDto(g.Key, g.Count()))
+                   .Select(g => new { Name = g.Key, Count = g.Count() })
                    .OrderByDescending(t => t.Count)
                    .Take(10)
                    .ToListAsync();
 
-            return trending.AsReadOnly();
+            var trendingDto = trending
+                    .Select(t => new TrendingTechnologyDto(t.Name, t.Count))
+                    .ToList();
+
+            return trendingDto.AsReadOnly();
         }
     }
 }

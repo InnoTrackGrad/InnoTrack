@@ -81,6 +81,7 @@ namespace InnoTrack.Infrastructure.Services
                 .Include(p => p.Team).ThenInclude(t => t.Members)
                     .ThenInclude(m => m.Student).ThenInclude(s => s.Department)
                 .Include(p => p.ProjectTechnologies).ThenInclude(pt => pt.Technology)
+                .Include(p => p.Domain)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
 
             if (project == null)
@@ -104,7 +105,7 @@ namespace InnoTrack.Infrastructure.Services
         public async Task<MyProjectResponseDto?> GetMyProjectAsync(int userId)
         {
             var teamMember = await _context.TeamMembers
-                .AsNoTracking()
+                .AsNoTrackingWithIdentityResolution()
                 .Include(tm => tm.Team).ThenInclude(t => t.Project)
                      .ThenInclude(p => p!.Domain)
                 .Include(tm => tm.Team).ThenInclude(t => t.Project)

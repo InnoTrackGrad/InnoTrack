@@ -10,12 +10,12 @@ namespace InnoTrack.Application.Services
     public class ProjectService : IProjectService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
+        private readonly IProjectAnalysisQueue _analysisQueue;
 
-        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper)
+        public ProjectService(IUnitOfWork unitOfWork, IProjectAnalysisQueue analysisQueue)
         {
             _unitOfWork = unitOfWork;
-            _mapper = mapper;
+            _analysisQueue = analysisQueue;
         }
         public async Task<ProjectResponseDto> CreateProjectAsync(int leaderId, CreateProjectDto dto)
         {
@@ -85,6 +85,7 @@ namespace InnoTrack.Application.Services
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();
+            await _analysisQueue.QueueProjectAsync(projectId);
         }
     }
 }

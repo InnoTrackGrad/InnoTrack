@@ -78,7 +78,7 @@ namespace InnoTrack.Infrastructure.Data
                         .IsUnique();
 
             modelBuilder.Entity<TeamMember>()
-                        .HasIndex(m => m.StudentId)
+                        .HasIndex(tm => tm.StudentId)
                         .IsUnique();
 
             modelBuilder.Entity<JoinRequest>()

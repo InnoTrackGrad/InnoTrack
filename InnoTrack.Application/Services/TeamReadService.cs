@@ -10,7 +10,7 @@ namespace InnoTrack.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
 
-        public TeamReadService(IUnitOfWork unitOfWork, IJoinCodeGenerator codeGenerator)
+        public TeamReadService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

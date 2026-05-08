@@ -1,7 +1,9 @@
 ﻿using InnoTrack.Domain.Interfaces;
 using InnoTrack.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using System.Data;
 
 namespace InnoTrack.Infrastructure.Repositories
 {
@@ -21,10 +23,11 @@ namespace InnoTrack.Infrastructure.Repositories
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();
 
-        public async Task BeginTransactionAsync()
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
         {
+            _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
             if (_currentTransaction != null) return;
-            _currentTransaction = await _context.Database.BeginTransactionAsync();
+            await _context.Database.BeginTransactionAsync(isolationLevel);
         }
 
         public async Task CommitTransactionAsync()
