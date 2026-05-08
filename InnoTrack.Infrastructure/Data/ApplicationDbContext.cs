@@ -285,7 +285,7 @@ namespace InnoTrack.Infrastructure.Data
                         .HasOne(f => f.Professor)
                         .WithMany(p => p.Feedbacks)
                         .HasForeignKey(f => f.ProfessorId)
-                        .OnDelete(DeleteBehavior.Restrict); 
+                        .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ChatMessage>()
                         .HasOne(m => m.ChatRoom)

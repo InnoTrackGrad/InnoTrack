@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using Castle.Core.Logging;
-using InnoTrack.Application.DTOs.Teams;
+﻿using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Services;
 using InnoTrack.Domain.Entities;

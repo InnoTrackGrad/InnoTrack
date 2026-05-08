@@ -12,7 +12,7 @@ namespace InnoTrack.Domain.Entities
         [Required, MaxLength(30)]
         public string JoinCode { get; set; }
 
-        [Required, Range(1, 20)]
+        [Required, Range(2, 11)]
         public int MaxSize { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -16,7 +16,7 @@ namespace InnoTrack.Infrastructure.Repositories
             _serviceProvider = serviceProvider;
         }
 
-        public IGenericRepository<T> Repository<T>() where T : class => 
+        public IGenericRepository<T> Repository<T>() where T : class =>
             _serviceProvider.GetRequiredService<IGenericRepository<T>>();
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();

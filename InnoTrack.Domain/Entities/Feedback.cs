@@ -11,6 +11,8 @@ namespace InnoTrack.Domain.Entities
         public string Content { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsRead { get; set; } = false;
+
 
         [Required]
         public int ProjectId { get; set; }

@@ -1,0 +1,20 @@
+﻿namespace InnoTrack.Application.DTOs.Teams
+{
+    public record MyTeamDto(
+        int Id,
+        string Name,
+        int? ProjectId,
+        string? ProjectTitle,
+        string JoinCode,
+        bool IsLeader,
+        IReadOnlyList<TeamMemberDetailDto> Members
+    );
+
+    public record TeamMemberDetailDto(
+        int Id,
+        string FullName,
+        string Role,
+        string Email,
+        IReadOnlyList<string> Skills
+    );
+}

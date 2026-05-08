@@ -3,6 +3,7 @@ using InnoTrack.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
 {
@@ -33,6 +34,15 @@ namespace InnoTrack.API.Controllers
         {
             var response = await _authService.LoginAsync(request);
             return Ok(response);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _authService.LogoutAsync(userId);
+            return NoContent();
         }
 
         [HttpPost("refresh-token")]

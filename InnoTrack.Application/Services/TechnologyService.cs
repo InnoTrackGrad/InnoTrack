@@ -52,7 +52,7 @@ namespace InnoTrack.Application.Services
 
             if (!Enum.TryParse<TechnologyCategory>(request.Category, true, out var categoryEnum))
                 throw new ArgumentException($"Invalid category: {request.Category}");
-           
+
             technology.Name = request.Name;
             technology.Category = categoryEnum;
 

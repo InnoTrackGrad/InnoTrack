@@ -33,9 +33,9 @@ namespace InnoTrack.Infrastructure.Repositories
             if (filter != null)
                 query = query.Where(filter);
 
-            if(includes != null)
+            if (includes != null)
                 query = includes.Aggregate(query, (currentQuery, includeProperty) => currentQuery.Include(includeProperty));
-            
+
             int totalCount = await query.CountAsync();
 
             if (orderBy != null)

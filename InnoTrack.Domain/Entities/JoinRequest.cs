@@ -17,7 +17,5 @@ namespace InnoTrack.Domain.Entities
 
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-
     }
 }

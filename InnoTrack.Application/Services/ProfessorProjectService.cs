@@ -5,12 +5,6 @@ using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace InnoTrack.Application.Services
 {
@@ -78,7 +72,7 @@ namespace InnoTrack.Application.Services
 
             if (teamMembers != null && teamMembers.Any())
             {
-                foreach(var member in teamMembers)
+                foreach (var member in teamMembers)
                 {
                     await _notificationService.SendNotificationAsync(
                         member.StudentId,

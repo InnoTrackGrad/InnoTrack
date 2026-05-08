@@ -75,6 +75,18 @@ namespace InnoTrack.Application.Services
             return new AuthResponseDto(accessToken, refreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role.ToString());
         }
 
+        public async Task LogoutAsync(int userId)
+        {
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+            if (user == null) return;
+
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = null;
+
+            _unitOfWork.Repository<User>().Update(user);
+            await _unitOfWork.CompleteAsync();
+        }
+
         public async Task<AuthResponseDto> RefreshTokenAsync(string token, string refreshToken)
         {
             var principal = _tokenService.GetPrincipalFromExpiredToken(token);

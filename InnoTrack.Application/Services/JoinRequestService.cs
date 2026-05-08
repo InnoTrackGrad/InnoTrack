@@ -4,11 +4,6 @@ using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace InnoTrack.Application.Services
 {
@@ -25,10 +20,10 @@ namespace InnoTrack.Application.Services
             _logger = logger;
         }
 
-        public async Task RequestToJoinAsync(int studentId, string joinCode)
+        public async Task RequestToJoinAsync(int studentId, int teamId)
         {
-            var team = await _unitOfWork.Repository<Team>().FindAsync(t => t.JoinCode == joinCode);
-            if (team == null) throw new KeyNotFoundException("Invalid Join Code.");
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
+            if (team == null) throw new KeyNotFoundException("Team not found.");
 
             if (await _unitOfWork.Repository<TeamMember>().AnyAsync(tm => tm.StudentId == studentId))
                 throw new InvalidOperationException("You are already in a team.");
@@ -51,7 +46,7 @@ namespace InnoTrack.Application.Services
 
             var leader = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.TeamId == team.Id && tm.Role == TeamMemberRole.Leader);
-            
+
             if (leader != null)
             {
                 var student = await _unitOfWork.Repository<User>().GetByIdAsync(studentId);
@@ -101,10 +96,10 @@ namespace InnoTrack.Application.Services
                     await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
 
                     var otherPendingRequests = await _unitOfWork.Repository<JoinRequest>()
-                        .GetAllAsync(r => r.StudentId == request.StudentId 
+                        .GetAllAsync(r => r.StudentId == request.StudentId
                                        && r.Id != request.Id
                                        && r.Status == RequestStatus.Pending);
-                    
+
                     foreach (var other in otherPendingRequests)
                     {
                         other.Status = RequestStatus.Rejected;
