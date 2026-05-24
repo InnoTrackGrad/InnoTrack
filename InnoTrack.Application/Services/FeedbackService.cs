@@ -45,5 +45,23 @@ namespace InnoTrack.Application.Services
 
             await Task.WhenAll(notificationTasks);
         }
+
+        public async Task MarkFeedbackAsReadAsync(int feedbackId, int userId)
+        {
+            var feedback = await _unitOfWork.Repository<Feedback>().GetByIdAsync(feedbackId);
+            if (feedback == null) throw new KeyNotFoundException("Feedback not found.");
+
+            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(feedback.ProjectId);
+            if (project == null)
+                throw new KeyNotFoundException("Project not found.");
+
+            var isMember = await _unitOfWork.Repository<TeamMember>()
+                .AnyAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId);
+            if (!isMember) throw new UnauthorizedAccessException("You cannot read this feedback.");
+
+            feedback.IsRead = true;
+            _unitOfWork.Repository<Feedback>().Update(feedback);
+            await _unitOfWork.CompleteAsync();
+        }
     }
 }

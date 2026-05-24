@@ -1,4 +1,5 @@
 ﻿using InnoTrack.API.Attributes;
+using InnoTrack.Application.DTOs.Students;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +43,15 @@ namespace InnoTrack.API.Controllers
         {
             var result = await _studentService.GetPublicStudentProfileAsync(studentId);
             return Ok(result);
+        }
+
+        [AuthorizeRoles(UserRole.Student)]
+        [HttpPatch("me/profile")]
+        public async Task<IActionResult> PatchProfile([FromBody] PatchStudentProfileDto request)
+        {
+            var userId = GetUserId();
+            await _studentService.PatchStudentProfileAsync(userId, request);
+            return NoContent();
         }
     }
 }

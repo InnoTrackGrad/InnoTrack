@@ -24,4 +24,8 @@
     <ProjectReference Include="..\InnoTrack.Domain\InnoTrack.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="BackgroundJobs\" />
+  </ItemGroup>
+
 </Project>

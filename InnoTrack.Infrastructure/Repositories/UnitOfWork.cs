@@ -25,8 +25,8 @@ namespace InnoTrack.Infrastructure.Repositories
 
         public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
         {
-            _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
             if (_currentTransaction != null) return;
+            _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
             await _context.Database.BeginTransactionAsync(isolationLevel);
         }
 

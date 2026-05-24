@@ -41,7 +41,7 @@ namespace InnoTrack.Application.Validators
                 .InclusiveBetween(0, 4.0m).WithMessage("GPA must be between 0 and 4.0");
 
             RuleFor(x => x.GraduationYear)
-                .InclusiveBetween(DateTime.UtcNow.Year, DateTime.UtcNow.Year + 5)
+                .InclusiveBetween(DateTime.UtcNow.Year, DateTime.UtcNow.Year + 4)
                 .WithMessage("Graduation year must be within the next 5 years.");
 
         }

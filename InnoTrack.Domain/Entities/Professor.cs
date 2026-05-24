@@ -10,6 +10,9 @@ namespace InnoTrack.Domain.Entities
 
         [Required, MaxLength(100)]
         public string Specialization { get; set; }
+
+        public int MaxTeamLoad { get; set; } = 5;
+
         public ICollection<Team> SupervisedTeams { get; set; } = new HashSet<Team>();
         public ICollection<Feedback> Feedbacks { get; set; } = new HashSet<Feedback>();
     }

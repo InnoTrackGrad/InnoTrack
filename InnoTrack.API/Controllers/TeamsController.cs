@@ -49,10 +49,11 @@ namespace InnoTrack.API.Controllers
         }
 
         [AuthorizeRoles(UserRole.Student)]
-        [HttpPost("handle-request")]
-        public async Task<IActionResult> HandleRequest([FromBody] HandleRequestDto dto)
+        [HttpPost("me/requests/{requestId:int}/handle")]
+        public async Task<IActionResult> HandleRequest(int requestId, [FromBody] bool accept)
         {
             var userId = GetUserId();
+            var dto = new HandleRequestDto(requestId, accept);
             await _joinRequestService.HandleRequestAsync(userId, dto);
             return Ok(new { message = "Request handled successfully." });
         }

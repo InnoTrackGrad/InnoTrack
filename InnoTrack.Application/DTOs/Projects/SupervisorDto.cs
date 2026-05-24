@@ -6,6 +6,10 @@
         string DepartmentName,
         string Specialization,
         string Email,
-        int CurrentTeamLoad
-    );
+        int CurrentTeamLoad,
+        int MaxTeamLoad
+    )
+    {
+        public bool IsAvailable => CurrentTeamLoad < MaxTeamLoad;
+    }
 }

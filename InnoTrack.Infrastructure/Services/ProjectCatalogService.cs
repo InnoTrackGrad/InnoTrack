@@ -150,7 +150,8 @@ namespace InnoTrack.Infrastructure.Services
                     p.Department.Name,
                     p.Specialization,
                     p.Email,
-                    p.SupervisedTeams.Count
+                    p.SupervisedTeams.Count,
+                    p.MaxTeamLoad
                 ))
                 .ToListAsync();
 
@@ -169,6 +170,11 @@ namespace InnoTrack.Infrastructure.Services
             if (existingProject != null)
                 throw new InvalidOperationException("Your team already has a project.");
 
+            var activeAcademicYear = await _context.AcademicYears
+                .FirstOrDefaultAsync(y => y.IsActive);
+            if (activeAcademicYear == null)
+                throw new InvalidOperationException("Academic year configuration is missing. Please contact administration.");
+
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -179,7 +185,8 @@ namespace InnoTrack.Infrastructure.Services
                     Description = dto.Description,
                     DomainId = dto.DomainId,
                     TeamId = leaderRecord.TeamId,
-                    Status = ProjectStatus.Draft
+                    Status = ProjectStatus.Draft,
+                    AcademicYearId = activeAcademicYear.Id
                 };
                 _context.Projects.Add(project);
                 await _context.SaveChangesAsync();

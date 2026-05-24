@@ -47,6 +47,8 @@ namespace InnoTrack.Infrastructure.Data
 
         public DbSet<AuditLog> AuditLogs { get; set; }
 
+        public DbSet<AcademicYear> AcademicYears { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder); // Always call base first
@@ -317,6 +319,18 @@ namespace InnoTrack.Infrastructure.Data
             modelBuilder.Entity<SimilarProject>()
                         .Property(s => s.SimilarityPercentage)
                         .HasPrecision(5, 2);
+
+            modelBuilder.Entity<AcademicYear>(b =>
+            {
+                b.Property(a => a.Name).IsRequired().HasMaxLength(20);
+                b.HasIndex(a => a.IsActive);
+            });
+
+            modelBuilder.Entity<Project>()
+                .HasOne(p => p.AcademicYear)
+                .WithMany()
+                .HasForeignKey(p => p.AcademicYearId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

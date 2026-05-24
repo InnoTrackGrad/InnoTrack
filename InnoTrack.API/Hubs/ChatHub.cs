@@ -70,7 +70,8 @@ namespace InnoTrack.API.Hubs
                     ChatRoomId = chatRoom.Id,
                     SenderId = userId,
                     Content = messageContent,
-                    Type = MessageType.Text
+                    Type = MessageType.Text,
+                    SentAt = DateTime.UtcNow
                 };
                 await unitOfWork.Repository<ChatMessage>().AddAsync(message);
                 await unitOfWork.CompleteAsync();

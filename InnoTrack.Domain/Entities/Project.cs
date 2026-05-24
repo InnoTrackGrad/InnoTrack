@@ -20,6 +20,7 @@ namespace InnoTrack.Domain.Entities
 
         [Required]
         public ProjectStatus Status { get; set; }
+        public bool IsPublicShowcase { get; set; } = false;
 
         [Column(TypeName = "decimal(5,2)")]
         [Range(0, 100)]
@@ -35,6 +36,10 @@ namespace InnoTrack.Domain.Entities
 
         public int DomainId { get; set; }
         public Domain Domain { get; set; }
+
+        public int AcademicYearId { get; set; }
+        public AcademicYear AcademicYear { get; set; }
+
 
         public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
         public ICollection<ProjectAttachment> Attachments { get; set; } = new HashSet<ProjectAttachment>();

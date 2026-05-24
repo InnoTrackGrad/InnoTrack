@@ -4,6 +4,7 @@ using InnoTrack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InnoTrack.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260522201701_AddAcademicYearScoping")]
+    partial class AddAcademicYearScoping
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -397,9 +400,6 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<int>("DomainId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsPublicShowcase")
-                        .HasColumnType("bit");
-
                     b.Property<decimal?>("OriginalityScore")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
@@ -762,9 +762,6 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasBaseType("InnoTrack.Domain.Entities.User");
 
                     b.Property<int>("DepartmentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxTeamLoad")
                         .HasColumnType("int");
 
                     b.Property<string>("Specialization")

@@ -6,7 +6,7 @@
     );
 
     public record SimilarProjectResultDto(
-        int Id,
+        int? Id,
         string Title,
         decimal Similarity,
         string? MatchReason

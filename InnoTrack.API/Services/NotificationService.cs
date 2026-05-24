@@ -18,7 +18,7 @@ namespace InnoTrack.API.Services
             _hubContext = hubContext;
             _unitOfWork = unitOfWork;
         }
-        public async Task SendNotificationAsync(int userId, string title, string message, NotificationType type)
+        public async Task SendNotificationAsync(int userId, string title, string message, NotificationType type, int? referenceId = null, ReferenceType? referenceType = null)
         {
             var notification = new Notification
             {
@@ -27,20 +27,17 @@ namespace InnoTrack.API.Services
                 Message = message,
                 Type = type,
                 CreatedAt = DateTime.UtcNow,
+                ReferenceId = referenceId,
+                ReferenceType = referenceType ?? ReferenceType.System,
                 IsRead = false
             };
 
             await _unitOfWork.Repository<Notification>().AddAsync(notification);
             await _unitOfWork.CompleteAsync();
 
-            var dto = new NotificationDto(
-                    notification.Id,
-                    notification.Title,
-                    notification.Message,
-                    notification.Type.ToString(),
-                    notification.IsRead,
-                    notification.CreatedAt
-                );
+            var dto = new NotificationDto(notification.Id, notification.Title, notification.Message,
+                    notification.Type.ToString(), notification.IsRead, notification.CreatedAt,
+                    notification.ReferenceId, notification.ReferenceType);
 
             await _hubContext.Clients.Group($"User_{userId}").SendAsync("ReceiveNotification", dto);
         }

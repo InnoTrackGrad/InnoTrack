@@ -1,18 +1,21 @@
 using FluentValidation;
+using Hangfire;
+using HealthChecks.UI.Client;
 using InnoTrack.API.Hubs;
 using InnoTrack.API.Middlewares;
 using InnoTrack.API.Services;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Services;
+using InnoTrack.Application.Settings;
 using InnoTrack.Application.Validators;
 using InnoTrack.Domain.Interfaces;
-using InnoTrack.Infrastructure.BackgroundJobs;
 using InnoTrack.Infrastructure.Data;
 using InnoTrack.Infrastructure.Helpers;
 using InnoTrack.Infrastructure.Identity;
 using InnoTrack.Infrastructure.Repositories;
 using InnoTrack.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -114,16 +117,20 @@ builder.Services.AddScoped<INotificationReadService, NotificationReadService>();
 builder.Services.AddScoped<IFeedbackReadService, FeedbackReadService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IProjectCatalogService, ProjectCatalogService>();
-builder.Services.AddHostedService<AiProcessingBackgroundService>();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
 builder.Services.AddSingleton<IJoinCodeGenerator, JoinCodeGenerator>();
-builder.Services.AddSingleton<IProjectAnalysisQueue, ProjectAnalysisQueue>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
 var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
 builder.Services.Configure<JwtSettings>(jwtSettingsSection);
+
+//builder.Services.AddHealthChecks()
+//    .AddDbContextCheck<ApplicationDbContext>("database")
+//    .AddUrlGroup(new Uri(builder.Configuration["AiService:BaseUrl"] + "/health"), "ai-service");
+
+builder.Services.Configure<OriginalityThresholds>(builder.Configuration.GetSection("OriginalityThresholds"));
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 if (string.IsNullOrWhiteSpace(jwtSettings?.Secret) || jwtSettings.Secret.Length < 32)
@@ -180,6 +187,14 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("InnoTrackConnection")));
+
+builder.Services.AddHangfireServer();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("InnoTrackPolicy", policy =>
@@ -202,6 +217,11 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate(); // auto-apply migrations on startup
 }
+
+//app.MapHealthChecks("/health", new HealthCheckOptions
+//{
+//    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+//});
 
 app.UseRateLimiter();
 
@@ -227,8 +247,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+//app.MapHealthChecks("/api/health");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
+
+app.UseHangfireDashboard();
 
 await DbSeeder.SeedAdminAsync(app.Services);
 

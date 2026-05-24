@@ -25,6 +25,9 @@ namespace InnoTrack.Application.Services
             var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
             if (team == null) throw new KeyNotFoundException("Team not found.");
 
+            if (team.JoinCodeExpiry.HasValue && team.JoinCodeExpiry.Value < DateTime.UtcNow)
+                throw new UnauthorizedAccessException("This join code has expired. Ask the leader to generate a new one.");
+
             if (await _unitOfWork.Repository<TeamMember>().AnyAsync(tm => tm.StudentId == studentId))
                 throw new InvalidOperationException("You are already in a team.");
 

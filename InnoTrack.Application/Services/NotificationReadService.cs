@@ -24,7 +24,9 @@ namespace InnoTrack.Application.Services
                     n.Message,
                     n.Type.ToString(),
                     n.IsRead,
-                    n.CreatedAt
+                    n.CreatedAt,
+                    n.ReferenceId,
+                    n.ReferenceType
                 ))
                 .ToList();
 

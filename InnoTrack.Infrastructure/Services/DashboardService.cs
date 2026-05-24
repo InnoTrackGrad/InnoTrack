@@ -14,14 +14,13 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task<GlobalDashboardStatsDto> GetGlobalDashboardStatsAsync()
         {
-            var currentYear = DateTime.UtcNow.Year;
-            var startOfYear = new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var activeYear = await _context.AcademicYears.FirstOrDefaultAsync(y => y.IsActive);
+            int activeYearId = activeYear?.Id ?? 0;
 
             var totalProjects = await _context.Projects.CountAsync();
 
-            var completedThisYear = await _context.Projects.CountAsync(p =>
-                p.Status == ProjectStatus.Completed
-                && p.UpdatedAt >= startOfYear);
+            var completedThisYear = await _context.Projects.CountAsync(
+                    p => p.Status == ProjectStatus.Completed && p.AcademicYearId == activeYearId);
 
             var inProgress = await _context.Projects.CountAsync(p =>
                 p.Status == ProjectStatus.Draft

@@ -3,6 +3,7 @@ using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InnoTrack.Application.Services
 {
@@ -31,28 +32,24 @@ namespace InnoTrack.Application.Services
             var allMembers = await _unitOfWork.Repository<TeamMember>()
                 .GetAllAsync(tm => tm.TeamId == team.Id);
 
+            var teamMemberIds = allMembers.Select(m => m.StudentId).ToList();
+            var skillData = await _unitOfWork.Repository<StudentSkill>()
+                .GetQueryable()
+                .Where(ss => teamMemberIds.Contains(ss.StudentId))
+                .Include(ss => ss.Skill)
+                .GroupBy(ss => ss.StudentId)
+                .ToDictionaryAsync(g => g.Key, g => g.Select(ss => ss.Skill.Name).ToList());
+
             var memberDetails = new List<TeamMemberDetailDto>();
             foreach (var member in allMembers)
             {
                 var student = await _unitOfWork.Repository<Student>().GetByIdAsync(member.StudentId);
                 if (student == null) continue;
 
-                var studentSkills = await _unitOfWork.Repository<StudentSkill>()
-                    .GetAllAsync(ss => ss.StudentId == member.StudentId);
-
-                var skills = new List<string>();
-                foreach (var ss in studentSkills)
-                {
-                    var skill = await _unitOfWork.Repository<Skill>().GetByIdAsync(ss.SkillId);
-                    if (skill != null) skills.Add(skill.Name);
-                }
+                var skills = skillData.GetValueOrDefault(member.StudentId, new List<string>());
 
                 memberDetails.Add(new TeamMemberDetailDto(
-                    student.Id,
-                    student.FullName,
-                    member.Role.ToString(),
-                    student.Email,
-                    skills.AsReadOnly()
+                    student.Id, student.FullName, member.Role.ToString(), student.Email, skills.AsReadOnly()
                 ));
             }
 

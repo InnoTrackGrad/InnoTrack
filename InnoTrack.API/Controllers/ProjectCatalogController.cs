@@ -1,9 +1,12 @@
 ﻿using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
+using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
+using InnoTrack.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
@@ -14,10 +17,12 @@ namespace InnoTrack.API.Controllers
     public class ProjectCatalogController : ControllerBase
     {
         private readonly IProjectCatalogService _catalogService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProjectCatalogController(IProjectCatalogService catalogService)
+        public ProjectCatalogController(IProjectCatalogService catalogService, IUnitOfWork unitOfWork)
         {
             _catalogService = catalogService;
+            _unitOfWork = unitOfWork;
         }
 
         private int GetUserId()
@@ -124,6 +129,27 @@ namespace InnoTrack.API.Controllers
             var userId = GetUserId();
             await _catalogService.RecallSubmissionAsync(projectId, userId);
             return Ok(new { projectId, status = "draft" });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("showcase")]
+        public async Task<IActionResult> GetPublicShowcase()
+        {
+            var showcaseProjects = await _unitOfWork.Repository<Project>()
+                .GetQueryable()
+                .Where(p => p.IsPublicShowcase)
+                .Include(p => p.Team).ThenInclude(t => t.Members).ThenInclude(m => m.Student)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Title,
+                    p.Abstract,
+                    p.OriginalityScore,
+                    Students = p.Team.Members.Select(m => m.Student.FullName).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(showcaseProjects);
         }
     }
 }

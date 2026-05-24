@@ -1,71 +1,24 @@
 ﻿using AutoMapper;
+using Hangfire;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InnoTrack.Application.Services
 {
     public class ProjectService : IProjectService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IProjectAnalysisQueue _analysisQueue;
 
-        public ProjectService(IUnitOfWork unitOfWork, IProjectAnalysisQueue analysisQueue)
+        public ProjectService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
-            _analysisQueue = analysisQueue;
-        }
-        public async Task<ProjectResponseDto> CreateProjectAsync(int leaderId, CreateProjectDto dto)
-        {
-            var leaderRecord = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.StudentId == leaderId && tm.Role == TeamMemberRole.Leader);
-            if (leaderRecord == null)
-                throw new UnauthorizedAccessException("Only the team leader can submit a project proposal.");
-
-            var existingProject = await _unitOfWork.Repository<Project>().FindAsync(p => p.TeamId == leaderRecord.TeamId);
-            if (existingProject != null)
-                throw new InvalidOperationException("Your team already has a submitted project.");
-
-            await _unitOfWork.BeginTransactionAsync();
-
-            try
-            {
-                var project = new Project
-                {
-                    Title = dto.Title,
-                    Abstract = dto.Abstract,
-                    Description = dto.Description,
-                    DomainId = dto.DomainId,
-                    TeamId = leaderRecord.TeamId,
-                    Status = ProjectStatus.Draft
-                };
-
-                await _unitOfWork.Repository<Project>().AddAsync(project);
-                await _unitOfWork.CompleteAsync();
-
-                foreach (var techId in dto.TechnologyIds)
-                {
-                    var projectTech = new ProjectTechnology
-                    {
-                        ProjectId = project.Id,
-                        TechnologyId = techId
-                    };
-                    await _unitOfWork.Repository<ProjectTechnology>().AddAsync(projectTech);
-                }
-                await _unitOfWork.CompleteAsync();
-                await _unitOfWork.CommitTransactionAsync();
-
-                return new ProjectResponseDto(project.Id, project.Title, project.Status);
-            }
-            catch (Exception)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
         }
 
-        public async Task VerifyProjectForSubmissionAsync(int projectId, int userId)
+        public async Task VerifyProjectForSubmissionAsync(int projectId, int userId, int supervisorId)
         {
             var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
             if (project == null)
@@ -80,12 +33,30 @@ namespace InnoTrack.Application.Services
             if (leaderRecord == null || leaderRecord.Role != TeamMemberRole.Leader)
                 throw new UnauthorizedAccessException("Only the team leader can submit the project.");
 
+            var supervisor = await _unitOfWork.Repository<Professor>()
+                .GetQueryable()
+                .Include(p => p.SupervisedTeams)
+                .FirstOrDefaultAsync(p => p.Id == supervisorId);
+
+            if (supervisor == null)
+                throw new KeyNotFoundException("Supervisor not found.");
+
+            if (supervisor.SupervisedTeams.Count >= supervisor.MaxTeamLoad)
+                throw new InvalidOperationException($"Dr. {supervisor.FullName} has reached their maximum capacity of teams.");
+
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId);
+            if (team == null)
+                throw new KeyNotFoundException("Team not found.");
+
+            team.ProfessorId = supervisorId;
+            _unitOfWork.Repository<Team>().Update(team);
+
             project.Status = ProjectStatus.Processing;
             project.SubmittedAt = DateTime.UtcNow;
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();
-            await _analysisQueue.QueueProjectAsync(projectId);
+            BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(projectId));
         }
     }
 }

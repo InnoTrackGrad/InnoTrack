@@ -4,6 +4,6 @@ namespace InnoTrack.Application.Interfaces
 {
     public interface INotificationService
     {
-        Task SendNotificationAsync(int userId, string title, string message, NotificationType type);
+        Task SendNotificationAsync(int userId, string title, string message, NotificationType type, int? referenceId = null, ReferenceType? referenceType = null);
     }
 }
