@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace InnoTrack.Application.DTOs.Projects
@@ -13,7 +13,9 @@ namespace InnoTrack.Application.DTOs.Projects
         IReadOnlyList<string>? Technologies,
         IReadOnlyList<TeamMemberSummaryDto>? Members,
         DateTime? CreatedAt,
-        DateTime? SubmittedAt
+        DateTime? SubmittedAt,
+        string? SupervisorName,
+        string? TeamName
     );
 
     public record TeamMemberSummaryDto(string Name, string Role);

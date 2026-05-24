@@ -1,4 +1,4 @@
-﻿using InnoTrack.API.Attributes;
+using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -63,7 +63,7 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> SubmitProject(int projectId, [FromBody] SubmitProjectRequestDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            await _projectService.VerifyProjectForSubmissionAsync(projectId, userId, dto.SupervisorId);
+            await _projectService.VerifyProjectForSubmissionAsync(projectId, userId, dto);
             return Ok(new { message = "Project submitted successfully. AI is generating the originality report." });
         }
 
@@ -137,7 +137,7 @@ namespace InnoTrack.API.Controllers
             var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
             if (project == null) throw new KeyNotFoundException("Project not found.");
 
-            if (project.Status != ProjectStatus.Completed || project.OriginalityScore < 85)
+            if (project.Status != ProjectStatus.Approved || project.OriginalityScore < 85)
                 return BadRequest("Only completed projects with high originality scores can be showcased.");
 
             project.IsPublicShowcase = !project.IsPublicShowcase;

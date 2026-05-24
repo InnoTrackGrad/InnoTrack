@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Common;
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
@@ -37,9 +37,9 @@ namespace InnoTrack.Infrastructure.Services
             if (!string.IsNullOrWhiteSpace(status))
             {
                 if (status.Equals("completed", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(p => p.Status == ProjectStatus.Completed);
+                    query = query.Where(p => p.Status == ProjectStatus.Approved);
                 else if (status.Equals("in-progress", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(p => p.Status != ProjectStatus.Completed
+                    query = query.Where(p => p.Status != ProjectStatus.Approved
                                              && p.Status != ProjectStatus.Rejected);
             }
 
@@ -111,6 +111,7 @@ namespace InnoTrack.Infrastructure.Services
                 .Include(tm => tm.Team).ThenInclude(t => t.Project)
                      .ThenInclude(p => p!.ProjectTechnologies).ThenInclude(pt => pt.Technology)
                 .Include(tm => tm.Team).ThenInclude(t => t.Members).ThenInclude(m => m.Student)
+                .Include(tm => tm.Team).ThenInclude(t => t.Supervisor)
                 .FirstOrDefaultAsync(tm => tm.StudentId == userId);
 
             var project = teamMember?.Team?.Project;
@@ -134,7 +135,9 @@ namespace InnoTrack.Infrastructure.Services
                 Technologies: technologies.AsReadOnly(),
                 Members: members.AsReadOnly(),
                 CreatedAt: project.CreatedAt,
-                SubmittedAt: project.SubmittedAt
+                SubmittedAt: project.SubmittedAt,
+                SupervisorName: teamMember.Team.Supervisor?.FullName,
+                TeamName: teamMember.Team.Name
             );
         }
 
@@ -148,7 +151,6 @@ namespace InnoTrack.Infrastructure.Services
                     p.Id,
                     p.FullName,
                     p.Department.Name,
-                    p.Specialization,
                     p.Email,
                     p.SupervisedTeams.Count,
                     p.MaxTeamLoad
@@ -183,6 +185,9 @@ namespace InnoTrack.Infrastructure.Services
                     Title = dto.Title,
                     Abstract = dto.Abstract,
                     Description = dto.Description,
+                    ProblemStatement = dto.ProblemStatement,
+                    ProposedSolution = dto.ProposedSolution,
+                    Objectives = dto.Objectives,
                     DomainId = dto.DomainId,
                     TeamId = leaderRecord.TeamId,
                     Status = ProjectStatus.Draft,
@@ -228,6 +233,9 @@ namespace InnoTrack.Infrastructure.Services
             {
                 project.Title = dto.Title; project.Abstract = dto.Abstract;
                 project.Description = dto.Description; project.DomainId = dto.DomainId;
+                project.ProblemStatement = dto.ProblemStatement;
+                project.ProposedSolution = dto.ProposedSolution;
+                project.Objectives = dto.Objectives;
                 project.UpdatedAt = DateTime.UtcNow;
 
                 var existingTechs = _context.ProjectTechnologies.Where(pt => pt.ProjectId == draftId);
@@ -282,6 +290,7 @@ namespace InnoTrack.Infrastructure.Services
 
             if (dto.Title != null) project.Title = dto.Title;
             if (dto.Description != null) project.Description = dto.Description;
+            if (dto.Objectives != null) project.Objectives = dto.Objectives;
             project.UpdatedAt = DateTime.UtcNow;
 
             if (dto.TechnologyIds != null)
@@ -302,7 +311,7 @@ namespace InnoTrack.Infrastructure.Services
             var project = await _context.Projects.FindAsync(projectId);
             if (project == null) throw new KeyNotFoundException("Project not found.");
 
-            if (project.Status != ProjectStatus.Submitted)
+            if (project.Status != ProjectStatus.UnderReview)
                 throw new InvalidOperationException("Only submitted projects can be recalled.");
 
             var leaderRecord = await _context.TeamMembers
@@ -340,9 +349,10 @@ namespace InnoTrack.Infrastructure.Services
 
         private static string MapStatus(ProjectStatus status) => status switch
         {
-            ProjectStatus.Completed => "completed",
+            ProjectStatus.Approved => "approved",
             ProjectStatus.Rejected => "rejected",
-            _ => "in-progress"
+            ProjectStatus.UnderReview => "under-review",
+            _ => "draft"
         };
 
     }

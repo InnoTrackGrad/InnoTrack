@@ -1,4 +1,4 @@
-﻿using InnoTrack.API.Attributes;
+using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -63,7 +63,7 @@ namespace InnoTrack.API.Controllers
         }
 
         /// <summary>Get the authenticated student's project.</summary>
-        [HttpGet("/api/my-project")]
+        [HttpGet("me")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> GetMyProject()
         {

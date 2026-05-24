@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Hangfire;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
@@ -18,8 +18,9 @@ namespace InnoTrack.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task VerifyProjectForSubmissionAsync(int projectId, int userId, int supervisorId)
+        public async Task VerifyProjectForSubmissionAsync(int projectId, int userId, SubmitProjectRequestDto dto)
         {
+            var supervisorId = dto.SupervisorId;
             var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
@@ -51,8 +52,12 @@ namespace InnoTrack.Application.Services
             team.ProfessorId = supervisorId;
             _unitOfWork.Repository<Team>().Update(team);
 
-            project.Status = ProjectStatus.Processing;
+            project.Status = ProjectStatus.UnderReview;
             project.SubmittedAt = DateTime.UtcNow;
+
+            project.ProposalDepartment = dto.Department;
+            project.ProposalTeamMembers = dto.TeamMembers;
+            project.ProposalMessage = dto.Message;
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();

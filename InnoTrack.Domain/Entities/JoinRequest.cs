@@ -1,4 +1,4 @@
-﻿using InnoTrack.Domain.Entities.Enums;
+using InnoTrack.Domain.Entities.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace InnoTrack.Domain.Entities
@@ -17,5 +17,8 @@ namespace InnoTrack.Domain.Entities
 
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [MaxLength(1000)]
+        public string? Message { get; set; }
     }
 }

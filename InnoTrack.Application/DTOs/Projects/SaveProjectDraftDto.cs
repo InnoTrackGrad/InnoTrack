@@ -1,10 +1,13 @@
-﻿namespace InnoTrack.Application.DTOs.Projects
+namespace InnoTrack.Application.DTOs.Projects
 {
     public record SaveProjectDraftDto(
         string Title,
         string Abstract,
         string Description,
         int DomainId,
-        List<int> TechnologyIds
+        List<int> TechnologyIds,
+        string? ProblemStatement,
+        string? ProposedSolution,
+        string? Objectives
     );
 }

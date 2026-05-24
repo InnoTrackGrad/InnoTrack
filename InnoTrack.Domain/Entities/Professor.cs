@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace InnoTrack.Domain.Entities
 {
@@ -7,9 +7,6 @@ namespace InnoTrack.Domain.Entities
         [Required]
         public int DepartmentId { get; set; }
         public Department Department { get; set; } = null!;
-
-        [Required, MaxLength(100)]
-        public string Specialization { get; set; }
 
         public int MaxTeamLoad { get; set; } = 5;
 

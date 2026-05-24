@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Projects
+namespace InnoTrack.Application.DTOs.Projects
 {
-    public record SubmitProjectRequestDto(int SupervisorId);
+    public record SubmitProjectRequestDto(int SupervisorId, string Department, string TeamMembers, string Message);
 }

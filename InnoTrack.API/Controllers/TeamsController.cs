@@ -1,4 +1,4 @@
-﻿using InnoTrack.API.Attributes;
+using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
@@ -44,7 +44,7 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> JoinRequest(JoinRequestDto dto)
         {
             var userId = GetUserId();
-            await _joinRequestService.RequestToJoinAsync(userId, dto.TeamId);
+            await _joinRequestService.RequestToJoinAsync(userId, dto);
             return Ok(new { message = "Request sent successfully." });
         }
 

@@ -1,7 +1,7 @@
-﻿namespace InnoTrack.Application.Interfaces
+namespace InnoTrack.Application.Interfaces
 {
     public interface IJoinCodeGenerator
     {
-        string GenerateJoinCode(int length = 8);
+        string GenerateJoinCode(int length = 6);
     }
 }

@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Common;
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -24,7 +24,7 @@ namespace InnoTrack.Application.Services
             if (professor == null) throw new KeyNotFoundException("Professor not found.");
 
             var query = _unitOfWork.Repository<Project>().GetQueryable()
-                .Where(p => p.Status == ProjectStatus.Submitted && p.Team.ProfessorId == professorId);
+                .Where(p => p.Status == ProjectStatus.UnderReview && p.Team.ProfessorId == professorId);
 
             var totalCount = await query.CountAsync();
 
@@ -55,10 +55,10 @@ namespace InnoTrack.Application.Services
             if (team is null || team.ProfessorId != professorId)
                 throw new UnauthorizedAccessException("You are not authorized to review this project.");
 
-            if (project.Status != ProjectStatus.Submitted)
+            if (project.Status != ProjectStatus.UnderReview)
                 throw new InvalidOperationException("Project is not currently submitted for review.");
 
-            project.Status = approve ? ProjectStatus.Completed : ProjectStatus.Rejected;
+            project.Status = approve ? ProjectStatus.Approved : ProjectStatus.Rejected;
             project.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();

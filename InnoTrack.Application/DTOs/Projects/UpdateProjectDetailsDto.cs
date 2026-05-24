@@ -1,8 +1,9 @@
-﻿namespace InnoTrack.Application.DTOs.Projects
+namespace InnoTrack.Application.DTOs.Projects
 {
     public record UpdateProjectDetailsDto(
         string? Title,
         string? Description,
-        List<int>? TechnologyIds
+        List<int>? TechnologyIds,
+        string? Objectives
     );
 }

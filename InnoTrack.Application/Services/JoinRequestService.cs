@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Teams;
+using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -20,9 +20,9 @@ namespace InnoTrack.Application.Services
             _logger = logger;
         }
 
-        public async Task RequestToJoinAsync(int studentId, int teamId)
+        public async Task RequestToJoinAsync(int studentId, JoinRequestDto dto)
         {
-            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(dto.TeamId);
             if (team == null) throw new KeyNotFoundException("Team not found.");
 
             if (team.JoinCodeExpiry.HasValue && team.JoinCodeExpiry.Value < DateTime.UtcNow)
@@ -41,6 +41,7 @@ namespace InnoTrack.Application.Services
             {
                 StudentId = studentId,
                 TeamId = team.Id,
+                Message = dto.Message,
                 Status = RequestStatus.Pending
             };
 
@@ -117,7 +118,9 @@ namespace InnoTrack.Application.Services
                 {
                     request.Status = RequestStatus.Rejected;
                     notifTitle = "Join Request Rejected";
-                    notifMessage = "Your request to join the team has been rejected.";
+                    notifMessage = string.IsNullOrWhiteSpace(dto.FeedbackMessage) 
+                        ? "Your request to join the team has been rejected."
+                        : $"Your request to join the team has been rejected. Feedback: {dto.FeedbackMessage}";
                     notifType = NotificationType.Error;
                 }
                 await _unitOfWork.CommitTransactionAsync();

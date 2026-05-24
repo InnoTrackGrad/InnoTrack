@@ -1,4 +1,4 @@
-﻿
+
 using InnoTrack.Domain.Entities.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -40,6 +40,24 @@ namespace InnoTrack.Domain.Entities
         public int AcademicYearId { get; set; }
         public AcademicYear AcademicYear { get; set; }
 
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? ProblemStatement { get; set; }
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? ProposedSolution { get; set; }
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? Objectives { get; set; }
+
+        [MaxLength(200)]
+        public string? ProposalDepartment { get; set; }
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? ProposalTeamMembers { get; set; }
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? ProposalMessage { get; set; }
 
         public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
         public ICollection<ProjectAttachment> Attachments { get; set; } = new HashSet<ProjectAttachment>();

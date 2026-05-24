@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Teams
+namespace InnoTrack.Application.DTOs.Teams
 {
     public record PendingJoinRequestDetailDto(
         int Id,
@@ -7,6 +7,7 @@
         string Department,
         decimal? GPA,
         IReadOnlyList<string> Skills,
-        DateTime RequestedAt
+        DateTime RequestedAt,
+        string? Message
     );
 }

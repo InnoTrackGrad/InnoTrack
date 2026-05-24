@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Teams
+namespace InnoTrack.Application.DTOs.Teams
 {
-    public record JoinRequestDto(int TeamId);
+    public record JoinRequestDto(int TeamId, string? Message);
 }

@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.AI;
+using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Settings;
@@ -49,7 +49,7 @@ namespace InnoTrack.Application.Services
             {
                 _logger.LogError(ex, "Error processing AI for project {ProjectId}", projectId);
 
-                if (project.Status == ProjectStatus.Processing)
+                if (project.Status == ProjectStatus.UnderReview)
                 {
                     project.Status = ProjectStatus.Draft;
                     _unitOfWork.Repository<Project>().Update(project);
@@ -109,9 +109,9 @@ namespace InnoTrack.Application.Services
                                     => (ProjectStatus.Rejected, "Project Rejected", $"Originality score {score}% is too low.", NotificationType.Error),
 
                     var score when score <= _thresholds.RequireManualReviewBelow
-                                    => (ProjectStatus.Submitted, "AI Analysis — Review Required", $"Originality score {score}%. Professor approval required.", NotificationType.Warning),
+                                    => (ProjectStatus.UnderReview, "AI Analysis — Review Required", $"Originality score {score}%. Professor approval required.", NotificationType.Warning),
 
-                    _ => (ProjectStatus.Submitted, "AI Analysis Passed", $"Originality score {aiResponse.OriginalityScore}%. Awaiting professor review.", NotificationType.Success)
+                    _ => (ProjectStatus.Approved, "AI Analysis Passed", $"Originality score {aiResponse.OriginalityScore}%. Awaiting professor review.", NotificationType.Success)
                 };
 
                 project.Status = status;

@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Dashboard;
+using InnoTrack.Application.DTOs.Dashboard;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Infrastructure.Data;
@@ -20,12 +20,11 @@ namespace InnoTrack.Infrastructure.Services
             var totalProjects = await _context.Projects.CountAsync();
 
             var completedThisYear = await _context.Projects.CountAsync(
-                    p => p.Status == ProjectStatus.Completed && p.AcademicYearId == activeYearId);
+                    p => p.Status == ProjectStatus.Approved && p.AcademicYearId == activeYearId);
 
             var inProgress = await _context.Projects.CountAsync(p =>
                 p.Status == ProjectStatus.Draft
-                || p.Status == ProjectStatus.Processing
-                || p.Status == ProjectStatus.Submitted);
+                || p.Status == ProjectStatus.UnderReview);
 
             var topTechnologies = await _context.ProjectTechnologies
                     .GroupBy(pt => pt.Technology.Name)
@@ -50,7 +49,7 @@ namespace InnoTrack.Infrastructure.Services
         {
             var projects = await _context.Projects
                 .AsNoTracking()
-                .Where(p => p.Status == ProjectStatus.Completed && p.OriginalityScore.HasValue)
+                .Where(p => p.Status == ProjectStatus.Approved && p.OriginalityScore.HasValue)
                 .OrderByDescending(p => p.OriginalityScore)
                 .Take(limit)
                 .Select(p => new PopularProjectDto(

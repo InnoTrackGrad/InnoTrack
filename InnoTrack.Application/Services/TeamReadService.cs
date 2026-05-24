@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Teams;
+using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -99,7 +99,8 @@ namespace InnoTrack.Application.Services
                     department?.Name ?? string.Empty,
                     student.GPA,
                     skills.AsReadOnly(),
-                    request.CreatedAt
+                    request.CreatedAt,
+                    request.Message
                 ));
             }
 
