@@ -21,7 +21,7 @@ namespace InnoTrack.Infrastructure.Services
         }
 
         public async Task<PagedResult<ProjectCatalogItemDto>> GetProjectsAsync(
-            int? year, string? status, string? search, int pageNumber, int pageSize)
+            ProjectCatalogFilterDto filter, int pageNumber, int pageSize)
         {
             var query = _context.Projects
                 .AsNoTracking()
@@ -31,24 +31,37 @@ namespace InnoTrack.Infrastructure.Services
                 .Include(p => p.ProjectTechnologies).ThenInclude(pt => pt.Technology)
                 .AsQueryable();
 
-            if (year.HasValue)
-                query = query.Where(p => p.CreatedAt.Year == year.Value);
+            query = query.Where(p => p.Status != ProjectStatus.Draft && p.Status != ProjectStatus.Rejected);
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (filter.Year.HasValue)
+                query = query.Where(p => p.CreatedAt.Year == filter.Year.Value);
+
+            if (!string.IsNullOrWhiteSpace(filter.Status))
             {
-                if (status.Equals("completed", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(p => p.Status == ProjectStatus.Approved);
-                else if (status.Equals("in-progress", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(p => p.Status != ProjectStatus.Approved
-                                             && p.Status != ProjectStatus.Rejected);
+                if (filter.Status.Equals("completed", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(p => p.Status == ProjectStatus.Completed);
+                else if (filter.Status.Equals("in progress", StringComparison.OrdinalIgnoreCase))
+                    query = query.Where(p => p.Status == ProjectStatus.In_Progress);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
+            if (filter.DomainId.HasValue)
+                query = query.Where(p => p.DomainId == filter.DomainId.Value);
+
+            if (filter.SupervisorId.HasValue)
+                query = query.Where(p => p.Team.ProfessorId == filter.SupervisorId.Value);
+
+            if (filter.TechnologyId.HasValue)
+                query = query.Where(p => p.ProjectTechnologies.Any(pt => pt.TechnologyId == filter.TechnologyId.Value));
+
+            if (filter.MinOriginalityScore.HasValue)
+                query = query.Where(p => p.OriginalityScore >= filter.MinOriginalityScore.Value);
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 query = query.Where(p =>
-                    p.Title.Contains(search) ||
-                    p.Domain.Name.Contains(search) ||
-                    p.ProjectTechnologies.Any(pt => pt.Technology.Name.Contains(search)));
+                    p.Title.Contains(filter.Search) ||
+                    p.Domain.Name.Contains(filter.Search) ||
+                    p.ProjectTechnologies.Any(pt => pt.Technology.Name.Contains(filter.Search)));
             }
 
             var totalCount = await query.CountAsync();
@@ -73,6 +86,21 @@ namespace InnoTrack.Infrastructure.Services
             return new PagedResult<ProjectCatalogItemDto>(data.AsReadOnly(), totalCount, pageNumber, pageSize);
         }
 
+        public async Task<CatalogTabsCountDto> GetCatalogTabsCountAsync()
+        {
+            int activeYearId = await _context.AcademicYears
+                .Where(y => y.IsActive)
+                .Select(y => y.Id)
+                .FirstOrDefaultAsync();
+
+            var baseQuery = _context.Projects
+                .Where(p => p.Status != ProjectStatus.Draft && p.Status != ProjectStatus.Rejected);
+
+            int thisYearCount = await baseQuery.CountAsync(p => p.AcademicYearId == activeYearId);
+            int oldProjectsCount = await baseQuery.CountAsync(p => p.AcademicYearId != activeYearId);
+
+            return new CatalogTabsCountDto(thisYearCount, oldProjectsCount);
+        }
         public async Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId)
         {
             var project = await _context.Projects

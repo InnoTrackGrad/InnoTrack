@@ -24,6 +24,7 @@ namespace InnoTrack.Application.Services
             if (professor == null) throw new KeyNotFoundException("Professor not found.");
 
             var query = _unitOfWork.Repository<Project>().GetQueryable()
+                .AsNoTracking()
                 .Where(p => p.Status == ProjectStatus.UnderReview && p.Team.ProfessorId == professorId);
 
             var totalCount = await query.CountAsync();
@@ -58,7 +59,7 @@ namespace InnoTrack.Application.Services
             if (project.Status != ProjectStatus.UnderReview)
                 throw new InvalidOperationException("Project is not currently submitted for review.");
 
-            project.Status = approve ? ProjectStatus.Approved : ProjectStatus.Rejected;
+            project.Status = approve ? ProjectStatus.In_Progress : ProjectStatus.Rejected;
             project.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();

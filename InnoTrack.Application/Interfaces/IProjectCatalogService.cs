@@ -6,7 +6,8 @@ namespace InnoTrack.Application.Interfaces
     public interface IProjectCatalogService
     {
         Task<PagedResult<ProjectCatalogItemDto>> GetProjectsAsync(
-            int? year, string? status, string? search, int pageNumber, int pageSize);
+            ProjectCatalogFilterDto filter, int pageNumber, int pageSize);
+        Task<CatalogTabsCountDto> GetCatalogTabsCountAsync();
         Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId);
         Task<MyProjectResponseDto?> GetMyProjectAsync(int userId);
         Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync();

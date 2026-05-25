@@ -10,5 +10,6 @@
         IReadOnlyList<string> Students,
         IReadOnlyList<string> Technologies,
         decimal? OriginalityScore
+        //bool AcceptsJoinRequests
     );
 }

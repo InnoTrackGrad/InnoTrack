@@ -25,8 +25,8 @@ namespace InnoTrack.Application.Services
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
 
-            if (project.Status != ProjectStatus.Draft)
-                throw new InvalidOperationException("Only projects in Draft status can be submitted.");
+            if (project.Status != ProjectStatus.Draft && project.Status != ProjectStatus.Rejected)
+                throw new InvalidOperationException("Only projects in Draft or Rejected status can be submitted.");
 
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId);

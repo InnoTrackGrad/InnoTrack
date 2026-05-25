@@ -36,13 +36,11 @@ namespace InnoTrack.API.Controllers
         /// <summary>Browse the full project catalog with optional filters.</summary>
         [HttpGet]
         public async Task<IActionResult> GetProjects(
-            [FromQuery] int? year,
-            [FromQuery] string? status,
-            [FromQuery] string? search,
+            [FromQuery] ProjectCatalogFilterDto filter,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _catalogService.GetProjectsAsync(year, status, search, page, pageSize);
+            var result = await _catalogService.GetProjectsAsync(filter, page, pageSize);
             return Ok(result);
         }
 

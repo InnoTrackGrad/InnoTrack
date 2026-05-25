@@ -1,5 +1,6 @@
 using InnoTrack.Application.DTOs.Dashboard;
 using InnoTrack.Application.Interfaces;
+using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -85,5 +86,102 @@ namespace InnoTrack.Infrastructure.Services
 
             return trendingDto.AsReadOnly();
         }
+
+        public async Task<CurrentOriginalityWidgetDto> GetCurrentOriginalityWidget(int userId)
+        {
+            var project = await _context.TeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.StudentId == userId && tm.Team.Project != null)
+                .Select(tm => tm.Team.Project)
+                .FirstOrDefaultAsync();
+
+            if (project == null)
+            {
+                return new CurrentOriginalityWidgetDto(
+                    null,
+                    "No Active Project"
+                );
+            }
+
+            return new CurrentOriginalityWidgetDto(
+                project.OriginalityScore,
+                project.Title
+            );
+        }
+
+        public async Task<ProjectStatusWidgetDto> GetProjectStatusWidget(int userId)
+        {
+            var project = await _context.TeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.StudentId == userId && tm.Team.Project != null)
+                .Select(tm => tm.Team.Project)
+                .FirstOrDefaultAsync();
+
+            if (project == null)
+            {
+                return new ProjectStatusWidgetDto(
+                    "Not Started",
+                    "Join a team or create a draft to begin"
+                );
+            }
+            string statusDescription = project.Status switch
+            {
+                ProjectStatus.Draft => "Drafting phase",
+                ProjectStatus.UnderReview => "Awaiting professor approval",
+                ProjectStatus.In_Progress => "Active development phase",
+                ProjectStatus.Rejected => "Requires revisions",
+                ProjectStatus.Completed => "Project successfully finished",
+                _ => "Unknown phase"
+            };
+
+            string formattedStatus = project.Status.ToString().Replace("_", " ");
+
+            return new ProjectStatusWidgetDto(
+                formattedStatus,
+                statusDescription
+            );
+        }
+
+        public async Task<IReadOnlyList<MostOriginalProjectCardDto>> GetMostOriginalProjectsAsync(bool thisYearOnly, int limit = 4)
+        {
+            var query = _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Domain)
+                .Where(p => p.OriginalityScore.HasValue && p.Status != ProjectStatus.Rejected);
+
+            if (thisYearOnly)
+            {
+                var activeYear = await _context.AcademicYears.FirstOrDefaultAsync(y => y.IsActive);
+                if (activeYear != null)
+                {
+                    query = query.Where(p => p.AcademicYearId == activeYear.Id);
+                }
+            }
+
+            var projects = await query
+                .OrderByDescending(p => p.OriginalityScore) 
+                .Take(limit) 
+                .Select(p => new MostOriginalProjectCardDto(
+                    p.Id,
+                    p.Domain.Name,
+                    p.OriginalityScore.Value,
+                    p.Title,
+                    p.Abstract,
+                    p.CreatedAt.Year,
+                    MapStatusForCard(p.Status)
+                ))
+                .ToListAsync();
+
+            return projects.AsReadOnly();
+        }
+
+        private static string MapStatusForCard(ProjectStatus status) => status switch
+        {
+            ProjectStatus.Draft => "Draft",
+            ProjectStatus.UnderReview => "Under Review",
+            ProjectStatus.In_Progress => "In Progress",
+            ProjectStatus.Completed => "Completed",
+            _ => status.ToString()
+        };
     }
 }

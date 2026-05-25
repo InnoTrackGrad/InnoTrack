@@ -111,12 +111,13 @@ namespace InnoTrack.Application.Services
                     var score when score <= _thresholds.RequireManualReviewBelow
                                     => (ProjectStatus.UnderReview, "AI Analysis — Review Required", $"Originality score {score}%. Professor approval required.", NotificationType.Warning),
 
-                    _ => (ProjectStatus.Approved, "AI Analysis Passed", $"Originality score {aiResponse.OriginalityScore}%. Awaiting professor review.", NotificationType.Success)
+                    _ => (ProjectStatus.UnderReview, "AI Analysis Passed", $"Originality score {aiResponse.OriginalityScore}%. Awaiting professor review.", NotificationType.Success)
                 };
 
                 project.Status = status;
                 _unitOfWork.Repository<Project>().Update(project);
 
+                await _unitOfWork.CompleteAsync();
                 await _unitOfWork.CommitTransactionAsync();
 
                 try
