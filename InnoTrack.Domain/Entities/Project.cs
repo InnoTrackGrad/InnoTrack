@@ -26,6 +26,10 @@ namespace InnoTrack.Domain.Entities
         [Range(0, 100)]
         public decimal? OriginalityScore { get; set; }
 
+        public int? Year { get; set; }
+
+        public string? StudentNames { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? SubmittedAt { get; set; }
@@ -37,8 +41,9 @@ namespace InnoTrack.Domain.Entities
         public int DomainId { get; set; }
         public Domain Domain { get; set; }
 
+        [Required]
         public int AcademicYearId { get; set; }
-        public AcademicYear AcademicYear { get; set; }
+        public AcademicYear AcademicYear { get; set; } = null!;
 
 
         [Column(TypeName = "nvarchar(max)")]
@@ -62,7 +67,7 @@ namespace InnoTrack.Domain.Entities
         public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
         public ICollection<ProjectAttachment> Attachments { get; set; } = new HashSet<ProjectAttachment>();
         public ICollection<Feedback> Feedbacks { get; set; } = new HashSet<Feedback>();
-
+        public ICollection<SimilarProject> SimilarProjects { get; set; } = new HashSet<SimilarProject>(); 
         public VectorEmbedding? VectorEmbedding { get; set; }
         public ICollection<OriginalityReport> OriginalityReports { get; set; } = new HashSet<OriginalityReport>();
     }

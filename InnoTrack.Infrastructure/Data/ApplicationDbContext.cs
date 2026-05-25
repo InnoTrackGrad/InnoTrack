@@ -97,7 +97,7 @@ namespace InnoTrack.Infrastructure.Data
                         .IsUnique();
 
             modelBuilder.Entity<Technology>()
-                        .HasIndex(t => new { t.Category, t.Name })
+                        .HasIndex(t => t.Name)
                         .IsUnique();
 
             // Notification inbox query — the most frequent read in the app:
@@ -178,10 +178,6 @@ namespace InnoTrack.Infrastructure.Data
                         .HasConversion<string>()
                         .HasMaxLength(25);
 
-            modelBuilder.Entity<Technology>()
-                        .Property(t => t.Category)
-                        .HasConversion<string>()
-                        .HasMaxLength(50);
 
             modelBuilder.Entity<ChatMessage>()
                         .Property(m => m.Type)

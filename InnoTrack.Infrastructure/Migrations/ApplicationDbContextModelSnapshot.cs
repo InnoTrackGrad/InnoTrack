@@ -391,6 +391,9 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<int>("AcademicYearId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("AcademicYearId1")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -432,6 +435,9 @@ namespace InnoTrack.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("StudentNames")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("datetime2");
 
@@ -446,9 +452,14 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AcademicYearId");
+
+                    b.HasIndex("AcademicYearId1");
 
                     b.HasIndex("DomainId");
 
@@ -534,6 +545,9 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<int>("OriginalityReportId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ReferencedProjectId")
                         .HasColumnType("int");
 
@@ -544,6 +558,8 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OriginalityReportId");
+
+                    b.HasIndex("ProjectId");
 
                     b.HasIndex("ReferencedProjectId");
 
@@ -666,11 +682,6 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -678,7 +689,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Category", "Name")
+                    b.HasIndex("Name")
                         .IsUnique();
 
                     b.ToTable("Technologies");
@@ -938,6 +949,10 @@ namespace InnoTrack.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("InnoTrack.Domain.Entities.AcademicYear", null)
+                        .WithMany("Projects")
+                        .HasForeignKey("AcademicYearId1");
+
                     b.HasOne("InnoTrack.Domain.Entities.Domain", "Domain")
                         .WithMany("Projects")
                         .HasForeignKey("DomainId")
@@ -1002,6 +1017,10 @@ namespace InnoTrack.Infrastructure.Migrations
                         .HasForeignKey("OriginalityReportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("InnoTrack.Domain.Entities.Project", null)
+                        .WithMany("SimilarProjects")
+                        .HasForeignKey("ProjectId");
 
                     b.HasOne("InnoTrack.Domain.Entities.Project", "ReferencedProject")
                         .WithMany()
@@ -1094,6 +1113,11 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Navigation("Department");
                 });
 
+            modelBuilder.Entity("InnoTrack.Domain.Entities.AcademicYear", b =>
+                {
+                    b.Navigation("Projects");
+                });
+
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessage", b =>
                 {
                     b.Navigation("Attachments");
@@ -1130,6 +1154,8 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Navigation("OriginalityReports");
 
                     b.Navigation("ProjectTechnologies");
+
+                    b.Navigation("SimilarProjects");
 
                     b.Navigation("VectorEmbedding");
                 });

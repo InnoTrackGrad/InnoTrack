@@ -21,9 +21,8 @@ namespace InnoTrack.Application.Services
 
         public async Task<TechnologyDto> CreateTechnologyAsync(CreateTechnologyDto request)
         {
-            if (!Enum.TryParse<TechnologyCategory>(request.Category, true, out var categoryEnum))
-                throw new ArgumentException($"Invalid category: {request.Category}");
-            var technology = new Technology { Name = request.Name, Category = categoryEnum };
+
+            var technology = new Technology { Name = request.Name };
             await _unitOfWork.Repository<Technology>().AddAsync(technology);
             await _unitOfWork.CompleteAsync();
             return _mapper.Map<TechnologyDto>(technology);
@@ -50,11 +49,8 @@ namespace InnoTrack.Application.Services
             var technology = await _unitOfWork.Repository<Technology>().GetByIdAsync(id);
             if (technology == null) throw new KeyNotFoundException("Technology not found.");
 
-            if (!Enum.TryParse<TechnologyCategory>(request.Category, true, out var categoryEnum))
-                throw new ArgumentException($"Invalid category: {request.Category}");
 
             technology.Name = request.Name;
-            technology.Category = categoryEnum;
 
             _unitOfWork.Repository<Technology>().Update(technology);
             await _unitOfWork.CompleteAsync();

@@ -10,10 +10,6 @@ namespace InnoTrack.Application.Validators
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Technology name is required.")
                 .MaximumLength(100).WithMessage("Technology name cannot exceed 100 characters.");
-
-            RuleFor(x => x.Category)
-                .NotEmpty().WithMessage("Technology category is required.");
-
         }
     }
 }

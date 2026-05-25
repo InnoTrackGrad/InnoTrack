@@ -10,7 +10,6 @@ namespace InnoTrack.Domain.Entities
         [Required, MaxLength(100)]
         public string Name { get; set; }
 
-        public TechnologyCategory Category { get; set; }
 
         public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
 

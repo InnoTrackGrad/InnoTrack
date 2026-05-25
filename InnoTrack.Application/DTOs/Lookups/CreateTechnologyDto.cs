@@ -1,4 +1,4 @@
 ﻿namespace InnoTrack.Application.DTOs.Lookups
 {
-    public record CreateTechnologyDto(string Name, string Category);
+    public record CreateTechnologyDto(string Name);
 }
