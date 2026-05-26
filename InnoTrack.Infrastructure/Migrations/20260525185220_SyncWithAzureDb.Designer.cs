@@ -394,9 +394,6 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<int>("AcademicYearId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("AcademicYearId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -461,8 +458,6 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AcademicYearId");
-
-                    b.HasIndex("AcademicYearId1");
 
                     b.HasIndex("DomainId");
 
@@ -951,10 +946,6 @@ namespace InnoTrack.Infrastructure.Migrations
                         .HasForeignKey("AcademicYearId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("InnoTrack.Domain.Entities.AcademicYear", null)
-                        .WithMany("Projects")
-                        .HasForeignKey("AcademicYearId1");
 
                     b.HasOne("InnoTrack.Domain.Entities.Domain", "Domain")
                         .WithMany("Projects")

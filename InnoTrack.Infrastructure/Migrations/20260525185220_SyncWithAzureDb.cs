@@ -10,89 +10,79 @@ namespace InnoTrack.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "ProjectId",
-                table: "SimilarProjects",
-                type: "int",
-                nullable: true);
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('SimilarProjects', 'ProjectId') IS NULL
+                    ALTER TABLE [SimilarProjects] ADD [ProjectId] int NULL;
+                """);
 
-            migrationBuilder.AddColumn<int>(
-                name: "AcademicYearId1",
-                table: "Projects",
-                type: "int",
-                nullable: true);
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Projects', 'StudentNames') IS NULL
+                    ALTER TABLE [Projects] ADD [StudentNames] nvarchar(max) NULL;
+                """);
 
-            migrationBuilder.AddColumn<string>(
-                name: "StudentNames",
-                table: "Projects",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Projects', 'Year') IS NULL
+                    ALTER TABLE [Projects] ADD [Year] int NULL;
+                """);
 
-            migrationBuilder.AddColumn<int>(
-                name: "Year",
-                table: "Projects",
-                type: "int",
-                nullable: true);
+            migrationBuilder.Sql("""
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.indexes
+                    WHERE [name] = N'IX_SimilarProjects_ProjectId'
+                        AND [object_id] = OBJECT_ID(N'[SimilarProjects]')
+                )
+                    CREATE INDEX [IX_SimilarProjects_ProjectId] ON [SimilarProjects] ([ProjectId]);
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_SimilarProjects_ProjectId",
-                table: "SimilarProjects",
-                column: "ProjectId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Projects_AcademicYearId1",
-                table: "Projects",
-                column: "AcademicYearId1");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Projects_AcademicYears_AcademicYearId1",
-                table: "Projects",
-                column: "AcademicYearId1",
-                principalTable: "AcademicYears",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_SimilarProjects_Projects_ProjectId",
-                table: "SimilarProjects",
-                column: "ProjectId",
-                principalTable: "Projects",
-                principalColumn: "Id");
+            migrationBuilder.Sql("""
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.foreign_keys
+                    WHERE [name] = N'FK_SimilarProjects_Projects_ProjectId'
+                )
+                    ALTER TABLE [SimilarProjects]
+                    ADD CONSTRAINT [FK_SimilarProjects_Projects_ProjectId]
+                    FOREIGN KEY ([ProjectId]) REFERENCES [Projects] ([Id]);
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Projects_AcademicYears_AcademicYearId1",
-                table: "Projects");
+            migrationBuilder.Sql("""
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.foreign_keys
+                    WHERE [name] = N'FK_SimilarProjects_Projects_ProjectId'
+                )
+                    ALTER TABLE [SimilarProjects] DROP CONSTRAINT [FK_SimilarProjects_Projects_ProjectId];
+                """);
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_SimilarProjects_Projects_ProjectId",
-                table: "SimilarProjects");
+            migrationBuilder.Sql("""
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.indexes
+                    WHERE [name] = N'IX_SimilarProjects_ProjectId'
+                        AND [object_id] = OBJECT_ID(N'[SimilarProjects]')
+                )
+                    DROP INDEX [IX_SimilarProjects_ProjectId] ON [SimilarProjects];
+                """);
 
-            migrationBuilder.DropIndex(
-                name: "IX_SimilarProjects_ProjectId",
-                table: "SimilarProjects");
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('SimilarProjects', 'ProjectId') IS NOT NULL
+                    ALTER TABLE [SimilarProjects] DROP COLUMN [ProjectId];
+                """);
 
-            migrationBuilder.DropIndex(
-                name: "IX_Projects_AcademicYearId1",
-                table: "Projects");
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Projects', 'StudentNames') IS NOT NULL
+                    ALTER TABLE [Projects] DROP COLUMN [StudentNames];
+                """);
 
-            migrationBuilder.DropColumn(
-                name: "ProjectId",
-                table: "SimilarProjects");
-
-            migrationBuilder.DropColumn(
-                name: "AcademicYearId1",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "StudentNames",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "Year",
-                table: "Projects");
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Projects', 'Year') IS NOT NULL
+                    ALTER TABLE [Projects] DROP COLUMN [Year];
+                """);
         }
     }
 }

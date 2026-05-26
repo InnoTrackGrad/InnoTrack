@@ -324,7 +324,7 @@ namespace InnoTrack.Infrastructure.Data
 
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.AcademicYear)
-                .WithMany()
+                .WithMany(a => a.Projects)
                 .HasForeignKey(p => p.AcademicYearId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
