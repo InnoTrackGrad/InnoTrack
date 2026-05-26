@@ -17,7 +17,6 @@ namespace InnoTrack.Domain.Entities
         public DateTime EndDate { get; set; }
 
         public bool IsActive { get; set; }
-        public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
-
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
     }
 }
