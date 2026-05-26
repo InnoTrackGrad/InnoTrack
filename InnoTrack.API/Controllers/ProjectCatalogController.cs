@@ -33,14 +33,14 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
-        /// <summary>Browse the full project catalog with optional filters.</summary>
+        /// <summary>Browse the full project catalog with all combined filters.</summary>
         [HttpGet]
         public async Task<IActionResult> GetProjects(
             [FromQuery] ProjectCatalogFilterDto filter,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var result = await _catalogService.GetProjectsAsync(filter, page, pageSize);
+            var result = await _catalogService.GetProjectsAsync(filter, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -68,6 +68,14 @@ namespace InnoTrack.API.Controllers
             var userId = GetUserId();
             var result = await _catalogService.GetMyProjectAsync(userId);
             return Ok(result);
+        }
+
+        /// <summary>Get counts for the This Year / Old Projects tabs.</summary>
+        [HttpGet("tabs-count")]
+        public async Task<IActionResult> GetTabsCount()
+        {
+            var counts = await _catalogService.GetCatalogTabsCountAsync();
+            return Ok(counts);
         }
 
         /// <summary>Save a new project draft. Student must be a team leader.</summary>

@@ -148,13 +148,23 @@ namespace InnoTrack.Application.Services
             var report = await _unitOfWork.Repository<OriginalityReport>()
                 .GetQueryable()
                 .Include(r => r.SimilarProjects)
+                    .ThenInclude(sp => sp.ReferencedProject)
                 .FirstOrDefaultAsync(r => r.ProjectId == projectId);
 
-            if (report == null) throw new KeyNotFoundException("AI report not generated yet.");
+            if (report == null)
+                throw new KeyNotFoundException("AI report not generated yet for this project.");
 
             return new OriginalityReportDto(
                 report.ProjectId, report.OverallScore, report.Summary, report.GeneratedAt,
-                report.SimilarProjects.Select(sp => new SimilarProjectResultDto(sp.ReferencedProjectId, "", sp.SimilarityPercentage, sp.MatchReason)).ToList().AsReadOnly()
+                report.SimilarProjects
+                    .Select(sp => new SimilarProjectResultDto(
+                            sp.ReferencedProjectId,
+                            sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
+                            sp.SimilarityPercentage, 
+                            sp.MatchReason
+                        ))
+                    .ToList()
+                    .AsReadOnly()
     );
         }
     }

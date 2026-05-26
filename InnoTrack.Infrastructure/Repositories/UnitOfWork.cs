@@ -11,7 +11,7 @@ namespace InnoTrack.Infrastructure.Repositories
     {
         private readonly ApplicationDbContext _context;
         private readonly IServiceProvider _serviceProvider;
-        private IDbContextTransaction _currentTransaction;
+        private IDbContextTransaction? _currentTransaction;
         public UnitOfWork(ApplicationDbContext context, IServiceProvider serviceProvider)
         {
             _context = context;
@@ -27,7 +27,6 @@ namespace InnoTrack.Infrastructure.Repositories
         {
             if (_currentTransaction != null) return;
             _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
-            await _context.Database.BeginTransactionAsync(isolationLevel);
         }
 
         public async Task CommitTransactionAsync()
@@ -44,7 +43,7 @@ namespace InnoTrack.Infrastructure.Repositories
             {
                 if (_currentTransaction != null)
                 {
-                    _currentTransaction.Dispose();
+                    await _currentTransaction.DisposeAsync();
                     _currentTransaction = null;
                 }
             }
@@ -63,7 +62,7 @@ namespace InnoTrack.Infrastructure.Repositories
             {
                 if (_currentTransaction != null)
                 {
-                    _currentTransaction.Dispose();
+                    await _currentTransaction.DisposeAsync();
                     _currentTransaction = null;
                 }
             }

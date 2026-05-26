@@ -7,7 +7,7 @@
         int? DomainId,
         int? SupervisorId,
         int? TechnologyId,
-        decimal? MinOriginalityScore
-        //bool? IsCurrentAcademicYear
+        decimal? MinOriginalityScore,
+        bool? IsCurrentAcademicYear
     );
 }

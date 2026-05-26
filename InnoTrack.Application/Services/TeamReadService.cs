@@ -74,31 +74,37 @@ namespace InnoTrack.Application.Services
             var pendingRequests = await _unitOfWork.Repository<JoinRequest>()
                 .GetAllAsync(r => r.TeamId == leaderRecord.TeamId && r.Status == RequestStatus.Pending);
 
+            if (!pendingRequests.Any())
+                return Array.Empty<PendingJoinRequestDetailDto>();
+
+            var studentIds = pendingRequests.Select(r => r.StudentId).ToList();
+            var students = await _unitOfWork.Repository<Student>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Include(s => s.Department)
+                .Where(s => studentIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id);
+
+            var skillData = await _unitOfWork.Repository<StudentSkill>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Where(ss => studentIds.Contains(ss.StudentId))
+                .Include(ss => ss.Skill)
+                .GroupBy(ss => ss.StudentId)
+                .ToDictionaryAsync(g => g.Key, g => g.Select(ss => ss.Skill.Name).ToList());
+
             var result = new List<PendingJoinRequestDetailDto>();
             foreach (var request in pendingRequests)
             {
-                var student = await _unitOfWork.Repository<Student>().GetByIdAsync(request.StudentId);
-                if (student == null) continue;
-
-                var department = await _unitOfWork.Repository<Department>().GetByIdAsync(student.DepartmentId);
-
-                var studentSkills = await _unitOfWork.Repository<StudentSkill>()
-                    .GetAllAsync(ss => ss.StudentId == student.Id);
-
-                var skills = new List<string>();
-                foreach (var ss in studentSkills)
-                {
-                    var skill = await _unitOfWork.Repository<Skill>().GetByIdAsync(ss.SkillId);
-                    if (skill != null) skills.Add(skill.Name);
-                }
+                if (!students.TryGetValue(request.StudentId, out var student)) continue;
 
                 result.Add(new PendingJoinRequestDetailDto(
                     request.Id,
                     student.Id,
                     student.FullName,
-                    department?.Name ?? string.Empty,
+                    student.Department?.Name ?? string.Empty,
                     student.GPA,
-                    skills.AsReadOnly(),
+                    skillData.GetValueOrDefault(student.Id, new List<string>()).AsReadOnly(),
                     request.CreatedAt,
                     request.Message
                 ));

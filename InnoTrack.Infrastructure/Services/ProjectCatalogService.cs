@@ -23,6 +23,11 @@ namespace InnoTrack.Infrastructure.Services
         public async Task<PagedResult<ProjectCatalogItemDto>> GetProjectsAsync(
             ProjectCatalogFilterDto filter, int pageNumber, int pageSize)
         {
+            int activeYearId = await _context.AcademicYears
+                .Where(y => y.IsActive)
+                .Select(y => y.Id)
+                .FirstOrDefaultAsync();
+
             var query = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Domain)
@@ -32,6 +37,14 @@ namespace InnoTrack.Infrastructure.Services
                 .AsQueryable();
 
             query = query.Where(p => p.Status != ProjectStatus.Draft && p.Status != ProjectStatus.Rejected);
+
+            if (filter.IsCurrentAcademicYear.HasValue)
+            {
+                if (filter.IsCurrentAcademicYear.Value)
+                    query = query.Where(p => p.AcademicYearId == activeYearId);
+                else
+                    query = query.Where(p => p.AcademicYearId != activeYearId);
+            }
 
             if (filter.Year.HasValue)
                 query = query.Where(p => p.CreatedAt.Year == filter.Year.Value);
@@ -79,7 +92,8 @@ namespace InnoTrack.Infrastructure.Services
                     p.Team.Supervisor != null ? p.Team.Supervisor.FullName : null,
                     p.Team.Members.Select(m => m.Student.FullName).ToList(),
                     p.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList(),
-                    p.OriginalityScore
+                    p.OriginalityScore,
+                    (p.AcademicYearId == activeYearId) && (p.Team.Members.Count < p.Team.MaxSize)
                 ))
                 .ToListAsync();
 
