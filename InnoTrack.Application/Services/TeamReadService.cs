@@ -113,5 +113,18 @@ namespace InnoTrack.Application.Services
             return result.AsReadOnly();
         }
 
+        public async Task<int> GetPendingRequestsCountAsync(int leaderId)
+        {
+            var leaderRecord = await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.StudentId == leaderId && tm.Role == TeamMemberRole.Leader);
+
+            if (leaderRecord == null)
+                return 0;
+
+            var count = await _unitOfWork.Repository<JoinRequest>()
+                .CountAsync(r => r.TeamId == leaderRecord.TeamId && r.Status == RequestStatus.Pending);
+
+            return count;
+        }
     }
 }

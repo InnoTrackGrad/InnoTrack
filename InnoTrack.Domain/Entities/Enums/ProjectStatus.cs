@@ -7,6 +7,7 @@ namespace InnoTrack.Domain.Entities.Enums
         Approved,
         Rejected,
         Completed,
-        In_Progress
+        In_Progress,
+        Abandoned
     }
 }

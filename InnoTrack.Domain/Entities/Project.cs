@@ -29,10 +29,11 @@ namespace InnoTrack.Domain.Entities
         public int? Year { get; set; }
 
         public string? StudentNames { get; set; }
-
+        public string? AbandonReason { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? SubmittedAt { get; set; }
+        public DateTime? ApprovedAt { get; set; }
 
         [Required]
         public int TeamId { get; set; }

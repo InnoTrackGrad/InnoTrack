@@ -61,6 +61,12 @@ namespace InnoTrack.Application.Services
 
             project.Status = approve ? ProjectStatus.In_Progress : ProjectStatus.Rejected;
             project.UpdatedAt = DateTime.UtcNow;
+
+            if (approve)
+            {
+                project.ApprovedAt = DateTime.UtcNow;
+            }
+
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();
 

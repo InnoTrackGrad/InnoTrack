@@ -1,4 +1,5 @@
 ﻿using InnoTrack.Application.Common;
+using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.DTOs.Projects;
 
 namespace InnoTrack.Application.Interfaces
@@ -17,5 +18,8 @@ namespace InnoTrack.Application.Interfaces
         Task UpdateProjectDetailsAsync(int projectId, int userId, UpdateProjectDetailsDto dto);
         Task RecallSubmissionAsync(int projectId, int userId);
         Task<SimilarityCheckResponseDto> RunSimilarityCheckAsync(SimilarityCheckRequestDto dto);
+        Task<string> GenerateAiAbstractAsync(int userId, GenerateAbstractRequestDto dto);
+        Task AbandonProjectAsync(int projectId, int userId, string reason);
+        Task<List<PublicShowcaseDto>> GetPublicShowcaseAsync();
     }
 }

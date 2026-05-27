@@ -5,14 +5,18 @@
         string Title,
         string Domain,
         string Status,
-        int Year,
+        string AcademicYear,
         string? Supervisor,
         IReadOnlyList<string> Technologies,
         decimal? OriginalityScore,
         DateTime? SubmittedAt,
+        DateTime? ApprovedAt,
         DateTime? UpdatedAt,
         string Description,
         string Abstract,
+        string? ProblemStatement,
+        string? ProposedSolution,
+        string? Objectives,
         IReadOnlyList<StudentInProjectDto> Students
     );
 

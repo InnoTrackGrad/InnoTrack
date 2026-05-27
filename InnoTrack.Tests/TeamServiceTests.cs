@@ -14,6 +14,7 @@ namespace InnoTrack.Tests
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IJoinCodeGenerator> _mockCodeGenerator;
+        private readonly Mock<INotificationService> _notificationService;
         private readonly TeamService _teamService;
 
         public TeamServiceTests()
@@ -21,7 +22,7 @@ namespace InnoTrack.Tests
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockMapper = new Mock<IMapper>();
             _mockCodeGenerator = new Mock<IJoinCodeGenerator>();
-            _teamService = new TeamService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCodeGenerator.Object);
+            _teamService = new TeamService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCodeGenerator.Object, _notificationService.Object);
         }
 
         [Fact]

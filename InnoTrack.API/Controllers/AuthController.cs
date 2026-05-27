@@ -40,7 +40,7 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
             await _authService.ForgotPasswordAsync(dto);
-            return Ok(new { message = "If the email is registered, a reset code will be sent." });
+            return Ok(new { message = "If the email is registered, a reset code will be sent. Please check your Junk or Spam folder if you don't see the email in your inbox." });
         }
 
         [HttpPost("reset-password")]

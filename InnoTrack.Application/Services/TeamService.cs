@@ -12,12 +12,15 @@ namespace InnoTrack.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IJoinCodeGenerator _codeGenerator;
+        private readonly INotificationService _notificationService;
+        
 
-        public TeamService(IUnitOfWork unitOfWork, IMapper mapper, IJoinCodeGenerator codeGenerator)
+        public TeamService(IUnitOfWork unitOfWork, IMapper mapper, IJoinCodeGenerator codeGenerator, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _codeGenerator = codeGenerator;
+            _notificationService = notificationService;
         }
 
         public async Task<TeamResponseDto> CreateTeamAsync(int leaderStudentId, CreateTeamDto request)
@@ -136,6 +139,14 @@ namespace InnoTrack.Application.Services
                 };
                 await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
 
+                var pendingRequests = await _unitOfWork.Repository<JoinRequest>()
+                    .GetAllAsync(r => r.StudentId == userId && r.Status == RequestStatus.Pending);
+
+                foreach (var request in pendingRequests)
+                {
+                    request.Status = RequestStatus.Rejected;
+                    _unitOfWork.Repository<JoinRequest>().Update(request);
+                }
                 var project = await _unitOfWork.Repository<Project>()
                     .FindAsync(p => p.TeamId == team.Id);
 
@@ -143,6 +154,27 @@ namespace InnoTrack.Application.Services
                     .FindAsync(c => c.TeamId == team.Id);
 
                 await _unitOfWork.CommitTransactionAsync();
+
+                try
+                {
+                    var leader = await _unitOfWork.Repository<TeamMember>()
+                        .FindAsync(tm => tm.TeamId == team.Id && tm.Role == TeamMemberRole.Leader);
+
+                    var studentJoining = await _unitOfWork.Repository<Student>().GetByIdAsync(userId);
+
+                    if (leader != null && studentJoining != null)
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            leader.StudentId,
+                            "New Team Member",
+                            $"{studentJoining.FullName} has joined your team using the join code.",
+                            NotificationType.Success);
+                    }
+                }
+                catch
+                {
+
+                }
 
                 return new DirectJoinResponseDto(
                     team.Id,
@@ -156,7 +188,6 @@ namespace InnoTrack.Application.Services
                 await _unitOfWork.RollbackTransactionAsync();
                 throw;
             }
-
         }
     }
 }

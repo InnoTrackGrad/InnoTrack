@@ -13,11 +13,13 @@ namespace InnoTrack.Infrastructure.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IPythonAiClient _aiClient;
+        private readonly INotificationService _notificationService;
 
-        public ProjectCatalogService(ApplicationDbContext context, IPythonAiClient aiClient)
+        public ProjectCatalogService(ApplicationDbContext context, IPythonAiClient aiClient, INotificationService notificationService)
         {
             _context = context;
             _aiClient = aiClient;
+            _notificationService = notificationService;
         }
 
         public async Task<PagedResult<ProjectCatalogItemDto>> GetProjectsAsync(
@@ -124,6 +126,7 @@ namespace InnoTrack.Infrastructure.Services
                     .ThenInclude(m => m.Student).ThenInclude(s => s.Department)
                 .Include(p => p.ProjectTechnologies).ThenInclude(pt => pt.Technology)
                 .Include(p => p.Domain)
+                .Include(p => p.AcademicYear)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
 
             if (project == null)
@@ -136,12 +139,24 @@ namespace InnoTrack.Infrastructure.Services
             )).ToList();
 
             return new ProjectCatalogDetailDto(
-                project.Id, project.Title, project.Domain.Name, MapStatus(project.Status),
-                project.CreatedAt.Year, project.Team.Supervisor?.FullName,
-                project.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList().AsReadOnly(),
-                project.OriginalityScore, project.SubmittedAt, project.UpdatedAt,
-                project.Description, project.Abstract, students.AsReadOnly()
-            );
+                    project.Id,
+                    project.Title,
+                    project.Domain?.Name ?? "Uncategorized",
+                    MapStatus(project.Status),
+                    project.AcademicYear?.Name ?? project.CreatedAt.Year.ToString(),
+                    project.Team.Supervisor?.FullName,
+                    project.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList().AsReadOnly(),
+                    project.OriginalityScore,
+                    project.SubmittedAt,
+                    project.ApprovedAt,
+                    project.UpdatedAt,
+                    project.Description,
+                    project.Abstract,
+                    project.ProblemStatement,
+                    project.ProposedSolution,
+                    project.Objectives,
+                    students.AsReadOnly()
+                );
         }
 
         public async Task<MyProjectResponseDto?> GetMyProjectAsync(int userId)
@@ -233,7 +248,9 @@ namespace InnoTrack.Infrastructure.Services
                     DomainId = dto.DomainId,
                     TeamId = leaderRecord.TeamId,
                     Status = ProjectStatus.Draft,
-                    AcademicYearId = activeAcademicYear.Id
+                    AcademicYearId = activeAcademicYear.Id,
+                    Year = dto.Year,
+                    StudentNames = dto.StudentNames,
                 };
                 _context.Projects.Add(project);
                 await _context.SaveChangesAsync();
@@ -273,12 +290,23 @@ namespace InnoTrack.Infrastructure.Services
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                project.Title = dto.Title; project.Abstract = dto.Abstract;
-                project.Description = dto.Description; project.DomainId = dto.DomainId;
+                bool textChanged = project.Abstract != dto.Abstract ||
+                           project.Description != dto.Description ||
+                           project.Title != dto.Title;
+
+                if (textChanged)
+                {
+                    project.OriginalityScore = null;
+                }
+                project.Title = dto.Title; 
+                project.Abstract = dto.Abstract;
+                project.Description = dto.Description; 
+                project.DomainId = dto.DomainId;
                 project.ProblemStatement = dto.ProblemStatement;
                 project.ProposedSolution = dto.ProposedSolution;
                 project.Objectives = dto.Objectives;
                 project.UpdatedAt = DateTime.UtcNow;
+                project.StudentNames = dto.StudentNames;
 
                 var existingTechs = _context.ProjectTechnologies.Where(pt => pt.ProjectId == draftId);
                 _context.ProjectTechnologies.RemoveRange(existingTechs);
@@ -326,14 +354,29 @@ namespace InnoTrack.Infrastructure.Services
             var project = await _context.Projects.FindAsync(projectId);
             if (project == null) throw new KeyNotFoundException("Project not found.");
 
-            var leaderRecord = await _context.TeamMembers
-                .FirstOrDefaultAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
-            if (leaderRecord == null) throw new UnauthorizedAccessException("Only the team leader can update project details.");
+            var isLeader = await _context.TeamMembers
+                .AnyAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
+            if (!isLeader) throw new UnauthorizedAccessException("Only the team leader can update project details.");
+
+            if (project.Status == ProjectStatus.Completed || project.Status == ProjectStatus.Abandoned)
+                throw new InvalidOperationException("Cannot edit a completed or abandoned project.");
+
+            if (project.Status == ProjectStatus.UnderReview)
+                throw new InvalidOperationException("Project is currently under review by the professor and cannot be modified.");
+
+            bool isLimitedMode = project.Status == ProjectStatus.In_Progress;
 
             if (dto.Title != null) project.Title = dto.Title;
-            if (dto.Description != null) project.Description = dto.Description;
             if (dto.Objectives != null) project.Objectives = dto.Objectives;
-            project.UpdatedAt = DateTime.UtcNow;
+            if (dto.Description != null) project.Description = dto.Description;
+
+            if (!isLimitedMode)
+            {
+                if (dto.Abstract != null) project.Abstract = dto.Abstract;
+                if (dto.ProblemStatement != null) project.ProblemStatement = dto.ProblemStatement;
+                if (dto.ProposedSolution != null) project.ProposedSolution = dto.ProposedSolution;
+                if (dto.DomainId.HasValue) project.DomainId = dto.DomainId.Value;
+            }
 
             if (dto.TechnologyIds != null)
             {
@@ -345,6 +388,8 @@ namespace InnoTrack.Infrastructure.Services
                 }
             }
 
+            project.UpdatedAt = DateTime.UtcNow;
+            _context.Projects.Update(project);
             await _context.SaveChangesAsync();
         }
 
@@ -363,6 +408,13 @@ namespace InnoTrack.Infrastructure.Services
             project.Status = ProjectStatus.Draft;
             project.SubmittedAt = null;
             project.UpdatedAt = DateTime.UtcNow;
+
+            var team = await _context.Teams.FindAsync(project.TeamId);
+            if (team != null && team.ProfessorId.HasValue)
+            {
+                team.ProfessorId = null;
+            }
+
             await _context.SaveChangesAsync();
         }
 
@@ -389,13 +441,104 @@ namespace InnoTrack.Infrastructure.Services
             return new SimilarityCheckResponseDto(aiResponse.OriginalityScore, similarProjects.AsReadOnly());
         }
 
+        public async Task<string> GenerateAiAbstractAsync(int userId, GenerateAbstractRequestDto dto)
+        {
+            var isLeader = await _context.TeamMembers
+                .AnyAsync(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
+
+            if (!isLeader)
+                throw new UnauthorizedAccessException("Only team leaders can request AI abstract generation.");
+
+            int wordCount = (dto.Description + dto.ProblemStatement + dto.ProposedSolution)
+                .Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
+
+            if (wordCount < 50)
+                throw new InvalidOperationException("Please provide more details in the description and problem statement so the AI can generate a meaningful abstract.");
+
+            var response = await _aiClient.GenerateProjectAbstractAsync(dto);
+
+            return response.GeneratedAbstract;
+        }
+
+        public async Task AbandonProjectAsync(int projectId, int userId, string reason)
+        {
+            var project = await _context.Projects
+                .Include(p => p.Team)
+                .ThenInclude(t => t.Members)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+            
+            if (project == null) 
+                throw new KeyNotFoundException("Project not found.");
+
+            var isLeader = project.Team.Members
+                    .Any(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
+
+            if (!isLeader) 
+                throw new UnauthorizedAccessException("Only the team leader can abandon the project.");
+            
+            if (project.Status == ProjectStatus.Completed)
+                throw new InvalidOperationException("Cannot abandon a completed project.");
+
+            project.Status = ProjectStatus.Abandoned;
+            project.AbandonReason = reason;
+            project.UpdatedAt = DateTime.UtcNow;
+
+            _context.Projects.Update(project);
+            await _context.SaveChangesAsync();
+
+            var notificationTitle = "Project Abandoned";
+            var notificationMessage = $"The project '{project.Title}' has been abandoned by the team leader. Reason: {reason}";
+
+            var membersToNotify = project.Team.Members.Where(m => m.StudentId != userId).ToList();
+            foreach (var member in membersToNotify)
+            {
+                await _notificationService.SendNotificationAsync(
+                    userId: member.StudentId,
+                    title: notificationTitle,
+                    message: notificationMessage,
+                    type: NotificationType.Error,
+                    referenceId: project.Id,
+                    referenceType: ReferenceType.Project
+                );
+            }
+
+            if (project.Team.ProfessorId.HasValue)
+            {
+                await _notificationService.SendNotificationAsync(
+                    userId: project.Team.ProfessorId.Value,
+                    title: "Project Abandoned by Team",
+                    message: notificationMessage,
+                    type: NotificationType.Warning,
+                    referenceId: project.Id,
+                    referenceType: ReferenceType.Project
+                );
+            }
+        }
+
+        public async Task<List<PublicShowcaseDto>> GetPublicShowcaseAsync()
+        {
+            return await _context.Projects
+                .AsNoTracking()
+                .Where(p => p.IsPublicShowcase)
+                .Select(p => new PublicShowcaseDto(
+                    p.Id,
+                    p.Title,
+                    p.Abstract,
+                    p.OriginalityScore,
+                    p.Team.Members.Select(m => m.Student.FullName).ToList()
+                ))
+                .ToListAsync();
+        }
+
         private static string MapStatus(ProjectStatus status) => status switch
         {
-            ProjectStatus.Approved => "approved",
-            ProjectStatus.Rejected => "rejected",
+            ProjectStatus.Draft => "draft",
             ProjectStatus.UnderReview => "under-review",
-            _ => "draft"
+            ProjectStatus.In_Progress => "in-progress",
+            ProjectStatus.Completed => "completed",
+            ProjectStatus.Rejected => "rejected",
+            ProjectStatus.Abandoned => "abandoned",
+            _ => status.ToString().ToLower()
         };
-
     }
 }

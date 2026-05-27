@@ -6,5 +6,6 @@ namespace InnoTrack.Application.Interfaces
     {
         Task<MyTeamDto?> GetMyTeamAsync(int userId);
         Task<IReadOnlyList<PendingJoinRequestDetailDto>> GetPendingJoinRequestsAsync(int leaderId);
+        Task<int> GetPendingRequestsCountAsync(int leaderId);
     }
 }

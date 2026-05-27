@@ -114,6 +114,16 @@ namespace InnoTrack.Application.Services
                     _ => (ProjectStatus.UnderReview, "AI Analysis Passed", $"Originality score {aiResponse.OriginalityScore}%. Awaiting professor review.", NotificationType.Success)
                 };
 
+                var currentProjectState = await _unitOfWork.Repository<Project>().GetByIdAsync(project.Id);
+                if (currentProjectState != null && currentProjectState.Status == ProjectStatus.Draft)
+                {
+                    currentProjectState.OriginalityScore = aiResponse.OriginalityScore;
+                    _unitOfWork.Repository<Project>().Update(currentProjectState);
+                    await _unitOfWork.CompleteAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                    return;
+                }
+
                 project.Status = status;
                 _unitOfWork.Repository<Project>().Update(project);
 

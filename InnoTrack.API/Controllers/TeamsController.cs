@@ -50,12 +50,12 @@ namespace InnoTrack.API.Controllers
 
         [AuthorizeRoles(UserRole.Student)]
         [HttpPost("me/requests/{requestId:int}/handle")]
-        public async Task<IActionResult> HandleRequest(int requestId, [FromBody] bool accept)
+        public async Task<IActionResult> HandleJoinRequest([FromBody] HandleRequestDto dto)
         {
-            var userId = GetUserId();
-            var dto = new HandleRequestDto(requestId, accept);
-            await _joinRequestService.HandleRequestAsync(userId, dto);
-            return Ok(new { message = "Request handled successfully." });
+            var leaderId = GetUserId();
+            await _joinRequestService.HandleRequestAsync(leaderId, dto);
+            string action = dto.Accept ? "accepted" : "denied";
+            return Ok(new { message = $"The join request has been successfully {action}." });
         }
 
         /// <summary>Get the current student's team details. Returns null if not in a team.</summary>
@@ -68,11 +68,14 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Directly join a team by entering a valid join code.</summary>
+        /// <summary>Instantly join a team using a valid 6-digit join code.</summary>
         [AuthorizeRoles(UserRole.Student)]
-        [HttpPost("join")]
-        public async Task<IActionResult> DirectJoin([FromBody] DirectJoinDto dto)
+        [HttpPost("join-by-code")]
+        public async Task<IActionResult> DirectJoinByCode([FromBody] DirectJoinDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.JoinCode) || dto.JoinCode.Length != 6)
+                return BadRequest("Invalid join code format.");
+
             var userId = GetUserId();
             var result = await _teamService.DirectJoinByCodeAsync(userId, dto.JoinCode);
             return Ok(result);
@@ -86,6 +89,14 @@ namespace InnoTrack.API.Controllers
             var userId = GetUserId();
             var result = await _teamReadService.GetPendingJoinRequestsAsync(userId);
             return Ok(result);
+        }
+
+        [HttpGet("requests/count")]
+        public async Task<IActionResult> GetPendingRequestsCount()
+        {
+            var leaderId = GetUserId();
+            var count = await _teamReadService.GetPendingRequestsCountAsync(leaderId);
+            return Ok(new { Count = count });
         }
 
         /// <summary>Regenerate a new unique join code for the team.</summary>

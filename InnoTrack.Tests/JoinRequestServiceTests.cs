@@ -50,7 +50,7 @@ namespace InnoTrack.Tests
             _mockUnitOfWork.Setup(u => u.Repository<TeamMember>()).Returns(mockMemberRepo.Object);
             _mockUnitOfWork.Setup(u => u.Repository<Team>()).Returns(mockTeamRepo.Object);
 
-            var dto = new HandleRequestDto(RequestId: 1, Accept: true);
+            var dto = new HandleRequestDto(RequestId: 1, Accept: true, "You are rejected");
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _joinRequestService.HandleRequestAsync(5, dto));

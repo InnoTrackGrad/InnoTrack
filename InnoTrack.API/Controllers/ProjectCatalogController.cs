@@ -1,4 +1,5 @@
 using InnoTrack.API.Attributes;
+using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -117,14 +118,14 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Update limited details of an existing project.</summary>
+        /// <summary>Update project details (Supports Limited Editing Mode automatically).</summary>
         [HttpPatch("{projectId:int}/details")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> UpdateProjectDetails(int projectId, [FromBody] UpdateProjectDetailsDto dto)
         {
             var userId = GetUserId();
             await _catalogService.UpdateProjectDetailsAsync(projectId, userId, dto);
-            return NoContent();
+            return Ok(new { message = "Project details updated successfully." });
         }
 
         /// <summary>Recall a submitted project back to Draft status.</summary>
@@ -137,25 +138,44 @@ namespace InnoTrack.API.Controllers
             return Ok(new { projectId, status = "draft" });
         }
 
+        /// <summary>
+        /// Retrieves a list of top-rated completed projects approved for public showcase.
+        /// </summary>
+        /// <remarks>
+        /// This endpoint is completely public (AllowAnonymous). It allows external visitors, 
+        /// companies, and other students to browse the university's best graduation projects.
+        /// </remarks>
+        /// <returns>A list of showcased projects containing basic details and team members.</returns>
+        /// <response code="200">Returns the list of showcased projects successfully.</response>
         [AllowAnonymous]
         [HttpGet("showcase")]
         public async Task<IActionResult> GetPublicShowcase()
         {
-            var showcaseProjects = await _unitOfWork.Repository<Project>()
-                .GetQueryable()
-                .Where(p => p.IsPublicShowcase)
-                .Include(p => p.Team).ThenInclude(t => t.Members).ThenInclude(m => m.Student)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.Title,
-                    p.Abstract,
-                    p.OriginalityScore,
-                    Students = p.Team.Members.Select(m => m.Student.FullName).ToList()
-                })
-                .ToListAsync();
-
+            var showcaseProjects = await _catalogService.GetPublicShowcaseAsync();
             return Ok(showcaseProjects);
+        }
+
+        /// <summary>Generate an academic abstract using AI based on project details.</summary>
+        [HttpPost("generate-abstract")]
+        [AuthorizeRoles(UserRole.Student)]
+        public async Task<IActionResult> GenerateAbstract([FromBody] GenerateAbstractRequestDto dto)
+        {
+            var userId = GetUserId();
+            var generatedAbstract = await _catalogService.GenerateAiAbstractAsync(userId, dto);
+            return Ok(new { Abstract = generatedAbstract });
+        }
+
+        /// <summary>Abandon an active or drafted project permanently.</summary>
+        [HttpPost("{projectId:int}/abandon")]
+        [AuthorizeRoles(UserRole.Student)]
+        public async Task<IActionResult> AbandonProject(int projectId, [FromBody] AbandonProjectRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason))
+                return BadRequest("A reason for abandoning the project is required.");
+
+            var userId = GetUserId();
+            await _catalogService.AbandonProjectAsync(projectId, userId, request.Reason);
+            return Ok(new { message = "Project has been marked as abandoned." });
         }
     }
 }

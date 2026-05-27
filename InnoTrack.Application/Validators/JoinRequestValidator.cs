@@ -9,7 +9,7 @@ namespace InnoTrack.Application.Validators
         {
             RuleFor(x => x.JoinCode)
                 .NotEmpty().WithMessage("Join code is required.")
-                .Length(8).WithMessage("Invalid join code format.");
+                .Length(6).WithMessage("Invalid join code format.");
         }
     }
 }

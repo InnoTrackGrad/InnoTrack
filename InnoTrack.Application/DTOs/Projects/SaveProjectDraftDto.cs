@@ -2,6 +2,8 @@ namespace InnoTrack.Application.DTOs.Projects
 {
     public record SaveProjectDraftDto(
         string Title,
+        string StudentNames,
+        int Year,
         string Abstract,
         string Description,
         int DomainId,
