@@ -77,7 +77,7 @@ namespace InnoTrack.Infrastructure.Services
                    .GroupBy(pt => pt.Technology.Name)
                    .Select(g => new { Name = g.Key, Count = g.Count() })
                    .OrderByDescending(t => t.Count)
-                   .Take(10)
+                   .Take(12)
                    .ToListAsync();
 
             var trendingDto = trending
@@ -158,20 +158,33 @@ namespace InnoTrack.Infrastructure.Services
                 }
             }
 
-            var projects = await query
-                .OrderByDescending(p => p.OriginalityScore) 
-                .Take(limit) 
-                .Select(p => new MostOriginalProjectCardDto(
+            var rawProjects = await query
+                .OrderByDescending(p => p.OriginalityScore)
+                .Take(limit)
+                .Select(p => new
+                {
                     p.Id,
-                    p.Domain.Name,
-                    p.OriginalityScore.Value,
+                    DomainName = p.Domain.Name,
+                    OriginalityScore = p.OriginalityScore.Value,
                     p.Title,
                     p.Abstract,
-                    p.CreatedAt.Year,
-                    MapStatusForCard(p.Status)
-                ))
+                    Year = p.CreatedAt.Year,
+                    p.Status 
+                })
                 .ToListAsync();
 
+            var projects = rawProjects
+                    .Select(p => new MostOriginalProjectCardDto(
+                        p.Id,
+                        p.DomainName,
+                        p.OriginalityScore,
+                        p.Title,
+                        p.Abstract,
+                        p.Year,
+                        MapStatusForCard(p.Status)
+                    ))
+                    .ToList(); 
+            
             return projects.AsReadOnly();
         }
 
