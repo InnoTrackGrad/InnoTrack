@@ -34,6 +34,14 @@ namespace InnoTrack.API.Controllers
             return Ok(students);
         }
 
+        /// <summary>
+        /// Toggles the showcase status of a project. Only projects with Approved status and originality score of 85 or higher can be showcased.
+        /// </summary>
+        /// <param name="projectId">The ID of the project to toggle.</param>
+        /// <returns>A message indicating whether the project was added to or removed from the showcase.</returns>
+        /// <response code="200">Showcase status toggled successfully.</response>
+        /// <response code="400">Project cannot be showcased due to status or score requirements.</response>
+        /// <response code="404">Project not found.</response>
         [HttpPatch("projects/{projectId}/toggle-showcase")]
         public async Task<IActionResult> ToggleShowcase(int projectId)
         {

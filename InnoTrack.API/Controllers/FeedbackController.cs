@@ -26,7 +26,12 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
-        /// <summary>Get all professor feedback received for the student's project.</summary>
+        /// <summary>
+        /// Retrieves all feedback entries associated with the authenticated student's project.
+        /// </summary>
+        /// <returns>
+        /// Returns the project's feedback history ordered by newest first.
+        /// </returns>
         [HttpGet("me")]
         public async Task<IActionResult> GetMyFeedback()
         {

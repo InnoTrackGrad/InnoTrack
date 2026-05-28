@@ -31,7 +31,22 @@ namespace InnoTrack.API.Controllers
             _unitOfWork = unitOfWork;
         }
 
-
+        /// <summary>
+        /// Uploads a project attachment file for the specified project.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the target project.
+        /// </param>
+        /// <param name="file">
+        /// The file to upload.
+        /// </param>
+        /// <returns>
+        /// Returns the uploaded attachment metadata including file identifier and access path.
+        /// </returns>
+        /// <remarks>
+        /// Supported file types include documents, images, and compressed archives.
+        /// File uploads are limited to 25 MB.
+        /// </remarks>
         [HttpPost("{projectId}/upload")]
         public async Task<IActionResult> UploadAttachment(int projectId, IFormFile file)
         {
@@ -54,11 +69,22 @@ namespace InnoTrack.API.Controllers
         }
 
         /// <summary>
-        /// Submits a project proposal for AI Originality Check.
+        /// Submits a project proposal for AI originality analysis and professor review.
         /// </summary>
-        /// <param name="projectId">The ID of the project to submit.</param>
-        /// <param name="dto">The ID of Supervisor of this project.</param>
-        /// <returns>A confirmation message.</returns>
+        /// <param name="projectId">
+        /// The identifier of the project to submit.
+        /// </param>
+        /// <param name="dto">
+        /// The submission request containing supervisor assignment
+        /// and proposal-related metadata.
+        /// </param>
+        /// <returns>
+        /// Returns a confirmation message after successful submission.
+        /// </returns>
+        /// <remarks>
+        /// Only team leaders may submit projects.
+        /// The submission automatically triggers asynchronous AI originality analysis.
+        /// </remarks>
         [HttpPost("{projectId}/submit")]
         public async Task<IActionResult> SubmitProject(int projectId, [FromBody] SubmitProjectRequestDto dto)
         {
@@ -67,6 +93,20 @@ namespace InnoTrack.API.Controllers
             return Ok(new { message = "Project submitted successfully. AI is generating the originality report." });
         }
 
+        /// <summary>
+        /// Generates and downloads the AI originality analysis report as a PDF document.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the analyzed project.
+        /// </param>
+        /// <returns>
+        /// Returns a downloadable PDF containing originality scores,
+        /// AI analysis summary, and similarity breakdown.
+        /// </returns>
+        /// <remarks>
+        /// The report is dynamically generated using QuestPDF
+        /// based on the stored AI analysis results.
+        /// </remarks>
         [HttpGet("{projectId}/originality-report/pdf")]
         public async Task<IActionResult> DownloadReportPdf(int projectId)
         {
@@ -128,23 +168,6 @@ namespace InnoTrack.API.Controllers
 
             byte[] pdfBytes = pdfDocument.GeneratePdf();
             return File(pdfBytes, "application/pdf", $"OriginalityReport_PRJ{projectId}.pdf");
-        }
-
-        [AuthorizeRoles(UserRole.Admin)]
-        [HttpPatch("projects/{projectId}/toggle-showcase")]
-        public async Task<IActionResult> ToggleShowcase(int projectId)
-        {
-            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
-            if (project == null) throw new KeyNotFoundException("Project not found.");
-
-            if (project.Status != ProjectStatus.Approved || project.OriginalityScore < 85)
-                return BadRequest("Only completed projects with high originality scores can be showcased.");
-
-            project.IsPublicShowcase = !project.IsPublicShowcase;
-            _unitOfWork.Repository<Project>().Update(project);
-            await _unitOfWork.CompleteAsync();
-
-            return Ok(new { message = project.IsPublicShowcase ? "Added to showcase." : "Removed from showcase." });
         }
     }
 }

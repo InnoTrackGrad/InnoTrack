@@ -18,6 +18,20 @@ namespace InnoTrack.API.Controllers
             _userService = userService;
         }
 
+        /// <summary>
+        /// Updates the authenticated user's profile information.
+        /// </summary>
+        /// <param name="request">
+        /// The profile update request containing personal
+        /// and academic information.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the profile is successfully updated.
+        /// </returns>
+        /// <remarks>
+        /// Student users may update department and graduation year information.
+        /// Professor users may update department assignment information.
+        /// </remarks>
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request)
         {
@@ -26,6 +40,18 @@ namespace InnoTrack.API.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Changes the authenticated user's account password.
+        /// </summary>
+        /// <param name="request">
+        /// The password change request containing the old and new passwords.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the password is successfully changed.
+        /// </returns>
+        /// <remarks>
+        /// The current password must be validated before the new password is applied.
+        /// </remarks>
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
         {

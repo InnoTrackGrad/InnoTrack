@@ -27,7 +27,12 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
-        /// <summary>Get the team chat workspace including messages and member list.</summary>
+        /// <summary>
+        /// Retrieves the current user's team chat workspace including members and recent messages.
+        /// </summary>
+        /// <returns>
+        /// Returns the chat room details, team members, and the latest chat messages.
+        /// </returns>
         [HttpGet]
         public async Task<IActionResult> GetTeamChat()
         {
@@ -36,7 +41,13 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Send a text message in the team chat via REST (SignalR hub also available).</summary>
+        /// <summary>
+        /// Sends a new text message to the team chat.
+        /// </summary>
+        /// <param name="dto">The message content to send.</param>
+        /// <returns>
+        /// Returns the created chat message information.
+        /// </returns>
         [HttpPost("messages")]
         public async Task<IActionResult> SendMessage([FromBody] SendChatMessageDto dto)
         {

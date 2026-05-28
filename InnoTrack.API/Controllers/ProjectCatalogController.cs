@@ -18,12 +18,10 @@ namespace InnoTrack.API.Controllers
     public class ProjectCatalogController : ControllerBase
     {
         private readonly IProjectCatalogService _catalogService;
-        private readonly IUnitOfWork _unitOfWork;
 
-        public ProjectCatalogController(IProjectCatalogService catalogService, IUnitOfWork unitOfWork)
+        public ProjectCatalogController(IProjectCatalogService catalogService)
         {
             _catalogService = catalogService;
-            _unitOfWork = unitOfWork;
         }
 
         private int GetUserId()
@@ -34,7 +32,23 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
-        /// <summary>Browse the full project catalog with all combined filters.</summary>
+        /// <summary>
+        /// Retrieves the project catalog with support for advanced filtering,
+        /// searching, pagination, and academic-year classification.
+        /// </summary>
+        /// <param name="filter">
+        /// The filtering criteria including domain, supervisor, technology,
+        /// status, originality score, search keywords, and academic year.
+        /// </param>
+        /// <param name="pageNumber">
+        /// The page number to retrieve. Default value is 1.
+        /// </param>
+        /// <param name="pageSize">
+        /// The number of projects per page. Default value is 10.
+        /// </param>
+        /// <returns>
+        /// Returns a paginated list of publicly visible projects excluding drafts and rejected projects.
+        /// </returns>
         [HttpGet]
         public async Task<IActionResult> GetProjects(
             [FromQuery] ProjectCatalogFilterDto filter,
@@ -45,7 +59,16 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Get full details of a single project from the catalog.</summary>
+        /// <summary>
+        /// Retrieves complete details for a specific project in the catalog.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the project.
+        /// </param>
+        /// <returns>
+        /// Returns detailed project information including team members,
+        /// supervisor, technologies, originality score, and academic metadata.
+        /// </returns>
         [HttpGet("{projectId:int}")]
         public async Task<IActionResult> GetProjectById(int projectId)
         {
@@ -53,7 +76,13 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Get all available supervisors to choose from during submission.</summary>
+        /// <summary>
+        /// Retrieves all available supervisors along with their department
+        /// and current supervision workload information.
+        /// </summary>
+        /// <returns>
+        /// Returns a list of professors available for project supervision.
+        /// </returns>
         [HttpGet("supervisors")]
         public async Task<IActionResult> GetSupervisors()
         {
@@ -61,7 +90,13 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Get the authenticated student's project.</summary>
+        /// <summary>
+        /// Retrieves the authenticated student's current project and team information.
+        /// </summary>
+        /// <returns>
+        /// Returns the student's project details, team members, technologies,
+        /// supervisor information, originality score, and project status.
+        /// </returns>
         [HttpGet("me")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> GetMyProject()
@@ -71,7 +106,13 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Get counts for the This Year / Old Projects tabs.</summary>
+        /// <summary>
+        /// Retrieves the number of projects grouped by current academic year
+        /// and previous academic years.
+        /// </summary>
+        /// <returns>
+        /// Returns catalog statistics for project tab navigation.
+        /// </returns>
         [HttpGet("tabs-count")]
         public async Task<IActionResult> GetTabsCount()
         {
@@ -79,7 +120,20 @@ namespace InnoTrack.API.Controllers
             return Ok(counts);
         }
 
-        /// <summary>Save a new project draft. Student must be a team leader.</summary>
+        /// <summary>
+        /// Creates a new project draft for the authenticated team leader.
+        /// </summary>
+        /// <param name="dto">
+        /// The draft project information including project details,
+        /// technologies, and academic content.
+        /// </param>
+        /// <returns>
+        /// Returns the newly created draft project information.
+        /// </returns>
+        /// <remarks>
+        /// Only team leaders can create project drafts,
+        /// and each team may own only one project.
+        /// </remarks>
         [HttpPost("drafts")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> SaveDraft([FromBody] SaveProjectDraftDto dto)
@@ -89,7 +143,22 @@ namespace InnoTrack.API.Controllers
             return CreatedAtAction(nameof(GetProjectById), new { projectId = result.Id }, result);
         }
 
-        /// <summary>Update an existing project draft.</summary>
+        /// <summary>
+        /// Updates an existing draft project owned by the authenticated team leader.
+        /// </summary>
+        /// <param name="draftId">
+        /// The identifier of the draft project.
+        /// </param>
+        /// <param name="dto">
+        /// The updated draft project information.
+        /// </param>
+        /// <returns>
+        /// Returns the updated draft information.
+        /// </returns>
+        /// <remarks>
+        /// Updating core textual content automatically resets
+        /// the originality score to require re-analysis.
+        /// </remarks>
         [HttpPut("drafts/{draftId:int}")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> UpdateDraft(int draftId, [FromBody] SaveProjectDraftDto dto)
@@ -99,7 +168,18 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Delete a draft permanently.</summary>
+        /// <summary>
+        /// Permanently deletes a draft project owned by the authenticated team leader.
+        /// </summary>
+        /// <param name="draftId">
+        /// The identifier of the draft project.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the draft is successfully deleted.
+        /// </returns>
+        /// <remarks>
+        /// Only projects in Draft status can be deleted.
+        /// </remarks>
         [HttpDelete("drafts/{draftId:int}")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> DeleteDraft(int draftId)
@@ -109,7 +189,19 @@ namespace InnoTrack.API.Controllers
             return NoContent();
         }
 
-        /// <summary>Run an AI similarity check on project content before formal submission.</summary>
+        /// <summary>
+        /// Performs an AI-powered similarity and originality analysis on project content.
+        /// </summary>
+        /// <param name="dto">
+        /// The project content used for redundancy and similarity analysis.
+        /// </param>
+        /// <returns>
+        /// Returns the originality score and a list of similar existing projects.
+        /// </returns>
+        /// <remarks>
+        /// This endpoint integrates with the Python AI microservice
+        /// responsible for redundancy reduction and similarity detection.
+        /// </remarks>
         [HttpPost("similarity-check")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> RunSimilarityCheck([FromBody] SimilarityCheckRequestDto dto)
@@ -118,7 +210,23 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Update project details (Supports Limited Editing Mode automatically).</summary>
+        /// <summary>
+        /// Updates project details while automatically enforcing
+        /// workflow editing restrictions based on project status.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the project to update.
+        /// </param>
+        /// <param name="dto">
+        /// The updated project details.
+        /// </param>
+        /// <returns>
+        /// Returns a success message after the project is updated.
+        /// </returns>
+        /// <remarks>
+        /// Limited editing mode is automatically applied for projects
+        /// currently in progress.
+        /// </remarks>
         [HttpPatch("{projectId:int}/details")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> UpdateProjectDetails(int projectId, [FromBody] UpdateProjectDetailsDto dto)
@@ -128,7 +236,18 @@ namespace InnoTrack.API.Controllers
             return Ok(new { message = "Project details updated successfully." });
         }
 
-        /// <summary>Recall a submitted project back to Draft status.</summary>
+        /// <summary>
+        /// Recalls a submitted project and returns it to Draft status.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the submitted project.
+        /// </param>
+        /// <returns>
+        /// Returns the updated project status after recall.
+        /// </returns>
+        /// <remarks>
+        /// Only projects currently under review may be recalled.
+        /// </remarks>
         [HttpDelete("{projectId:int}/submission")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> RecallSubmission(int projectId)
@@ -155,7 +274,19 @@ namespace InnoTrack.API.Controllers
             return Ok(showcaseProjects);
         }
 
-        /// <summary>Generate an academic abstract using AI based on project details.</summary>
+        /// <summary>
+        /// Generates an academic project abstract using the AI service.
+        /// </summary>
+        /// <param name="dto">
+        /// The project details used for AI abstract generation.
+        /// </param>
+        /// <returns>
+        /// Returns an AI-generated academic abstract.
+        /// </returns>
+        /// <remarks>
+        /// Only team leaders may generate AI abstracts,
+        /// and sufficient project details must be provided.
+        /// </remarks>
         [HttpPost("generate-abstract")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> GenerateAbstract([FromBody] GenerateAbstractRequestDto dto)
@@ -165,7 +296,22 @@ namespace InnoTrack.API.Controllers
             return Ok(new { Abstract = generatedAbstract });
         }
 
-        /// <summary>Abandon an active or drafted project permanently.</summary>
+        /// <summary>
+        /// Permanently marks a project as abandoned and notifies team members and supervisors.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the project to abandon.
+        /// </param>
+        /// <param name="request">
+        /// The abandonment request containing the reason for abandoning the project.
+        /// </param>
+        /// <returns>
+        /// Returns a confirmation message after the project is abandoned.
+        /// </returns>
+        /// <remarks>
+        /// Only the team leader may abandon a project.
+        /// Completed projects cannot be abandoned.
+        /// </remarks>
         [HttpPost("{projectId:int}/abandon")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> AbandonProject(int projectId, [FromBody] AbandonProjectRequestDto request)

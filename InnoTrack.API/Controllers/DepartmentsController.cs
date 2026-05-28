@@ -29,6 +29,18 @@ namespace InnoTrack.API.Controllers
             return adminId;
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of all departments.
+        /// </summary>
+        /// <param name="pageNumber">
+        /// The page number to retrieve. Default value is 1.
+        /// </param>
+        /// <param name="pageSize">
+        /// The number of departments per page. Default value is 10.
+        /// </param>
+        /// <returns>
+        /// Returns a paginated collection of departments.
+        /// </returns>
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
@@ -36,6 +48,13 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves a department by its unique identifier.
+        /// </summary>
+        /// <param name="id">The department identifier.</param>
+        /// <returns>
+        /// Returns the department details if found.
+        /// </returns>
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -43,6 +62,15 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Creates a new department and records the action in the audit logs.
+        /// </summary>
+        /// <param name="request">
+        /// The department creation request containing the department name and code.
+        /// </param>
+        /// <returns>
+        /// Returns the newly created department.
+        /// </returns>
         [AuthorizeRoles(UserRole.Admin)]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateDepartmentDto request)
@@ -58,6 +86,16 @@ namespace InnoTrack.API.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
+        /// <summary>
+        /// Updates an existing department and records the action in the audit logs.
+        /// </summary>
+        /// <param name="id">The identifier of the department to update.</param>
+        /// <param name="request">
+        /// The updated department information.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the department is successfully updated.
+        /// </returns>
         [AuthorizeRoles(UserRole.Admin)]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateDepartmentDto request)
@@ -73,6 +111,13 @@ namespace InnoTrack.API.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Deletes a department and records the action in the audit logs.
+        /// </summary>
+        /// <param name="id">The identifier of the department to delete.</param>
+        /// <returns>
+        /// Returns no content after the department is successfully deleted.
+        /// </returns>
         [AuthorizeRoles(UserRole.Admin)]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)

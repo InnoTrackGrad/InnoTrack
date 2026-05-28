@@ -25,6 +25,13 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
+        /// <summary>
+        /// Retrieves global dashboard statistics including total projects,
+        /// completed projects, projects in progress, and top technologies.
+        /// </summary>
+        /// <returns>
+        /// Returns aggregated platform-wide dashboard statistics.
+        /// </returns>
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
         {
@@ -32,6 +39,15 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves the most popular and highly original approved projects.
+        /// </summary>
+        /// <param name="limit">
+        /// The maximum number of projects to return. Default value is 5.
+        /// </param>
+        /// <returns>
+        /// Returns a ranked list of popular projects.
+        /// </returns>
         [HttpGet("popular-projects")]
         public async Task<IActionResult> GetPopularProjects([FromQuery] int limit = 5)
         {
@@ -39,6 +55,12 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves the most trending technologies used in projects during the current year.
+        /// </summary>
+        /// <returns>
+        /// Returns a list of trending technologies and their usage frequency.
+        /// </returns>
         [HttpGet("trending-technologies")]
         public async Task<IActionResult> GetTrendingTechnologies()
         {
@@ -46,6 +68,12 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves the current originality score widget for the authenticated student's project.
+        /// </summary>
+        /// <returns>
+        /// Returns the project originality score and project title.
+        /// </returns>
         [HttpGet("student/current-originality-widget")]
         public async Task<IActionResult> GetCurrentOriginalityWidget()
         {
@@ -54,6 +82,12 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves the current project status widget for the authenticated student.
+        /// </summary>
+        /// <returns>
+        /// Returns the current project status and descriptive progress information.
+        /// </returns>
         [HttpGet("student/project-status-widget")]
         public async Task<IActionResult> GetProjectStatusWidget()
         {
@@ -62,6 +96,18 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves the most original projects based on originality score.
+        /// </summary>
+        /// <param name="thisYearOnly">
+        /// Indicates whether to limit results to the currently active academic year.
+        /// </param>
+        /// <param name="limit">
+        /// The maximum number of projects to return. Default value is 4.
+        /// </param>
+        /// <returns>
+        /// Returns a collection of highly original project cards.
+        /// </returns>
         [HttpGet("most-original")]
         public async Task<IActionResult> GetMostOriginalProjects([FromQuery] bool thisYearOnly = true, [FromQuery] int limit = 4)
         {

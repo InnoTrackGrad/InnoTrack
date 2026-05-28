@@ -18,6 +18,16 @@ namespace InnoTrack.API.Controllers
             _fileService = fileService;
             _env = env;
         }
+
+        /// <summary>
+        /// Downloads a project attachment if the authenticated user is authorized to access it.
+        /// </summary>
+        /// <param name="attachmentId">
+        /// The identifier of the attachment to download.
+        /// </param>
+        /// <returns>
+        /// Returns the requested file if the user belongs to the associated project team.
+        /// </returns>
         [HttpGet("{attachmentId:int}")]
         public async Task<IActionResult> Download(int attachmentId)
         {

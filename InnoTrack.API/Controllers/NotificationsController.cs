@@ -25,7 +25,16 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
-        /// <summary>Get the authenticated user's notification list, optionally filtered to unread only.</summary>
+        /// <summary>
+        /// Retrieves the authenticated user's notifications,
+        /// optionally filtered to unread notifications only.
+        /// </summary>
+        /// <param name="unreadOnly">
+        /// Indicates whether to return only unread notifications.
+        /// </param>
+        /// <returns>
+        /// Returns the user's notifications ordered by newest first.
+        /// </returns>
         [HttpGet]
         public async Task<IActionResult> GetNotifications([FromQuery] bool unreadOnly = false)
         {
@@ -34,7 +43,15 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>Mark a single notification as read.</summary>
+        /// <summary>
+        /// Marks a specific notification as read for the authenticated user.
+        /// </summary>
+        /// <param name="notificationId">
+        /// The identifier of the notification to mark as read.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the notification is successfully updated.
+        /// </returns>
         [HttpPatch("{notificationId:int}/read")]
         public async Task<IActionResult> MarkAsRead(int notificationId)
         {
@@ -43,7 +60,12 @@ namespace InnoTrack.API.Controllers
             return NoContent();
         }
 
-        /// <summary>Mark all of the user's notifications as read.</summary>
+        /// <summary>
+        /// Marks all unread notifications for the authenticated user as read.
+        /// </summary>
+        /// <returns>
+        /// Returns no content after all notifications are updated.
+        /// </returns>
         [HttpPatch("read-all")]
         public async Task<IActionResult> MarkAllAsRead()
         {

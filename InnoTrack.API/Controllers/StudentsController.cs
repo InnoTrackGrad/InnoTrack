@@ -28,6 +28,13 @@ namespace InnoTrack.API.Controllers
             return userId;
         }
 
+        /// <summary>
+        /// Retrieves the authenticated student's full profile information.
+        /// </summary>
+        /// <returns>
+        /// Returns the student's profile details, department information,
+        /// team status, GPA, graduation year, and skills.
+        /// </returns>
         [HttpGet("me")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> GetMyProfile()
@@ -37,6 +44,15 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Retrieves another student's profile information accessible to authenticated students.
+        /// </summary>
+        /// <param name="studentId">
+        /// The identifier of the student.
+        /// </param>
+        /// <returns>
+        /// Returns the student's public profile including academic and skill information.
+        /// </returns>
         [HttpGet("{studentId:int}")]
         [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> GetStudentProfile(int studentId)
@@ -45,6 +61,15 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Partially updates the authenticated student's profile information and skills.
+        /// </summary>
+        /// <param name="request">
+        /// The profile update request containing editable student fields.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the profile is successfully updated.
+        /// </returns>
         [AuthorizeRoles(UserRole.Student)]
         [HttpPatch("me/profile")]
         public async Task<IActionResult> PatchProfile([FromBody] PatchStudentProfileDto request)

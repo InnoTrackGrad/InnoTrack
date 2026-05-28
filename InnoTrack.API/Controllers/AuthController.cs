@@ -18,15 +18,29 @@ namespace InnoTrack.API.Controllers
             _authService = authService;
         }
 
+        /// <summary>
+        /// Registers a new student account and returns authentication tokens.
+        /// </summary>
+        /// <param name="request">The registration information for the new student.</param>
+        /// <returns>
+        /// Returns the generated access token, refresh token, and user information.
+        /// </returns>
         [HttpPost("register")]
         [AllowAnonymous]
         [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             var response = await _authService.RegisterAsync(request);
-            return CreatedAtAction(nameof(Login), response);
+            return Ok(response);
         }
 
+        /// <summary>
+        /// Authenticates a user and returns JWT access and refresh tokens.
+        /// </summary>
+        /// <param name="request">The user login credentials.</param>
+        /// <returns>
+        /// Returns authentication tokens and basic user information.
+        /// </returns>
         [HttpPost("login")]
         [AllowAnonymous]
         [EnableRateLimiting("auth")]
@@ -36,6 +50,13 @@ namespace InnoTrack.API.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Sends a password reset code to the user's email address.
+        /// </summary>
+        /// <param name="dto">The email address associated with the account.</param>
+        /// <returns>
+        /// Returns a confirmation message whether the reset request was processed.
+        /// </returns>
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
@@ -43,6 +64,13 @@ namespace InnoTrack.API.Controllers
             return Ok(new { message = "If the email is registered, a reset code will be sent. Please check your Junk or Spam folder if you don't see the email in your inbox." });
         }
 
+        /// <summary>
+        /// Resets the user's password using the provided reset token.
+        /// </summary>
+        /// <param name="dto">The reset password request containing email, token, and new password.</param>
+        /// <returns>
+        /// Returns a success message if the password was reset successfully.
+        /// </returns>
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
@@ -57,6 +85,12 @@ namespace InnoTrack.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Logs out the currently authenticated user and invalidates the refresh token.
+        /// </summary>
+        /// <returns>
+        /// Returns no content after successful logout.
+        /// </returns>
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout()
@@ -66,6 +100,13 @@ namespace InnoTrack.API.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Generates a new access token using a valid refresh token.
+        /// </summary>
+        /// <param name="request">The expired access token and refresh token.</param>
+        /// <returns>
+        /// Returns a new access token and refresh token pair.
+        /// </returns>
         [HttpPost("refresh-token")]
         [AllowAnonymous]
         [EnableRateLimiting("auth")]

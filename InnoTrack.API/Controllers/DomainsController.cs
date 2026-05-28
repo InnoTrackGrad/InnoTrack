@@ -30,18 +30,46 @@ namespace InnoTrack.API.Controllers
             return adminId;
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of all project domains.
+        /// </summary>
+        /// <param name="pageNumber">
+        /// The page number to retrieve. Default value is 1.
+        /// </param>
+        /// <param name="pageSize">
+        /// The number of domains per page. Default value is 10.
+        /// </param>
+        /// <returns>
+        /// Returns a paginated collection of project domains.
+        /// </returns>
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             return Ok(await _domainService.GetAllDomainsAsync(pageNumber, pageSize));
         }
 
+        /// <summary>
+        /// Retrieves a project domain by its unique identifier.
+        /// </summary>
+        /// <param name="id">The domain identifier.</param>
+        /// <returns>
+        /// Returns the domain details if found.
+        /// </returns>
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
             return Ok(await _domainService.GetDomainByIdAsync(id));
         }
 
+        /// <summary>
+        /// Creates a new project domain and records the action in the audit logs.
+        /// </summary>
+        /// <param name="request">
+        /// The domain creation request containing the domain name and description.
+        /// </param>
+        /// <returns>
+        /// Returns the newly created domain.
+        /// </returns>
         [AuthorizeRoles(UserRole.Admin)]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateDomainDto request)
@@ -57,6 +85,16 @@ namespace InnoTrack.API.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
+        /// <summary>
+        /// Updates an existing project domain and records the action in the audit logs.
+        /// </summary>
+        /// <param name="id">The identifier of the domain to update.</param>
+        /// <param name="request">
+        /// The updated domain information.
+        /// </param>
+        /// <returns>
+        /// Returns no content after the domain is successfully updated.
+        /// </returns>
         [AuthorizeRoles(UserRole.Admin)]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateDomainDto request)
@@ -72,6 +110,13 @@ namespace InnoTrack.API.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Deletes a project domain and records the action in the audit logs.
+        /// </summary>
+        /// <param name="id">The identifier of the domain to delete.</param>
+        /// <returns>
+        /// Returns no content after the domain is successfully deleted.
+        /// </returns>
         [AuthorizeRoles(UserRole.Admin)]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)

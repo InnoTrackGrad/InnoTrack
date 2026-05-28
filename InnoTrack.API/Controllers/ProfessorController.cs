@@ -32,6 +32,18 @@ namespace InnoTrack.API.Controllers
             return profId;
         }
 
+        /// <summary>
+        /// Reviews a submitted project by either approving or rejecting it.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the project to review.
+        /// </param>
+        /// <param name="request">
+        /// The review request containing the professor's approval decision.
+        /// </param>
+        /// <returns>
+        /// Returns a confirmation message after the project review is completed.
+        /// </returns>
         [AuthorizeRoles(UserRole.Professor)]
         [HttpPost("projects/{projectId}/review")]
         public async Task<IActionResult> ReviewProject(int projectId, [FromBody] ReviewProjectRequestDto request)
@@ -48,6 +60,18 @@ namespace InnoTrack.API.Controllers
             return Ok(new { Message = "Project reviewed successfully." });
         }
 
+        /// <summary>
+        /// Adds professor feedback to a project and notifies team members.
+        /// </summary>
+        /// <param name="projectId">
+        /// The identifier of the project receiving feedback.
+        /// </param>
+        /// <param name="request">
+        /// The feedback request containing the feedback content.
+        /// </param>
+        /// <returns>
+        /// Returns a confirmation message after the feedback is added.
+        /// </returns>
         [AuthorizeRoles(UserRole.Professor)]
         [HttpPost("projects/{projectId}/feedback")]
         public async Task<IActionResult> AddFeedback(int projectId, [FromBody] AddFeedbackRequestDto request)
@@ -57,6 +81,18 @@ namespace InnoTrack.API.Controllers
             return Ok(new { Message = "Feedback added successfully." });
         }
 
+        /// <summary>
+        /// Retrieves projects currently pending review for the authenticated professor.
+        /// </summary>
+        /// <param name="pageNumber">
+        /// The page number to retrieve. Default value is 1.
+        /// </param>
+        /// <param name="pageSize">
+        /// The number of projects per page. Default value is 20.
+        /// </param>
+        /// <returns>
+        /// Returns a paginated list of projects awaiting professor review.
+        /// </returns>
         [AuthorizeRoles(UserRole.Professor)]
         [HttpGet("projects/pending")]
         public async Task<IActionResult> GetPendingProjects([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
