@@ -132,11 +132,29 @@ namespace InnoTrack.Infrastructure.Services
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
 
-            var students = project.Team.Members.Select(m => new StudentInProjectDto(
-                m.Student.FullName,
-                m.Role.ToString(),
-                m.Student.Department?.Name ?? string.Empty
-            )).ToList();
+            var students = new List<StudentInProjectDto>();
+
+            if (project.Team != null && project.Team.Members.Any())
+            {
+                students = project.Team.Members.Select(m => new StudentInProjectDto(
+                    m.Student.FullName,
+                    m.Role.ToString(),
+                    m.Student.Department?.Name ?? string.Empty
+                )).ToList();
+            }
+            else if (!string.IsNullOrWhiteSpace(project.StudentNames))
+            {
+                var legacyNames = project.StudentNames
+                    .Split(new[] { ',', '&', '-', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(name => name.Trim())
+                    .Where(name => !string.IsNullOrEmpty(name));
+
+                students = legacyNames.Select(name => new StudentInProjectDto(
+                    Name: name,
+                    Role: "Member",
+                    Department: "Unknown"
+                )).ToList();
+            }
 
             return new ProjectCatalogDetailDto(
                     project.Id,
