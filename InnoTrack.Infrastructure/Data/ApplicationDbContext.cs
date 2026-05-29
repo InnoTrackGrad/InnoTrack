@@ -28,6 +28,8 @@ namespace InnoTrack.Infrastructure.Data
 
         // --- 4. Projects & AI Core ---
         public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectDraft> ProjectDrafts { get; set; }
+        public DbSet<ProjectDraftTechnology> ProjectDraftTechnologies { get; set; }
         public DbSet<Domain.Entities.Domain> Domains { get; set; }
         public DbSet<Technology> Technologies { get; set; }
         public DbSet<ProjectTechnology> ProjectTechnologies { get; set; }
@@ -188,6 +190,39 @@ namespace InnoTrack.Infrastructure.Data
             modelBuilder.Entity<ProjectTechnology>()
                         .HasKey(pt => new { pt.ProjectId, pt.TechnologyId });
 
+            modelBuilder.Entity<ProjectDraftTechnology>()
+                        .HasKey(dt => new { dt.ProjectDraftId, dt.TechnologyId });
+
+            modelBuilder.Entity<ProjectDraftTechnology>()
+                        .HasOne(dt => dt.ProjectDraft)
+                        .WithMany(d => d.DraftTechnologies)
+                        .HasForeignKey(dt => dt.ProjectDraftId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectDraftTechnology>()
+                        .HasOne(dt => dt.Technology)
+                        .WithMany()
+                        .HasForeignKey(dt => dt.TechnologyId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProjectDraft>()
+                        .HasOne(d => d.Team)
+                        .WithMany(t => t.ProjectDrafts)
+                        .HasForeignKey(d => d.TeamId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectDraft>()
+                        .HasOne(d => d.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(d => d.CreatedByUserId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProjectDraft>()
+                        .HasOne(d => d.Domain)
+                        .WithMany()
+                        .HasForeignKey(d => d.DomainId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<ProjectTechnology>()
                         .HasOne(pt => pt.Technology)
                         .WithMany(t => t.ProjectTechnologies)
@@ -306,6 +341,10 @@ namespace InnoTrack.Infrastructure.Data
 
             modelBuilder.Entity<Project>()
                         .Property(p => p.OriginalityScore)
+                        .HasPrecision(5, 2);
+
+            modelBuilder.Entity<ProjectDraft>()
+                        .Property(d => d.OriginalityScore)
                         .HasPrecision(5, 2);
 
             modelBuilder.Entity<OriginalityReport>()

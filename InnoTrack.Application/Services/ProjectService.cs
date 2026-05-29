@@ -20,18 +20,23 @@ namespace InnoTrack.Application.Services
         public async Task VerifyProjectForSubmissionAsync(int projectId, int userId, SubmitProjectRequestDto dto)
         {
             var supervisorId = dto.SupervisorId;
-            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
-            if (project == null)
-                throw new KeyNotFoundException("Project not found.");
+            var draft = await _unitOfWork.Repository<ProjectDraft>()
+                .GetQueryable()
+                .Include(d => d.DraftTechnologies)
+                .FirstOrDefaultAsync(d => d.Id == projectId);
+            if (draft == null)
+                throw new KeyNotFoundException("Draft not found.");
 
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()
-                .FindAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId);
+                .FindAsync(tm => tm.TeamId == draft.TeamId && tm.StudentId == userId);
 
             if (leaderRecord == null || leaderRecord.Role != TeamMemberRole.Leader)
                 throw new UnauthorizedAccessException("Only the team leader can submit the project.");
 
-            if (project.Status != ProjectStatus.Draft && project.Status != ProjectStatus.Rejected)
-                throw new InvalidOperationException("Only projects in Draft or Rejected status can be submitted.");
+            var existingProject = await _unitOfWork.Repository<Project>()
+                .FindAsync(p => p.TeamId == draft.TeamId);
+            if (existingProject != null)
+                throw new InvalidOperationException("Your team already has an active or submitted project.");
 
             var supervisor = await _unitOfWork.Repository<Professor>()
                 .GetQueryable()
@@ -44,23 +49,66 @@ namespace InnoTrack.Application.Services
             if (supervisor.SupervisedTeams.Count >= supervisor.MaxTeamLoad)
                 throw new InvalidOperationException($"Dr. {supervisor.FullName} has reached their maximum capacity of teams.");
 
-            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId);
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(draft.TeamId);
             if (team == null)
                 throw new KeyNotFoundException("Team not found.");
 
-            team.ProfessorId = supervisorId;
-            _unitOfWork.Repository<Team>().Update(team);
+            var activeAcademicYear = await _unitOfWork.Repository<AcademicYear>()
+                .FindAsync(y => y.IsActive);
+            if (activeAcademicYear == null)
+                throw new InvalidOperationException("Academic year configuration is missing. Please contact administration.");
 
-            project.Status = ProjectStatus.UnderReview;
-            project.SubmittedAt = DateTime.UtcNow;
+            await _unitOfWork.BeginTransactionAsync();
+            Project project;
+            try
+            {
+                team.ProfessorId = supervisorId;
+                _unitOfWork.Repository<Team>().Update(team);
 
-            project.ProposalDepartment = dto.Department;
-            project.ProposalTeamMembers = dto.TeamMembers;
-            project.ProposalMessage = dto.Message;
+                project = new Project
+                {
+                    Title = draft.Title,
+                    Abstract = draft.Abstract,
+                    Description = draft.Description,
+                    Status = ProjectStatus.UnderReview,
+                    OriginalityScore = draft.OriginalityScore,
+                    Year = draft.Year,
+                    StudentNames = draft.StudentNames,
+                    CreatedAt = DateTime.UtcNow,
+                    SubmittedAt = DateTime.UtcNow,
+                    TeamId = draft.TeamId,
+                    DomainId = draft.DomainId,
+                    AcademicYearId = activeAcademicYear.Id,
+                    ProblemStatement = draft.ProblemStatement,
+                    ProposedSolution = draft.ProposedSolution,
+                    Objectives = draft.Objectives,
+                    ProposalDepartment = dto.Department,
+                    ProposalTeamMembers = dto.TeamMembers,
+                    ProposalMessage = dto.Message,
+                };
 
-            _unitOfWork.Repository<Project>().Update(project);
-            await _unitOfWork.CompleteAsync();
-            BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(projectId));
+                await _unitOfWork.Repository<Project>().AddAsync(project);
+                await _unitOfWork.CompleteAsync();
+
+                foreach (var draftTech in draft.DraftTechnologies)
+                {
+                    await _unitOfWork.Repository<ProjectTechnology>().AddAsync(new ProjectTechnology
+                    {
+                        ProjectId = project.Id,
+                        TechnologyId = draftTech.TechnologyId,
+                    });
+                }
+
+                _unitOfWork.Repository<ProjectDraft>().Delete(draft);
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+
+            BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(project.Id));
         }
     }
 }

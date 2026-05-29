@@ -25,5 +25,6 @@ namespace InnoTrack.Domain.Entities
         public ChatRoom? ChatRoom { get; set; }
 
         public ICollection<TeamMember> Members { get; set; } = new HashSet<TeamMember>();
+        public ICollection<ProjectDraft> ProjectDrafts { get; set; } = new HashSet<ProjectDraft>();
     }
 }

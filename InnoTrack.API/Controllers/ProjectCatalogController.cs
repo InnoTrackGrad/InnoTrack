@@ -103,6 +103,24 @@ namespace InnoTrack.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("drafts")]
+        [AuthorizeRoles(UserRole.Student)]
+        public async Task<IActionResult> GetMyDrafts()
+        {
+            var userId = GetUserId();
+            var result = await _catalogService.GetMyDraftsAsync(userId);
+            return Ok(result);
+        }
+
+        [HttpGet("drafts/{draftId:int}")]
+        [AuthorizeRoles(UserRole.Student)]
+        public async Task<IActionResult> GetDraftById(int draftId)
+        {
+            var userId = GetUserId();
+            var result = await _catalogService.GetDraftByIdAsync(draftId, userId);
+            return Ok(result);
+        }
+
         /// <summary>
         /// Retrieves the number of projects grouped by current academic year
         /// and previous academic years.

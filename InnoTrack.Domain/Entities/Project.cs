@@ -68,7 +68,6 @@ namespace InnoTrack.Domain.Entities
         public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
         public ICollection<ProjectAttachment> Attachments { get; set; } = new HashSet<ProjectAttachment>();
         public ICollection<Feedback> Feedbacks { get; set; } = new HashSet<Feedback>();
-        public ICollection<SimilarProject> SimilarProjects { get; set; } = new HashSet<SimilarProject>();
         public VectorEmbedding? VectorEmbedding { get; set; }
         public ICollection<OriginalityReport> OriginalityReports { get; set; } = new HashSet<OriginalityReport>();
     }

@@ -217,6 +217,42 @@ namespace InnoTrack.Infrastructure.Services
             );
         }
 
+        public async Task<IReadOnlyList<ProjectDraftDto>> GetMyDraftsAsync(int userId)
+        {
+            var teamMember = await _context.TeamMembers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(tm => tm.StudentId == userId);
+            if (teamMember == null) return Array.Empty<ProjectDraftDto>();
+
+            var drafts = await _context.ProjectDrafts
+                .AsNoTracking()
+                .Include(d => d.Domain)
+                .Include(d => d.DraftTechnologies).ThenInclude(dt => dt.Technology)
+                .Where(d => d.TeamId == teamMember.TeamId)
+                .OrderByDescending(d => d.UpdatedAt ?? d.CreatedAt)
+                .ToListAsync();
+
+            bool canEdit = teamMember.Role == TeamMemberRole.Leader;
+            return drafts.Select(d => MapDraft(d, canEdit)).ToList().AsReadOnly();
+        }
+
+        public async Task<ProjectDraftDto> GetDraftByIdAsync(int draftId, int userId)
+        {
+            var teamMember = await _context.TeamMembers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(tm => tm.StudentId == userId);
+            if (teamMember == null) throw new UnauthorizedAccessException("You must be in a team to view drafts.");
+
+            var draft = await _context.ProjectDrafts
+                .AsNoTracking()
+                .Include(d => d.Domain)
+                .Include(d => d.DraftTechnologies).ThenInclude(dt => dt.Technology)
+                .FirstOrDefaultAsync(d => d.Id == draftId && d.TeamId == teamMember.TeamId);
+            if (draft == null) throw new KeyNotFoundException("Draft not found.");
+
+            return MapDraft(draft, teamMember.Role == TeamMemberRole.Leader);
+        }
+
         public async Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync()
         {
             var supervisors = await _context.Professors
@@ -248,15 +284,10 @@ namespace InnoTrack.Infrastructure.Services
             if (existingProject != null)
                 throw new InvalidOperationException("Your team already has a project.");
 
-            var activeAcademicYear = await _context.AcademicYears
-                .FirstOrDefaultAsync(y => y.IsActive);
-            if (activeAcademicYear == null)
-                throw new InvalidOperationException("Academic year configuration is missing. Please contact administration.");
-
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var project = new Project
+                var draft = new ProjectDraft
                 {
                     Title = dto.Title,
                     Abstract = dto.Abstract,
@@ -266,23 +297,22 @@ namespace InnoTrack.Infrastructure.Services
                     Objectives = dto.Objectives,
                     DomainId = dto.DomainId,
                     TeamId = leaderRecord.TeamId,
-                    Status = ProjectStatus.Draft,
-                    AcademicYearId = activeAcademicYear.Id,
+                    CreatedByUserId = userId,
                     Year = dto.Year,
                     StudentNames = dto.StudentNames,
                 };
-                _context.Projects.Add(project);
+                _context.ProjectDrafts.Add(draft);
                 await _context.SaveChangesAsync();
 
                 foreach (var techId in dto.TechnologyIds)
                 {
-                    _context.ProjectTechnologies.Add(
-                        new ProjectTechnology { ProjectId = project.Id, TechnologyId = techId });
+                    _context.ProjectDraftTechnologies.Add(
+                        new ProjectDraftTechnology { ProjectDraftId = draft.Id, TechnologyId = techId });
                 }
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return new SaveDraftResponseDto(project.Id, project.Title, project.CreatedAt);
+                return new SaveDraftResponseDto(draft.Id, draft.Title, draft.CreatedAt);
             }
             catch
             {
@@ -293,14 +323,11 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task<SaveDraftResponseDto> UpdateDraftAsync(int draftId, int userId, SaveProjectDraftDto dto)
         {
-            var project = await _context.Projects.FindAsync(draftId);
-            if (project == null) throw new KeyNotFoundException("Draft not found.");
-
-            if (project.Status != ProjectStatus.Draft)
-                throw new InvalidOperationException("Only Draft projects can be updated.");
+            var draft = await _context.ProjectDrafts.FindAsync(draftId);
+            if (draft == null) throw new KeyNotFoundException("Draft not found.");
 
             var leaderRecord = await _context.TeamMembers
-                .FirstOrDefaultAsync(tm => tm.TeamId == project.TeamId
+                .FirstOrDefaultAsync(tm => tm.TeamId == draft.TeamId
                                             && tm.StudentId == userId
                                             && tm.Role == TeamMemberRole.Leader);
             if (leaderRecord == null)
@@ -309,37 +336,37 @@ namespace InnoTrack.Infrastructure.Services
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                bool textChanged = project.Abstract != dto.Abstract ||
-                           project.Description != dto.Description ||
-                           project.Title != dto.Title;
+                bool textChanged = draft.Abstract != dto.Abstract ||
+                           draft.Description != dto.Description ||
+                           draft.Title != dto.Title;
 
                 if (textChanged)
                 {
-                    project.OriginalityScore = null;
+                    draft.OriginalityScore = null;
                 }
-                project.Title = dto.Title;
-                project.Abstract = dto.Abstract;
-                project.Description = dto.Description;
-                project.DomainId = dto.DomainId;
-                project.ProblemStatement = dto.ProblemStatement;
-                project.ProposedSolution = dto.ProposedSolution;
-                project.Objectives = dto.Objectives;
-                project.UpdatedAt = DateTime.UtcNow;
-                project.StudentNames = dto.StudentNames;
+                draft.Title = dto.Title;
+                draft.Abstract = dto.Abstract;
+                draft.Description = dto.Description;
+                draft.DomainId = dto.DomainId;
+                draft.ProblemStatement = dto.ProblemStatement;
+                draft.ProposedSolution = dto.ProposedSolution;
+                draft.Objectives = dto.Objectives;
+                draft.UpdatedAt = DateTime.UtcNow;
+                draft.StudentNames = dto.StudentNames;
 
-                var existingTechs = _context.ProjectTechnologies.Where(pt => pt.ProjectId == draftId);
-                _context.ProjectTechnologies.RemoveRange(existingTechs);
+                var existingTechs = _context.ProjectDraftTechnologies.Where(dt => dt.ProjectDraftId == draftId);
+                _context.ProjectDraftTechnologies.RemoveRange(existingTechs);
 
                 foreach (var techId in dto.TechnologyIds)
                 {
-                    _context.ProjectTechnologies.Add(
-                        new ProjectTechnology { ProjectId = draftId, TechnologyId = techId });
+                    _context.ProjectDraftTechnologies.Add(
+                        new ProjectDraftTechnology { ProjectDraftId = draftId, TechnologyId = techId });
                 }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return new SaveDraftResponseDto(project.Id, project.Title, project.UpdatedAt.Value);
+                return new SaveDraftResponseDto(draft.Id, draft.Title, draft.UpdatedAt.Value);
             }
             catch
             {
@@ -350,21 +377,18 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task DeleteDraftAsync(int draftId, int userId)
         {
-            var project = await _context.Projects.FindAsync(draftId);
-            if (project == null)
+            var draft = await _context.ProjectDrafts.FindAsync(draftId);
+            if (draft == null)
                 throw new KeyNotFoundException("Draft not found.");
 
-            if (project.Status != ProjectStatus.Draft)
-                throw new InvalidOperationException("Only Draft projects can be deleted.");
-
             var leaderRecord = await _context.TeamMembers
-                .FirstOrDefaultAsync(tm => tm.TeamId == project.TeamId
+                .FirstOrDefaultAsync(tm => tm.TeamId == draft.TeamId
                                           && tm.StudentId == userId
                                           && tm.Role == TeamMemberRole.Leader);
             if (leaderRecord == null)
                 throw new UnauthorizedAccessException("Only the team leader can delete this draft.");
 
-            _context.Projects.Remove(project);
+            _context.ProjectDrafts.Remove(draft);
             await _context.SaveChangesAsync();
         }
 
@@ -567,5 +591,28 @@ namespace InnoTrack.Infrastructure.Services
             ProjectStatus.Abandoned => "abandoned",
             _ => status.ToString().ToLower()
         };
+
+        private static ProjectDraftDto MapDraft(ProjectDraft draft, bool canEdit)
+        {
+            return new ProjectDraftDto(
+                draft.Id,
+                draft.Title,
+                draft.StudentNames,
+                draft.Year,
+                draft.Domain.Name,
+                draft.DomainId,
+                draft.OriginalityScore,
+                draft.CreatedAt,
+                draft.UpdatedAt,
+                canEdit,
+                draft.DraftTechnologies.Select(dt => dt.Technology.Name).ToList().AsReadOnly(),
+                draft.DraftTechnologies.Select(dt => dt.TechnologyId).ToList().AsReadOnly(),
+                draft.Abstract,
+                draft.Description,
+                draft.ProblemStatement,
+                draft.ProposedSolution,
+                draft.Objectives
+            );
+        }
     }
 }

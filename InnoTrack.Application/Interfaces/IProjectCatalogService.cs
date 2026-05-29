@@ -11,6 +11,9 @@ namespace InnoTrack.Application.Interfaces
         Task<CatalogTabsCountDto> GetCatalogTabsCountAsync();
         Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId);
         Task<MyProjectResponseDto?> GetMyProjectAsync(int userId);
+        Task<IReadOnlyList<ProjectDraftDto>> GetMyDraftsAsync(int userId);
+        Task<ProjectDraftDto> GetDraftByIdAsync(int draftId, int userId);
+
         Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync();
         Task<SaveDraftResponseDto> SaveDraftAsync(int userId, SaveProjectDraftDto dto);
         Task<SaveDraftResponseDto> UpdateDraftAsync(int draftId, int userId, SaveProjectDraftDto dto);
