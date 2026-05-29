@@ -16,6 +16,8 @@ namespace InnoTrack.Domain.Entities
         //[Column(TypeName = "nvarchar(max)")]
         //public string? MatchedContentSnippet { get; set; }
 
+
+        public string ProjectTitle { get; set; } = string.Empty;
         [Required]
         public int OriginalityReportId { get; set; }
         public OriginalityReport OriginalityReport { get; set; } = null!;

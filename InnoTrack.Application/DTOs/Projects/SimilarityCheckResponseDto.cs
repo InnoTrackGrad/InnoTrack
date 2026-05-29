@@ -8,7 +8,6 @@
     public record SimilarProjectResultDto(
         int? Id,
         string Title,
-        decimal Similarity,
-        string? MatchReason
+        decimal Similarity
     );
 }

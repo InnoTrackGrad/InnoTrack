@@ -462,8 +462,7 @@ namespace InnoTrack.Infrastructure.Services
                 similarProjects.Add(new SimilarProjectResultDto(
                     referencedProject?.Id,
                     sp.ProjectTitle ?? "Unknown Project",
-                    sp.SimilarityScore,
-                    "Matched: " + string.Join(", ", matchedFeatures.Select(f => f.ToString()))));
+                    sp.SimilarityScore));
             }
 
             return new SimilarityCheckResponseDto(overallScore, similarProjects.AsReadOnly());

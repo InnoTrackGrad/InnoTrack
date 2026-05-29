@@ -191,7 +191,6 @@ namespace InnoTrack.API.Controllers
                                     table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text($"#{sp.Id}");
                                     table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(sp.Title);
                                     table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text($"{sp.Similarity}%").FontColor(sp.Similarity > 40 ? Colors.Red.Medium : Colors.Black).SemiBold();
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(sp.MatchReason ?? "N/A");
                                 }
                             });
                         }

@@ -100,7 +100,9 @@ namespace InnoTrack.Application.Services
                     GeneratedAt = DateTime.UtcNow
                 };
 
-                foreach (var sp in aiResponse.TopSimilarProjects)
+                var topProjects = aiResponse.TopSimilarProjects ?? new List<PythonSimilarProjectDto>();
+
+                foreach (var sp in topProjects)
                 {
                     var referencedProject = await _unitOfWork.Repository<Project>()
                         .GetQueryable()
@@ -110,7 +112,8 @@ namespace InnoTrack.Application.Services
 
                     report.SimilarProjects.Add(new SimilarProject
                     {
-                        ReferencedProjectId = referencedProject?.Id ?? 0,
+                        ReferencedProjectId = referencedProject?.Id,
+                        ProjectTitle = sp.ProjectTitle ?? "Unknown External Project",
                         SimilarityPercentage = sp.SimilarityScore,
                         MatchReason = "Matched: " + string.Join(", ", matchedFeatures.Select(f => f.ToString()))
                     });
@@ -197,8 +200,7 @@ namespace InnoTrack.Application.Services
                     .Select(sp => new SimilarProjectResultDto(
                             sp.ReferencedProjectId,
                             sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
-                            sp.SimilarityPercentage,
-                            sp.MatchReason
+                            sp.SimilarityPercentage
                         ))
                     .ToList()
                     .AsReadOnly()
