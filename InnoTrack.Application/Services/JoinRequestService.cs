@@ -118,7 +118,7 @@ namespace InnoTrack.Application.Services
                 {
                     request.Status = RequestStatus.Rejected;
                     notifTitle = "Join Request Rejected";
-                    notifMessage = string.IsNullOrWhiteSpace(dto.FeedbackMessage) 
+                    notifMessage = string.IsNullOrWhiteSpace(dto.FeedbackMessage)
                         ? "Your request to join the team has been rejected."
                         : $"Your request to join the team has been rejected. Feedback: {dto.FeedbackMessage}";
                     notifType = NotificationType.Error;

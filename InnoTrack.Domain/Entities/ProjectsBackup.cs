@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace InnoTrack.Infrastructure.Models;
+﻿namespace InnoTrack.Infrastructure.Models;
 
 public partial class ProjectsBackup
 {

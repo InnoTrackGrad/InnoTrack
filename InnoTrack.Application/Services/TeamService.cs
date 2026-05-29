@@ -13,7 +13,7 @@ namespace InnoTrack.Application.Services
         private readonly IMapper _mapper;
         private readonly IJoinCodeGenerator _codeGenerator;
         private readonly INotificationService _notificationService;
-        
+
 
         public TeamService(IUnitOfWork unitOfWork, IMapper mapper, IJoinCodeGenerator codeGenerator, INotificationService notificationService)
         {

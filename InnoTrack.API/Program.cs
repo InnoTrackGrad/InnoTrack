@@ -1,6 +1,5 @@
 using FluentValidation;
 using Hangfire;
-using HealthChecks.UI.Client;
 using InnoTrack.API.Hubs;
 using InnoTrack.API.Middlewares;
 using InnoTrack.API.Services;
@@ -15,12 +14,12 @@ using InnoTrack.Infrastructure.Identity;
 using InnoTrack.Infrastructure.Repositories;
 using InnoTrack.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
+using QuestPDF.Infrastructure;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -211,6 +210,8 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var app = builder.Build();
 

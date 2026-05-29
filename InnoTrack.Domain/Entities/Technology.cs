@@ -1,5 +1,4 @@
-﻿using InnoTrack.Domain.Entities.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace InnoTrack.Domain.Entities
 {

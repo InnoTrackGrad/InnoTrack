@@ -8,7 +8,6 @@ using InnoTrack.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Linq;
 using System.Text.Json;
 
 namespace InnoTrack.Application.Services
@@ -50,7 +49,7 @@ namespace InnoTrack.Application.Services
                 );
                 aiResponse = await _aiClient.AnalyzeProjectAsync(request);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing AI for project {ProjectId}", projectId);
 
@@ -79,7 +78,7 @@ namespace InnoTrack.Application.Services
             try
             {
                 decimal overallScore = aiResponse.TopSimilarProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
-                
+
                 string generatedSummary = aiResponse.ExtractedFeatures.Any()
                     ? "Features: " + string.Join(", ", aiResponse.ExtractedFeatures)
                     : "No summary generated.";
@@ -188,7 +187,7 @@ namespace InnoTrack.Application.Services
                     .Select(sp => new SimilarProjectResultDto(
                             sp.ReferencedProjectId,
                             sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
-                            sp.SimilarityPercentage, 
+                            sp.SimilarityPercentage,
                             sp.MatchReason
                         ))
                     .ToList()

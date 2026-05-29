@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace InnoTrack.Application.DTOs.Admin
+﻿namespace InnoTrack.Application.DTOs.Admin
 {
     public record StudentAdminViewDto(
          int Id,

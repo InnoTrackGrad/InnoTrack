@@ -97,7 +97,7 @@ namespace InnoTrack.Application.Services
                 throw new KeyNotFoundException("Student not found.");
 
             var department = await _unitOfWork.Repository<Department>().GetByIdAsync(student.DepartmentId);
-            
+
             var skills = await GetStudentSkillNamesAsync(studentId);
 
             return new StudentPublicProfileDto(

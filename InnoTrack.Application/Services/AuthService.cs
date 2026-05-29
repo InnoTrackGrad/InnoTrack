@@ -91,7 +91,7 @@ namespace InnoTrack.Application.Services
 
             user.ResetPasswordToken = otp;
             user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddMinutes(15);
-            
+
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.CompleteAsync();
 

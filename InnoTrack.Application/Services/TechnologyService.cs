@@ -3,7 +3,6 @@ using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Lookups;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
-using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 
 namespace InnoTrack.Application.Services

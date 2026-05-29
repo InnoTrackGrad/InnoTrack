@@ -317,9 +317,9 @@ namespace InnoTrack.Infrastructure.Services
                 {
                     project.OriginalityScore = null;
                 }
-                project.Title = dto.Title; 
+                project.Title = dto.Title;
                 project.Abstract = dto.Abstract;
-                project.Description = dto.Description; 
+                project.Description = dto.Description;
                 project.DomainId = dto.DomainId;
                 project.ProblemStatement = dto.ProblemStatement;
                 project.ProposedSolution = dto.ProposedSolution;
@@ -494,16 +494,16 @@ namespace InnoTrack.Infrastructure.Services
                 .Include(p => p.Team)
                 .ThenInclude(t => t.Members)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
-            
-            if (project == null) 
+
+            if (project == null)
                 throw new KeyNotFoundException("Project not found.");
 
             var isLeader = project.Team.Members
                     .Any(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
 
-            if (!isLeader) 
+            if (!isLeader)
                 throw new UnauthorizedAccessException("Only the team leader can abandon the project.");
-            
+
             if (project.Status == ProjectStatus.Completed)
                 throw new InvalidOperationException("Cannot abandon a completed project.");
 

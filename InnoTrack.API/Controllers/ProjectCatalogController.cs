@@ -2,12 +2,9 @@ using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
-using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
-using InnoTrack.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers

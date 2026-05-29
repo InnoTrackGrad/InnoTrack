@@ -1,6 +1,5 @@
 using InnoTrack.Application.DTOs.Dashboard;
 using InnoTrack.Application.Interfaces;
-using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -169,7 +168,7 @@ namespace InnoTrack.Infrastructure.Services
                     p.Title,
                     p.Abstract,
                     Year = p.CreatedAt.Year,
-                    p.Status 
+                    p.Status
                 })
                 .ToListAsync();
 
@@ -183,8 +182,8 @@ namespace InnoTrack.Infrastructure.Services
                         p.Year,
                         MapStatusForCard(p.Status)
                     ))
-                    .ToList(); 
-            
+                    .ToList();
+
             return projects.AsReadOnly();
         }
 

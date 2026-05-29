@@ -1,4 +1,3 @@
-using AutoMapper;
 using Hangfire;
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;

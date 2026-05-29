@@ -3,8 +3,6 @@ using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InnoTrack.API.Controllers

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace InnoTrack.Application.DTOs.Projects
 {
     public record MyProjectResponseDto(

@@ -36,11 +36,10 @@ namespace InnoTrack.API.Middlewares
                 _ => (StatusCodes.Status500InternalServerError, "Server Error")
             };
 
-            //var detail = _env.IsDevelopment()
-            //    ? exception.Message
-            //    : "An unexpected error occurred. Please contact support.";
+            var detail = _env.IsDevelopment()
+                ? exception.Message
+                : "An unexpected error occurred. Please contact support.";
 
-            var detail = exception.Message;
             var problemDetails = new ProblemDetails
             {
                 Status = statusCode,
