@@ -174,6 +174,8 @@ namespace InnoTrack.Application.Services
         {
             var report = await _unitOfWork.Repository<OriginalityReport>()
                 .GetQueryable()
+                .Include(r => r.Project)
+                    .ThenInclude(p => p.Team).ThenInclude(t => t.Supervisor)
                 .Include(r => r.SimilarProjects)
                     .ThenInclude(sp => sp.ReferencedProject)
                 .FirstOrDefaultAsync(r => r.ProjectId == projectId);
@@ -181,8 +183,16 @@ namespace InnoTrack.Application.Services
             if (report == null)
                 throw new KeyNotFoundException("AI report not generated yet for this project.");
 
+            decimal displayScore = report.OverallScore <= 1m ? report.OverallScore * 100m : report.OverallScore;
+
             return new OriginalityReportDto(
-                report.ProjectId, report.OverallScore, report.Summary, report.GeneratedAt,
+                report.ProjectId,
+                report.Project?.Title ?? "Unknown Project",
+                report.Project?.Team?.Name ?? "Unknown Team",
+                report.Project?.Team?.Supervisor?.FullName ?? "Unknown Supervisor",
+                Math.Round(displayScore, 2),
+                report.Summary,
+                report.GeneratedAt,
                 report.SimilarProjects
                     .Select(sp => new SimilarProjectResultDto(
                             sp.ReferencedProjectId,
@@ -192,7 +202,7 @@ namespace InnoTrack.Application.Services
                         ))
                     .ToList()
                     .AsReadOnly()
-    );
+            );
         }
     }
 }

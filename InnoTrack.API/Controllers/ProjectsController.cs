@@ -117,50 +117,98 @@ namespace InnoTrack.API.Controllers
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(2, Unit.Centimetre);
-                    page.Header().Text("InnoTrack AI Originality Report").SemiBold().FontSize(20);
-                    page.Content().Column(col =>
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
+
+                    page.Header().BorderBottom(2).BorderColor(Colors.Blue.Darken2).PaddingBottom(10).Row(row =>
                     {
-                        col.Item().Text($"Project ID: {report.ProjectId}");
-                        col.Item().Text($"Originality Score: {report.OverallScore}%").FontColor(report.OverallScore < 60 ? Colors.Red.Medium : Colors.Green.Medium);
-                        col.Item().Text($"AI Summary: {report.Summary}");
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("InnoTrack System").FontSize(24).SemiBold().FontColor(Colors.Blue.Darken3);
+                            col.Item().Text("Official AI Originality Report").FontSize(14).FontColor(Colors.Grey.Medium);
+                        });
+                        row.ConstantItem(100).AlignRight().Text($"#{report.ProjectId:D4}").FontSize(20).SemiBold().FontColor(Colors.Grey.Lighten1);
+                    });
+
+                    page.Content().PaddingVertical(15).Column(col =>
+                    {
+                        col.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(inner =>
+                        {
+                            inner.Item().Text($"Project Title: {report.ProjectTitle}").SemiBold().FontSize(14);
+                            inner.Item().Text($"Team: {report.TeamName}");
+                            inner.Item().Text($"Supervisor: {report.SupervisorName ?? "Not Assigned"}");
+                            inner.Item().Text($"Generated On: {report.GeneratedAt:MMMM dd, yyyy - HH:mm}");
+                        });
+
+                        col.Item().PaddingVertical(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
+
+                        var scoreColor = report.OverallScore >= 80 ? Colors.Green.Medium :
+                                         report.OverallScore >= 50 ? Colors.Orange.Medium : Colors.Red.Medium;
+
+                        var scoreVerdict = report.OverallScore >= 80 ? "Excellent Originality" :
+                                           report.OverallScore >= 50 ? "Needs Review (Moderate Similarity)" :
+                                           "High Similarity Detected (Warning)";
+
+                        col.Item().AlignCenter().Column(inner =>
+                        {
+                            inner.Item().AlignCenter().Text("Overall Originality Score").FontSize(16).SemiBold();
+                            inner.Item().AlignCenter().Text($"{report.OverallScore}%").FontSize(35).Black().FontColor(scoreColor);
+                            inner.Item().AlignCenter().Text(scoreVerdict).FontSize(14).FontColor(scoreColor).SemiBold();
+                        });
+
+                        col.Item().PaddingVertical(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
+
+                        col.Item().PaddingBottom(5).Text("AI Analysis Summary").FontSize(16).SemiBold().FontColor(Colors.Blue.Darken2);
+                        col.Item().Background(Colors.Blue.Lighten5).BorderLeft(4).BorderColor(Colors.Blue.Medium).Padding(10)
+                            .Text(report.Summary).FontSize(12).FontColor(Colors.Black);
+
+                        col.Item().PaddingVertical(15);
+
+                        col.Item().PaddingBottom(5).Text("Internal System Matches").FontSize(16).SemiBold().FontColor(Colors.Blue.Darken2);
+
                         if (report.SimilarProjects != null && report.SimilarProjects.Any())
                         {
-                            col.Item().PaddingTop(15).Text("Similar Projects Breakdown:").SemiBold().FontSize(14);
-
-                            col.Item().PaddingTop(5).Table(table =>
+                            col.Item().Table(table =>
                             {
                                 table.ColumnsDefinition(columns =>
                                 {
-                                    columns.RelativeColumn(2);
-                                    columns.RelativeColumn(3);
+                                    columns.ConstantColumn(60);
+                                    columns.RelativeColumn();
                                     columns.ConstantColumn(80);
+                                    columns.RelativeColumn();
                                 });
 
                                 table.Header(header =>
                                 {
-                                    header.Cell().BorderBottom(1).Padding(2).Text("Project (ID - Title)").SemiBold();
-                                    header.Cell().BorderBottom(1).Padding(2).Text("Match Reason").SemiBold();
-                                    header.Cell().BorderBottom(1).Padding(2).Text("Similarity %").SemiBold();
+                                    header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("ID").FontColor(Colors.White).SemiBold();
+                                    header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("Project Title").FontColor(Colors.White).SemiBold();
+                                    header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("Match %").FontColor(Colors.White).SemiBold();
+                                    header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("Match Reason").FontColor(Colors.White).SemiBold();
                                 });
 
                                 foreach (var sp in report.SimilarProjects)
                                 {
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(2)
-                                        .Text($"[{sp.Id?.ToString() ?? "?"}] {sp.Title}");
-
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(2)
-                                        .Text(sp.MatchReason ?? "No reason provided");
-
-                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(2)
-                                        .Text($"{sp.Similarity}%").FontColor(sp.Similarity > 40 ? Colors.Red.Medium : Colors.Black);
+                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text($"#{sp.Id}");
+                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(sp.Title);
+                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text($"{sp.Similarity}%").FontColor(sp.Similarity > 40 ? Colors.Red.Medium : Colors.Black).SemiBold();
+                                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(sp.MatchReason ?? "N/A");
                                 }
                             });
                         }
                         else
                         {
-                            col.Item().PaddingTop(15).Text("No highly similar projects found. Great originality!")
-                                .Italic().FontColor(Colors.Green.Medium);
+                            col.Item().Background(Colors.Grey.Lighten4).BorderLeft(4).BorderColor(Colors.Grey.Medium).Padding(10)
+                                .Text("No similar projects found in the university database. Any low originality score above is likely due to external sources.")
+                                .FontColor(Colors.Grey.Darken2).Italic();
                         }
+                    });
+
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span("Page ");
+                        x.CurrentPageNumber();
+                        x.Span(" of ");
+                        x.TotalPages();
                     });
                 });
             });
