@@ -255,7 +255,7 @@ app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 
-app.UseHangfireDashboard();
+app.UseHangfireDashboard("/hangfire");
 
 await DbSeeder.SeedAdminAsync(app.Services);
 await DbSeeder.SeedProfessorAsync(app.Services);

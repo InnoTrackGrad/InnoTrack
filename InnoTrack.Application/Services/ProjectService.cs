@@ -24,14 +24,14 @@ namespace InnoTrack.Application.Services
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
 
-            if (project.Status != ProjectStatus.Draft && project.Status != ProjectStatus.Rejected)
-                throw new InvalidOperationException("Only projects in Draft or Rejected status can be submitted.");
-
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId);
 
             if (leaderRecord == null || leaderRecord.Role != TeamMemberRole.Leader)
                 throw new UnauthorizedAccessException("Only the team leader can submit the project.");
+
+            if (project.Status != ProjectStatus.Draft && project.Status != ProjectStatus.Rejected)
+                throw new InvalidOperationException("Only projects in Draft or Rejected status can be submitted.");
 
             var supervisor = await _unitOfWork.Repository<Professor>()
                 .GetQueryable()

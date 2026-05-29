@@ -97,7 +97,8 @@ namespace InnoTrack.Application.Services
                     ProjectId = project.Id,
                     OverallScore = overallScore,
                     Summary = generatedSummary,
-                    GeneratedAt = DateTime.UtcNow
+                    GeneratedAt = DateTime.UtcNow,
+                    SimilarProjects = new List<SimilarProject>()
                 };
 
                 var topProjects = aiResponse.TopSimilarProjects ?? new List<PythonSimilarProjectDto>();
