@@ -443,22 +443,26 @@ namespace InnoTrack.Infrastructure.Services
                 description: dto.Description,
                 abstractText: dto.Abstract
             );
+
             var aiResponse = await _aiClient.AnalyzeProjectAsync(aiRequest);
 
-            decimal overallScore = aiResponse.TopSimilarProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
+            var topProjects = aiResponse.TopSimilarProjects ?? new List<PythonSimilarProjectDto>();
+            decimal overallScore = topProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
 
             var similarProjects = new List<SimilarProjectResultDto>();
-            foreach (var sp in aiResponse.TopSimilarProjects)
+            foreach (var sp in topProjects)
             {
                 var referencedProject = await _context.Projects
                             .AsNoTracking()
                             .FirstOrDefaultAsync(p => p.Title == sp.ProjectTitle);
 
+                var matchedFeatures = sp.MatchedFeatures ?? new List<string>();
+
                 similarProjects.Add(new SimilarProjectResultDto(
                     referencedProject?.Id,
-                    sp.ProjectTitle,
+                    sp.ProjectTitle ?? "Unknown Project",
                     sp.SimilarityScore,
-                    "Matched: " + string.Join(", ", sp.MatchedFeatures)));
+                    "Matched: " + string.Join(", ", matchedFeatures)));
             }
 
             return new SimilarityCheckResponseDto(overallScore, similarProjects.AsReadOnly());

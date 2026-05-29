@@ -19,7 +19,7 @@ namespace InnoTrack.Application.Services
 
         public async Task<PythonAiResponseDto> AnalyzeProjectAsync(PythonAiRequestDto request)
         {
-            var response = await _httpClient.PostAsJsonAsync("/analyze", request);
+            var response = await _httpClient.PostAsJsonAsync("analyze", request);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
