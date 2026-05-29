@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Linq;
+using System.Text.Json;
 
 namespace InnoTrack.Application.Services
 {
@@ -106,11 +107,13 @@ namespace InnoTrack.Application.Services
                         .GetQueryable()
                         .FirstOrDefaultAsync(p => p.Title == sp.ProjectTitle);
 
+                    var matchedFeatures = sp.MatchedFeatures ?? new List<JsonElement>();
+
                     report.SimilarProjects.Add(new SimilarProject
                     {
                         ReferencedProjectId = referencedProject?.Id ?? 0,
                         SimilarityPercentage = sp.SimilarityScore,
-                        MatchReason = "Matched: " + string.Join(", ", sp.MatchedFeatures)
+                        MatchReason = "Matched: " + string.Join(", ", matchedFeatures.Select(f => f.ToString()))
                     });
                 }
                 await _unitOfWork.Repository<OriginalityReport>().AddAsync(report);

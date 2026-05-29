@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace InnoTrack.Application.DTOs.AI
 {
@@ -8,10 +9,10 @@ namespace InnoTrack.Application.DTOs.AI
         public string ProjectTitle { get; set; } = string.Empty;
 
         [JsonPropertyName("matched_features")]
-        public List<string> MatchedFeatures { get; set; } = new();
+        public List<JsonElement> MatchedFeatures { get; set; } = new();
 
         [JsonPropertyName("unique_features")]
-        public List<string> UniqueFeatures { get; set; } = new();
+        public List<JsonElement> UniqueFeatures { get; set; } = new();
 
         [JsonPropertyName("similarity_score")]
         public decimal SimilarityScore { get; set; }
