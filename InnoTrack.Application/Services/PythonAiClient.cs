@@ -19,12 +19,13 @@ namespace InnoTrack.Application.Services
 
         public async Task<PythonAiResponseDto> AnalyzeProjectAsync(PythonAiRequestDto request)
         {
-            var response = await _httpClient.PostAsJsonAsync("analyze", request);
+            var response = await _httpClient.PostAsJsonAsync("/analyze", request);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 throw new ExternalServiceException($"AI Service Error ({response.StatusCode}): {errorContent}");
             }
+
             var result = await response.Content.ReadFromJsonAsync<PythonAiResponseDto>();
 
             if (result == null)
@@ -37,7 +38,7 @@ namespace InnoTrack.Application.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("/api/ai/generate-abstract", request);
+                var response = await _httpClient.PostAsJsonAsync("/generate-abstract", request);
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError("AI Service returned {StatusCode} when generating abstract.", response.StatusCode);

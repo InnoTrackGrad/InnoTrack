@@ -48,7 +48,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("IsActive");
 
-                    b.ToTable("AcademicYears");
+                    b.ToTable("AcademicYears", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.AuditLog", b =>
@@ -83,7 +83,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "Timestamp");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessage", b =>
@@ -119,7 +119,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("ChatRoomId", "SentAt");
 
-                    b.ToTable("ChatMessages");
+                    b.ToTable("ChatMessages", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessageAttachment", b =>
@@ -156,7 +156,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("ChatMessageId");
 
-                    b.ToTable("ChatMessageAttachments");
+                    b.ToTable("ChatMessageAttachments", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatRoom", b =>
@@ -178,7 +178,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("TeamId")
                         .IsUnique();
 
-                    b.ToTable("ChatRooms");
+                    b.ToTable("ChatRooms", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Department", b =>
@@ -204,7 +204,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Domain", b =>
@@ -228,7 +228,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Domains");
+                    b.ToTable("Domains", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Feedback", b =>
@@ -261,7 +261,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Feedbacks");
+                    b.ToTable("Feedbacks", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.JoinRequest", b =>
@@ -298,7 +298,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("TeamId", "Status");
 
-                    b.ToTable("JoinRequests");
+                    b.ToTable("JoinRequests", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Notification", b =>
@@ -345,7 +345,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "IsRead", "CreatedAt");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.OriginalityReport", b =>
@@ -373,7 +373,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId", "GeneratedAt");
 
-                    b.ToTable("OriginalityReports");
+                    b.ToTable("OriginalityReports", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Project", b =>
@@ -467,7 +467,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("TeamId")
                         .IsUnique();
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectAttachment", b =>
@@ -514,7 +514,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("UploaderId");
 
-                    b.ToTable("ProjectAttachments");
+                    b.ToTable("ProjectAttachments", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectTechnology", b =>
@@ -529,7 +529,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("TechnologyId");
 
-                    b.ToTable("ProjectTechnologies");
+                    b.ToTable("ProjectTechnologies", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.SimilarProject", b =>
@@ -564,7 +564,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("ReferencedProjectId");
 
-                    b.ToTable("SimilarProjects");
+                    b.ToTable("SimilarProjects", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Skill", b =>
@@ -585,7 +585,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Skills");
+                    b.ToTable("Skills", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.StudentSkill", b =>
@@ -600,7 +600,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("SkillId");
 
-                    b.ToTable("StudentSkills");
+                    b.ToTable("StudentSkills", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Team", b =>
@@ -640,7 +640,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("ProfessorId");
 
-                    b.ToTable("Teams");
+                    b.ToTable("Teams", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.TeamMember", b =>
@@ -672,7 +672,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("TeamId");
 
-                    b.ToTable("TeamMembers");
+                    b.ToTable("TeamMembers", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Technology", b =>
@@ -693,7 +693,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Technologies");
+                    b.ToTable("Technologies", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.User", b =>
@@ -795,7 +795,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("ProjectId")
                         .IsUnique();
 
-                    b.ToTable("VectorEmbeddings");
+                    b.ToTable("VectorEmbeddings", (string)null);
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Professor", b =>
@@ -810,7 +810,7 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("Users", t =>
+                    b.ToTable("Users", null, t =>
                         {
                             t.Property("DepartmentId")
                                 .HasColumnName("Professor_DepartmentId");

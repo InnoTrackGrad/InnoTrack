@@ -42,7 +42,11 @@ namespace InnoTrack.Application.Services
 
             try
             {
-                var request = new PythonAiRequestDto(project.Id, project.Title, project.Abstract, project.Description);
+                var request = new PythonAiRequestDto(
+                    title: project.Title,
+                    description: project.Description,
+                    abstractText: project.Abstract
+                );
                 aiResponse = await _aiClient.AnalyzeProjectAsync(request);
             }
             catch(Exception ex)
@@ -73,11 +77,17 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                decimal overallScore = aiResponse.TopSimilarProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
+                
+                string generatedSummary = aiResponse.ExtractedFeatures.Any()
+                    ? "Features: " + string.Join(", ", aiResponse.ExtractedFeatures)
+                    : "No summary generated.";
+
                 var vector = new VectorEmbedding
                 {
                     ProjectId = project.Id,
                     ModelName = "SBERT",
-                    VectorData = aiResponse.VectorData,
+                    VectorData = "Data omitted by AI",
                     GeneratedAt = DateTime.UtcNow
                 };
                 await _unitOfWork.Repository<VectorEmbedding>().AddAsync(vector);
@@ -85,25 +95,30 @@ namespace InnoTrack.Application.Services
                 var report = new OriginalityReport
                 {
                     ProjectId = project.Id,
-                    OverallScore = aiResponse.OriginalityScore,
-                    Summary = aiResponse.Summary,
+                    OverallScore = overallScore,
+                    Summary = generatedSummary,
                     GeneratedAt = DateTime.UtcNow
                 };
-                foreach (var similar in aiResponse.SimilarProjects)
+
+                foreach (var sp in aiResponse.TopSimilarProjects)
                 {
+                    var referencedProject = await _unitOfWork.Repository<Project>()
+                        .GetQueryable()
+                        .FirstOrDefaultAsync(p => p.Title == sp.ProjectTitle);
+
                     report.SimilarProjects.Add(new SimilarProject
                     {
-                        ReferencedProjectId = similar.ReferencedProjectId,
-                        SimilarityPercentage = similar.SimilarityPercentage,
-                        MatchReason = similar.MatchReason
+                        ReferencedProjectId = referencedProject?.Id ?? 0,
+                        SimilarityPercentage = sp.SimilarityScore,
+                        MatchReason = "Matched: " + string.Join(", ", sp.MatchedFeatures)
                     });
                 }
                 await _unitOfWork.Repository<OriginalityReport>().AddAsync(report);
 
-                project.OriginalityScore = aiResponse.OriginalityScore;
+                project.OriginalityScore = overallScore;
                 project.UpdatedAt = DateTime.UtcNow;
 
-                var (status, notifTitle, notifMessage, notifType) = aiResponse.OriginalityScore switch
+                var (status, notifTitle, notifMessage, notifType) = overallScore switch
                 {
                     var score when score < _thresholds.AutoRejectBelow
                                     => (ProjectStatus.Rejected, "Project Rejected", $"Originality score {score}% is too low.", NotificationType.Error),
@@ -111,13 +126,13 @@ namespace InnoTrack.Application.Services
                     var score when score <= _thresholds.RequireManualReviewBelow
                                     => (ProjectStatus.UnderReview, "AI Analysis — Review Required", $"Originality score {score}%. Professor approval required.", NotificationType.Warning),
 
-                    _ => (ProjectStatus.UnderReview, "AI Analysis Passed", $"Originality score {aiResponse.OriginalityScore}%. Awaiting professor review.", NotificationType.Success)
+                    _ => (ProjectStatus.UnderReview, "AI Analysis Passed", $"Originality score {overallScore}%. Awaiting professor review.", NotificationType.Success)
                 };
 
                 var currentProjectState = await _unitOfWork.Repository<Project>().GetByIdAsync(project.Id);
                 if (currentProjectState != null && currentProjectState.Status == ProjectStatus.Draft)
                 {
-                    currentProjectState.OriginalityScore = aiResponse.OriginalityScore;
+                    currentProjectState.OriginalityScore = overallScore;
                     _unitOfWork.Repository<Project>().Update(currentProjectState);
                     await _unitOfWork.CompleteAsync();
                     await _unitOfWork.CommitTransactionAsync();

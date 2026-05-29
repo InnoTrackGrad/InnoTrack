@@ -438,25 +438,30 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task<SimilarityCheckResponseDto> RunSimilarityCheckAsync(SimilarityCheckRequestDto dto)
         {
-            var aiRequest = new PythonAiRequestDto(0, dto.Title, dto.Abstract, dto.Description);
+            var aiRequest = new PythonAiRequestDto(
+                title: dto.Title,
+                description: dto.Description,
+                abstractText: dto.Abstract
+            );
             var aiResponse = await _aiClient.AnalyzeProjectAsync(aiRequest);
 
+            decimal overallScore = aiResponse.TopSimilarProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
+
             var similarProjects = new List<SimilarProjectResultDto>();
-            foreach (var sp in aiResponse.SimilarProjects)
+            foreach (var sp in aiResponse.TopSimilarProjects)
             {
                 var referencedProject = await _context.Projects
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == sp.ReferencedProjectId);
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.Title == sp.ProjectTitle);
 
                 similarProjects.Add(new SimilarProjectResultDto(
-                    sp.ReferencedProjectId,
-                    referencedProject?.Title ?? "Unknown Project",
-                    sp.SimilarityPercentage,
-                    sp.MatchReason
-                ));
+                    referencedProject?.Id,
+                    sp.ProjectTitle,
+                    sp.SimilarityScore,
+                    "Matched: " + string.Join(", ", sp.MatchedFeatures)));
             }
 
-            return new SimilarityCheckResponseDto(aiResponse.OriginalityScore, similarProjects.AsReadOnly());
+            return new SimilarityCheckResponseDto(overallScore, similarProjects.AsReadOnly());
         }
 
         public async Task<string> GenerateAiAbstractAsync(int userId, GenerateAbstractRequestDto dto)
