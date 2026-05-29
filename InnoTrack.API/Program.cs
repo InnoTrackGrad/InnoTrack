@@ -258,5 +258,6 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseHangfireDashboard();
 
 await DbSeeder.SeedAdminAsync(app.Services);
+await DbSeeder.SeedProfessorAsync(app.Services);
 
 app.Run();

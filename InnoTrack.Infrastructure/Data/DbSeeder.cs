@@ -41,5 +41,37 @@ namespace InnoTrack.Infrastructure.Data
                 await unitOfWork.CompleteAsync();
             }
         }
+
+        public static async Task SeedProfessorAsync(IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var profEmail = "MAY.GALLAB@fci.bu.edu.eg";
+
+            var profExists = await unitOfWork.Repository<User>().FindAsync(u => u.Email == profEmail);
+
+            if (profExists == null)
+            {
+                var professor = new Professor
+                {
+                    FirstName = "Mai",
+                    LastName = "Kamal",
+                    Email = profEmail,
+                    PasswordHash = passwordHasher.Hash("DrMai@Fci2026!"),
+                    Role = UserRole.Professor,
+                    IsActive = true,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+
+                    DepartmentId = 1,
+                    MaxTeamLoad = 9
+                };
+
+                await unitOfWork.Repository<Professor>().AddAsync(professor);
+                await unitOfWork.CompleteAsync();
+            }
+        }
     }
 }
