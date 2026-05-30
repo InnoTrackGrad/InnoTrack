@@ -1,4 +1,4 @@
-﻿using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -109,7 +109,8 @@ namespace InnoTrack.Infrastructure.Data
             // Finding a team's project (used on every project page load):
             modelBuilder.Entity<Project>()
                         .HasIndex(p => p.TeamId)
-                        .IsUnique(); // enforce one project per team at the DB level too
+                        .IsUnique()
+                        .HasFilter("[TeamId] IS NOT NULL");
 
             // Similarity engine — fetching embeddings by project:
             modelBuilder.Entity<VectorEmbedding>()

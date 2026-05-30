@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -188,6 +188,25 @@ namespace InnoTrack.Application.Services
                 await _unitOfWork.RollbackTransactionAsync();
                 throw;
             }
+        }
+
+        public async Task RenameTeamAsync(int userId, string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName))
+                throw new ArgumentException("Team name cannot be empty.");
+
+            var leaderRecord = await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
+
+            if (leaderRecord == null)
+                throw new UnauthorizedAccessException("Only the team leader can rename the team.");
+
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(leaderRecord.TeamId)
+                ?? throw new KeyNotFoundException("Team not found.");
+
+            team.Name = newName.Trim();
+            _unitOfWork.Repository<Team>().Update(team);
+            await _unitOfWork.CompleteAsync();
         }
     }
 }

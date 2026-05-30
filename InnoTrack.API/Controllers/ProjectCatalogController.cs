@@ -69,7 +69,12 @@ namespace InnoTrack.API.Controllers
         [HttpGet("{projectId:int}")]
         public async Task<IActionResult> GetProjectById(int projectId)
         {
-            var result = await _catalogService.GetProjectByIdAsync(projectId);
+            int? userId = null;
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(claimValue) && int.TryParse(claimValue, out int parsedUserId))
+                userId = parsedUserId;
+
+            var result = await _catalogService.GetProjectByIdAsync(projectId, userId);
             return Ok(result);
         }
 

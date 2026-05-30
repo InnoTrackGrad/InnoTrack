@@ -52,7 +52,7 @@ namespace InnoTrack.Application.Services
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
 
-            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId);
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value);
             if (team is null || team.ProfessorId != professorId)
                 throw new UnauthorizedAccessException("You are not authorized to review this project.");
 

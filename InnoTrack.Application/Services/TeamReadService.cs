@@ -53,6 +53,26 @@ namespace InnoTrack.Application.Services
                 ));
             }
 
+            // Resolve supervisor name
+            string? supervisorName = null;
+            if (team.ProfessorId.HasValue)
+            {
+                var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(team.ProfessorId.Value);
+                supervisorName = professor?.FullName;
+            }
+
+            // Resolve project technologies
+            var technologies = new List<string>();
+            if (project != null)
+            {
+                technologies = await _unitOfWork.Repository<ProjectTechnology>()
+                    .GetQueryable()
+                    .Where(pt => pt.ProjectId == project.Id)
+                    .Include(pt => pt.Technology)
+                    .Select(pt => pt.Technology.Name)
+                    .ToListAsync();
+            }
+
             return new MyTeamDto(
                 team.Id,
                 team.Name,
@@ -60,7 +80,9 @@ namespace InnoTrack.Application.Services
                 project?.Title,
                 team.JoinCode,
                 teamMember.Role == TeamMemberRole.Leader,
-                memberDetails.AsReadOnly()
+                memberDetails.AsReadOnly(),
+                supervisorName,
+                technologies.AsReadOnly()
             );
         }
 

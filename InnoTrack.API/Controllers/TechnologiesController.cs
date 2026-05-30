@@ -72,16 +72,23 @@ namespace InnoTrack.API.Controllers
         /// <returns>
         /// Returns the newly created technology.
         /// </returns>
-        [AuthorizeRoles(UserRole.Admin)]
+        [AuthorizeRoles(UserRole.Admin, UserRole.Student)]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTechnologyDto request)
         {
             var result = await _technologyService.CreateTechnologyAsync(request);
 
-            _auditService.LogAction(
-                GetAdminId(),
-                "Created Technology",
-                $"Admin created a new Technology with ID: {result.Id}");
+            var userId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedUserId)
+                ? parsedUserId
+                : 0;
+
+            if (userId > 0)
+            {
+                _auditService.LogAction(
+                    userId,
+                    "Created Technology",
+                    $"User created a new Technology with ID: {result.Id}");
+            }
 
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }

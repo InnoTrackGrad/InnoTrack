@@ -35,9 +35,8 @@ namespace InnoTrack.Domain.Entities
         public DateTime? SubmittedAt { get; set; }
         public DateTime? ApprovedAt { get; set; }
 
-        [Required]
-        public int TeamId { get; set; }
-        public Team Team { get; set; }
+        public int? TeamId { get; set; }
+        public Team? Team { get; set; }
 
         public int DomainId { get; set; }
         public Domain Domain { get; set; }

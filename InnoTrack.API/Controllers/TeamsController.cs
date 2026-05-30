@@ -243,5 +243,19 @@ namespace InnoTrack.API.Controllers
             return Ok(new { message = "Invitation email sent successfully." });
         }
 
+        /// <summary>
+        /// Renames the authenticated team leader's team.
+        /// </summary>
+        /// <param name="dto">The rename request containing the new team name.</param>
+        /// <returns>Returns a confirmation message after the team is renamed.</returns>
+        [AuthorizeRoles(UserRole.Student)]
+        [HttpPatch("me/rename")]
+        public async Task<IActionResult> RenameTeam([FromBody] RenameTeamDto dto)
+        {
+            var userId = GetUserId();
+            await _teamService.RenameTeamAsync(userId, dto.Name);
+            return Ok(new { message = "Team renamed successfully." });
+        }
+
     }
 }

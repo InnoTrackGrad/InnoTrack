@@ -9,7 +9,7 @@ namespace InnoTrack.Application.Interfaces
         Task<PagedResult<ProjectCatalogItemDto>> GetProjectsAsync(
             ProjectCatalogFilterDto filter, int pageNumber, int pageSize);
         Task<CatalogTabsCountDto> GetCatalogTabsCountAsync();
-        Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId);
+        Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId, int? userId = null);
         Task<MyProjectResponseDto?> GetMyProjectAsync(int userId);
         Task<IReadOnlyList<ProjectDraftDto>> GetMyDraftsAsync(int userId);
         Task<ProjectDraftDto> GetDraftByIdAsync(int draftId, int userId);

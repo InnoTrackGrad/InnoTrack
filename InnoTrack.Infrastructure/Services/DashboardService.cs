@@ -90,7 +90,12 @@ namespace InnoTrack.Infrastructure.Services
         {
             var project = await _context.TeamMembers
                 .AsNoTracking()
-                .Where(tm => tm.StudentId == userId && tm.Team.Project != null)
+                .Where(tm =>
+                    tm.StudentId == userId &&
+                    tm.Team.Project != null &&
+                    (tm.Team.Project.Status == ProjectStatus.In_Progress ||
+                     tm.Team.Project.Status == ProjectStatus.Approved ||
+                     tm.Team.Project.Status == ProjectStatus.Completed))
                 .Select(tm => tm.Team.Project)
                 .FirstOrDefaultAsync();
 
@@ -146,7 +151,7 @@ namespace InnoTrack.Infrastructure.Services
             var query = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Domain)
-                .Where(p => p.OriginalityScore.HasValue && p.Status != ProjectStatus.Rejected);
+                .Where(p => p.OriginalityScore.HasValue && p.Status != ProjectStatus.Rejected && p.Status != ProjectStatus.Abandoned);
 
             if (thisYearOnly)
             {

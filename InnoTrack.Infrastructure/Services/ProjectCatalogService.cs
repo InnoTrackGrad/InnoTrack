@@ -39,7 +39,10 @@ namespace InnoTrack.Infrastructure.Services
                 .Include(p => p.ProjectTechnologies).ThenInclude(pt => pt.Technology)
                 .AsQueryable();
 
-            query = query.Where(p => p.Status != ProjectStatus.Draft && p.Status != ProjectStatus.Rejected);
+            query = query.Where(p =>
+                p.Status == ProjectStatus.In_Progress ||
+                p.Status == ProjectStatus.Approved ||
+                p.Status == ProjectStatus.Completed);
 
             if (filter.IsCurrentAcademicYear.HasValue)
             {
@@ -111,14 +114,17 @@ namespace InnoTrack.Infrastructure.Services
                 .FirstOrDefaultAsync();
 
             var baseQuery = _context.Projects
-                .Where(p => p.Status != ProjectStatus.Draft && p.Status != ProjectStatus.Rejected);
+                .Where(p =>
+                    p.Status == ProjectStatus.In_Progress ||
+                    p.Status == ProjectStatus.Approved ||
+                    p.Status == ProjectStatus.Completed);
 
             int thisYearCount = await baseQuery.CountAsync(p => p.AcademicYearId == activeYearId);
             int oldProjectsCount = await baseQuery.CountAsync(p => p.AcademicYearId != activeYearId);
 
             return new CatalogTabsCountDto(thisYearCount, oldProjectsCount);
         }
-        public async Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId)
+        public async Task<ProjectCatalogDetailDto> GetProjectByIdAsync(int projectId, int? userId = null)
         {
             var project = await _context.Projects
                 .AsNoTracking()
@@ -132,6 +138,20 @@ namespace InnoTrack.Infrastructure.Services
 
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
+
+            bool isPublicProject =
+                project.Status == ProjectStatus.In_Progress ||
+                project.Status == ProjectStatus.Approved ||
+                project.Status == ProjectStatus.Completed;
+            if (!isPublicProject)
+            {
+                if (!userId.HasValue)
+                    throw new UnauthorizedAccessException("Only team members can view this project.");
+
+                bool isTeamMember = project.Team.Members.Any(m => m.StudentId == userId.Value);
+                if (!isTeamMember)
+                    throw new UnauthorizedAccessException("Only team members can view this project.");
+            }
 
             var students = new List<StudentInProjectDto>();
 
@@ -191,7 +211,7 @@ namespace InnoTrack.Infrastructure.Services
                 .FirstOrDefaultAsync(tm => tm.StudentId == userId);
 
             var project = teamMember?.Team?.Project;
-            if (project == null) return null;
+            if (project == null || project.Status == ProjectStatus.Abandoned) return null;
 
             var members = teamMember!.Team.Members
                 .Select(m => new TeamMemberSummaryDto(m.Student.FullName, m.Role.ToString()))
@@ -438,7 +458,9 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task RecallSubmissionAsync(int projectId, int userId)
         {
-            var project = await _context.Projects.FindAsync(projectId);
+            var project = await _context.Projects
+                .Include(p => p.ProjectTechnologies)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
             if (project == null) throw new KeyNotFoundException("Project not found.");
 
             if (project.Status != ProjectStatus.UnderReview)
@@ -448,17 +470,52 @@ namespace InnoTrack.Infrastructure.Services
                 .FirstOrDefaultAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
             if (leaderRecord == null) throw new UnauthorizedAccessException("Only the team leader can recall a submission.");
 
-            project.Status = ProjectStatus.Draft;
-            project.SubmittedAt = null;
-            project.UpdatedAt = DateTime.UtcNow;
-
-            var team = await _context.Teams.FindAsync(project.TeamId);
-            if (team != null && team.ProfessorId.HasValue)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                team.ProfessorId = null;
-            }
+                var draft = new ProjectDraft
+                {
+                    Title = project.Title,
+                    Abstract = project.Abstract,
+                    Description = project.Description,
+                    Year = project.Year ?? project.CreatedAt.Year,
+                    StudentNames = project.StudentNames,
+                    OriginalityScore = project.OriginalityScore,
+                    CreatedAt = DateTime.UtcNow,
+                    TeamId = project.TeamId.Value,
+                    CreatedByUserId = userId,
+                    DomainId = project.DomainId,
+                    ProblemStatement = project.ProblemStatement,
+                    ProposedSolution = project.ProposedSolution,
+                    Objectives = project.Objectives,
+                };
+                _context.ProjectDrafts.Add(draft);
+                await _context.SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
+                foreach (var tech in project.ProjectTechnologies)
+                {
+                    _context.ProjectDraftTechnologies.Add(new ProjectDraftTechnology
+                    {
+                        ProjectDraftId = draft.Id,
+                        TechnologyId = tech.TechnologyId,
+                    });
+                }
+
+                var team = await _context.Teams.FindAsync(project.TeamId);
+                if (team != null && team.ProfessorId.HasValue)
+                {
+                    team.ProfessorId = null;
+                }
+
+                _context.Projects.Remove(project);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<SimilarityCheckResponseDto> RunSimilarityCheckAsync(SimilarityCheckRequestDto dto)
@@ -486,7 +543,7 @@ namespace InnoTrack.Infrastructure.Services
                 similarProjects.Add(new SimilarProjectResultDto(
                     referencedProject?.Id,
                     sp.ProjectTitle ?? "Unknown Project",
-                    sp.SimilarityScore));
+                    NormalizePercent(sp.SimilarityScore)));
             }
 
             return new SimilarityCheckResponseDto(overallScore, similarProjects.AsReadOnly());
@@ -530,13 +587,6 @@ namespace InnoTrack.Infrastructure.Services
             if (project.Status == ProjectStatus.Completed)
                 throw new InvalidOperationException("Cannot abandon a completed project.");
 
-            project.Status = ProjectStatus.Abandoned;
-            project.AbandonReason = reason;
-            project.UpdatedAt = DateTime.UtcNow;
-
-            _context.Projects.Update(project);
-            await _context.SaveChangesAsync();
-
             var notificationTitle = "Project Abandoned";
             var notificationMessage = $"The project '{project.Title}' has been abandoned by the team leader. Reason: {reason}";
 
@@ -564,6 +614,19 @@ namespace InnoTrack.Infrastructure.Services
                     referenceType: ReferenceType.Project
                 );
             }
+
+            var team = await _context.Teams.FindAsync(project.TeamId);
+            if (team != null)
+            {
+                team.ProfessorId = null;
+            }
+
+            project.Status = ProjectStatus.Abandoned;
+            project.AbandonReason = reason;
+            project.TeamId = null; // Unlink the team!
+
+            _context.Projects.Update(project);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<List<PublicShowcaseDto>> GetPublicShowcaseAsync()
@@ -613,6 +676,11 @@ namespace InnoTrack.Infrastructure.Services
                 draft.ProposedSolution,
                 draft.Objectives
             );
+        }
+
+        private static decimal NormalizePercent(decimal score)
+        {
+            return score > 0m && score <= 1m ? score * 100m : score;
         }
     }
 }

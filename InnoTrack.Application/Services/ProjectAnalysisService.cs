@@ -115,7 +115,7 @@ namespace InnoTrack.Application.Services
                     {
                         ReferencedProjectId = referencedProject?.Id,
                         ProjectTitle = sp.ProjectTitle ?? "Unknown External Project",
-                        SimilarityPercentage = sp.SimilarityScore,
+                        SimilarityPercentage = NormalizePercent(sp.SimilarityScore),
                         MatchReason = "Matched: " + string.Join(", ", matchedFeatures.Select(f => f.ToString()))
                     });
                 }
@@ -201,11 +201,16 @@ namespace InnoTrack.Application.Services
                     .Select(sp => new SimilarProjectResultDto(
                             sp.ReferencedProjectId,
                             sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
-                            sp.SimilarityPercentage
+                            Math.Round(NormalizePercent(sp.SimilarityPercentage), 2)
                         ))
                     .ToList()
                     .AsReadOnly()
             );
+        }
+
+        private static decimal NormalizePercent(decimal score)
+        {
+            return score > 0m && score <= 1m ? score * 100m : score;
         }
     }
 }

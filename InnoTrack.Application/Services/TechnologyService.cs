@@ -20,8 +20,21 @@ namespace InnoTrack.Application.Services
 
         public async Task<TechnologyDto> CreateTechnologyAsync(CreateTechnologyDto request)
         {
+            var name = request.Name.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Technology name is required.");
+            }
 
-            var technology = new Technology { Name = request.Name };
+            var existing = await _unitOfWork.Repository<Technology>()
+                .FindAsync(technology => technology.Name.ToLower() == name.ToLower());
+
+            if (existing != null)
+            {
+                return _mapper.Map<TechnologyDto>(existing);
+            }
+
+            var technology = new Technology { Name = name };
             await _unitOfWork.Repository<Technology>().AddAsync(technology);
             await _unitOfWork.CompleteAsync();
             return _mapper.Map<TechnologyDto>(technology);
