@@ -53,9 +53,9 @@ namespace InnoTrack.Application.Services
                 ));
             }
 
-            // Resolve supervisor name
+            // Resolve supervisor name only if the team has an active project
             string? supervisorName = null;
-            if (team.ProfessorId.HasValue)
+            if (project != null && team.ProfessorId.HasValue)
             {
                 var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(team.ProfessorId.Value);
                 supervisorName = professor?.FullName;

@@ -16,6 +16,7 @@ namespace InnoTrack.Infrastructure.Services
         private readonly IPythonAiClient _aiClient;
         private readonly INotificationService _notificationService;
 
+
         public ProjectCatalogService(ApplicationDbContext context, IPythonAiClient aiClient, INotificationService notificationService)
         {
             _context = context;
@@ -53,14 +54,22 @@ namespace InnoTrack.Infrastructure.Services
             }
 
             if (filter.Year.HasValue)
-                query = query.Where(p => p.CreatedAt.Year == filter.Year.Value);
+                query = query.Where(p => (p.Year ?? p.CreatedAt.Year) == filter.Year.Value);
 
             if (!string.IsNullOrWhiteSpace(filter.Status))
             {
-                if (filter.Status.Equals("completed", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(p => p.Status == ProjectStatus.Completed);
-                else if (filter.Status.Equals("in progress", StringComparison.OrdinalIgnoreCase))
-                    query = query.Where(p => p.Status == ProjectStatus.In_Progress);
+                var searchStatus = filter.Status.Replace("-", "_").Replace(" ", "_");
+                if (Enum.TryParse<ProjectStatus>(searchStatus, true, out var parsedStatus))
+                {
+                    query = query.Where(p => p.Status == parsedStatus);
+                }
+                else
+                {
+                    if (filter.Status.Equals("completed", StringComparison.OrdinalIgnoreCase))
+                        query = query.Where(p => p.Status == ProjectStatus.Completed);
+                    else if (filter.Status.Equals("in progress", StringComparison.OrdinalIgnoreCase))
+                        query = query.Where(p => p.Status == ProjectStatus.In_Progress);
+                }
             }
 
             if (filter.DomainId.HasValue)
@@ -73,7 +82,13 @@ namespace InnoTrack.Infrastructure.Services
                 query = query.Where(p => p.ProjectTechnologies.Any(pt => pt.TechnologyId == filter.TechnologyId.Value));
 
             if (filter.MinOriginalityScore.HasValue)
-                query = query.Where(p => p.OriginalityScore >= filter.MinOriginalityScore.Value);
+            {
+                var minScore = filter.MinOriginalityScore.Value;
+                query = query.Where(p => 
+                    p.OriginalityScore >= minScore || 
+                    (p.OriginalityScore > 0 && p.OriginalityScore <= 1 && (p.OriginalityScore * 100) >= minScore)
+                );
+            }
 
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
@@ -94,7 +109,7 @@ namespace InnoTrack.Infrastructure.Services
                     p.Title,
                     p.Domain.Name,
                     MapStatus(p.Status),
-                    p.CreatedAt.Year,
+                    p.Year ?? p.CreatedAt.Year,
                     p.Team.Supervisor != null ? p.Team.Supervisor.FullName : null,
                     p.Team.Members.Select(m => m.Student.FullName).ToList(),
                     p.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList(),

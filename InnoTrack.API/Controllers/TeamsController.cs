@@ -257,5 +257,18 @@ namespace InnoTrack.API.Controllers
             return Ok(new { message = "Team renamed successfully." });
         }
 
+        /// <summary>
+        /// Deletes the authenticated team leader's team.
+        /// </summary>
+        /// <returns>Returns a confirmation message after the team is deleted.</returns>
+        [AuthorizeRoles(UserRole.Student)]
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteTeam()
+        {
+            var userId = GetUserId();
+            await _teamService.DeleteTeamAsync(userId);
+            return Ok(new { message = "Team deleted successfully." });
+        }
+
     }
 }
