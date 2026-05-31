@@ -212,23 +212,34 @@ namespace InnoTrack.Application.Services
         public async Task DeleteTeamAsync(int userId)
         {
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()
-                    .FindAsync(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
-
+                .FindAsync(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
             if (leaderRecord == null)
                 throw new UnauthorizedAccessException("Only the team leader can delete the team.");
 
-            // Ensure they don't have an active project
-            var hasActiveProject = await _unitOfWork.Repository<Project>()
-                    .FindAsync(p => p.TeamId == leaderRecord.TeamId && p.Status != ProjectStatus.Abandoned);
+            var teamId = leaderRecord.TeamId;
 
-            if (hasActiveProject != null)
+            var activeProject = await _unitOfWork.Repository<Project>()
+                .FindAsync(p => p.TeamId == teamId && p.Status != ProjectStatus.Abandoned);
+            if (activeProject != null)
                 throw new InvalidOperationException("You cannot delete a team that has an active project. Please abandon the project first.");
 
-            var teamId = leaderRecord.TeamId;
+            var abandonedProject = await _unitOfWork.Repository<Project>()
+                .FindAsync(p => p.TeamId == teamId && p.Status == ProjectStatus.Abandoned);
+            if (abandonedProject != null)
+            {
+                abandonedProject.TeamId = null;
+                _unitOfWork.Repository<Project>().Update(abandonedProject);
+            }
+
+            var projectDrafts = await _unitOfWork.Repository<ProjectDraft>()
+                .GetAllAsync(pd => pd.TeamId == teamId);
+            foreach (var draft in projectDrafts)
+            {
+                _unitOfWork.Repository<ProjectDraft>().Delete(draft);
+            }
 
             var teamMembers = await _unitOfWork.Repository<TeamMember>()
                 .GetAllAsync(tm => tm.TeamId == teamId);
-
             foreach (var member in teamMembers)
             {
                 _unitOfWork.Repository<TeamMember>().Delete(member);
@@ -236,7 +247,6 @@ namespace InnoTrack.Application.Services
 
             var joinRequests = await _unitOfWork.Repository<JoinRequest>()
                 .GetAllAsync(jr => jr.TeamId == teamId);
-
             foreach (var request in joinRequests)
             {
                 _unitOfWork.Repository<JoinRequest>().Delete(request);

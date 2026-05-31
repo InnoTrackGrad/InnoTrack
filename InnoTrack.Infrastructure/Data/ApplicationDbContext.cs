@@ -242,13 +242,6 @@ namespace InnoTrack.Infrastructure.Data
                         .WithMany(s => s.StudentSkills)
                         .HasForeignKey(ss => ss.SkillId);
 
-
-            modelBuilder.Entity<Project>()
-                        .HasOne(p => p.Team)
-                        .WithOne(t => t.Project)
-                        .HasForeignKey<Project>(p => p.TeamId)
-                        .OnDelete(DeleteBehavior.Cascade);
-
             modelBuilder.Entity<Team>()
                         .HasOne(t => t.Supervisor)
                         .WithMany(p => p.SupervisedTeams)
@@ -272,6 +265,12 @@ namespace InnoTrack.Infrastructure.Data
                         .WithOne(c => c.Team)
                         .HasForeignKey<ChatRoom>(c => c.TeamId)
                         .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Team>()
+                        .HasOne(t => t.Project)
+                        .WithOne(p => p.Team)
+                        .HasForeignKey<Project>(p => p.TeamId)
+                        .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<ChatMessage>()
                         .HasOne(m => m.Sender)
