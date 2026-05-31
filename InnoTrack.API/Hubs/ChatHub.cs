@@ -1,4 +1,4 @@
-﻿using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -76,7 +76,7 @@ namespace InnoTrack.API.Hubs
                 await unitOfWork.Repository<ChatMessage>().AddAsync(message);
                 await unitOfWork.CompleteAsync();
 
-                await Clients.Group($"Team_{teamId}").SendAsync("ReceiveMessage", new
+                await Clients.GroupExcept($"Team_{teamId}", Context.ConnectionId).SendAsync("ReceiveMessage", new
                 {
                     senderId = userId,
                     content = messageContent,
