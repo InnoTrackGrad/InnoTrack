@@ -212,24 +212,43 @@ namespace InnoTrack.Application.Services
         public async Task DeleteTeamAsync(int userId)
         {
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()
-                .FindAsync(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
+                    .FindAsync(tm => tm.StudentId == userId && tm.Role == TeamMemberRole.Leader);
 
             if (leaderRecord == null)
                 throw new UnauthorizedAccessException("Only the team leader can delete the team.");
 
             // Ensure they don't have an active project
             var hasActiveProject = await _unitOfWork.Repository<Project>()
-                .FindAsync(p => p.TeamId == leaderRecord.TeamId && p.Status != ProjectStatus.Abandoned);
+                    .FindAsync(p => p.TeamId == leaderRecord.TeamId && p.Status != ProjectStatus.Abandoned);
 
             if (hasActiveProject != null)
                 throw new InvalidOperationException("You cannot delete a team that has an active project. Please abandon the project first.");
 
-            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(leaderRecord.TeamId);
+            var teamId = leaderRecord.TeamId;
+
+            var teamMembers = await _unitOfWork.Repository<TeamMember>()
+                .GetAllAsync(tm => tm.TeamId == teamId);
+
+            foreach (var member in teamMembers)
+            {
+                _unitOfWork.Repository<TeamMember>().Delete(member);
+            }
+
+            var joinRequests = await _unitOfWork.Repository<JoinRequest>()
+                .GetAllAsync(jr => jr.TeamId == teamId);
+
+            foreach (var request in joinRequests)
+            {
+                _unitOfWork.Repository<JoinRequest>().Delete(request);
+            }
+
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
             if (team != null)
             {
                 _unitOfWork.Repository<Team>().Delete(team);
-                await _unitOfWork.CompleteAsync();
             }
+
+            await _unitOfWork.CompleteAsync();
         }
     }
 }
