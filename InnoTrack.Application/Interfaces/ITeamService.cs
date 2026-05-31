@@ -8,6 +8,8 @@ namespace InnoTrack.Application.Interfaces
         Task<GenerateJoinCodeResponseDto> RegenerateJoinCodeAsync(int userId);
         Task<DirectJoinResponseDto> DirectJoinByCodeAsync(int userId, string joinCode);
         Task RenameTeamAsync(int userId, string newName);
+        Task RemoveMemberAsync(int leaderId, int memberIdToRemove);
+        Task LeaveTeamAsync(int studentId);
         Task DeleteTeamAsync(int userId);
     }
 }

@@ -7,6 +7,7 @@ namespace InnoTrack.Application.Interfaces
         Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request);
         Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
         Task ForgotPasswordAsync(ForgotPasswordDto dto);
+        Task VerifyResetTokenAsync(VerifyResetTokenDto dto);
         Task ResetPasswordAsync(ResetPasswordDto dto);
         Task LogoutAsync(int userId);
         Task<AuthResponseDto> RefreshTokenAsync(string token, string refreshToken);

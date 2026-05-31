@@ -85,7 +85,7 @@ namespace InnoTrack.Application.Services
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
 
             if (user == null)
-                throw new UnauthorizedAccessException("Invalid email or password.");
+                return;
 
             string otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
 
@@ -97,6 +97,19 @@ namespace InnoTrack.Application.Services
 
             string emailBody = $"Hello {user.FirstName},\n\nYour password reset code is: {otp}\nThis code will expire in 15 minutes.";
             await _emailService.SendEmailAsync(user.Email, "InnoTrack - Password Reset", emailBody);
+        }
+
+        public async Task VerifyResetTokenAsync(VerifyResetTokenDto dto)
+        {
+            var user = await _unitOfWork.Repository<User>()
+                .GetQueryable()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+
+            if (user == null)
+                throw new UnauthorizedAccessException("Invalid email or token.");
+
+            if (user.ResetPasswordToken != dto.Token || user.ResetPasswordTokenExpiry < DateTime.UtcNow)
+                throw new UnauthorizedAccessException("Invalid or expired reset token.");
         }
 
         public async Task ResetPasswordAsync(ResetPasswordDto dto)

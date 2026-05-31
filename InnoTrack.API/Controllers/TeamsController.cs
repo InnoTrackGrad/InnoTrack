@@ -102,6 +102,33 @@ namespace InnoTrack.API.Controllers
         }
 
         /// <summary>
+        /// Removes a member from the authenticated team leader's team.
+        /// </summary>
+        /// <param name="memberId">The ID of the student to remove.</param>
+        /// <returns>Returns a confirmation message after the member is removed.</returns>
+        [AuthorizeRoles(UserRole.Student)]
+        [HttpDelete("me/members/{memberId:int}")]
+        public async Task<IActionResult> RemoveMember(int memberId)
+        {
+            var leaderId = GetUserId();
+            await _teamService.RemoveMemberAsync(leaderId, memberId);
+            return Ok(new { message = "Member removed successfully." });
+        }
+
+        /// <summary>
+        /// Allows a student to leave their current team.
+        /// </summary>
+        /// <returns>Returns a confirmation message after leaving the team.</returns>
+        [AuthorizeRoles(UserRole.Student)]
+        [HttpDelete("me/leave")]
+        public async Task<IActionResult> LeaveTeam()
+        {
+            var studentId = GetUserId();
+            await _teamService.LeaveTeamAsync(studentId);
+            return Ok(new { message = "You have successfully left the team." });
+        }
+
+        /// <summary>
         /// Retrieves the authenticated student's current team information.
         /// </summary>
         /// <returns>

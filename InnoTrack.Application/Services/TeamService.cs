@@ -209,6 +209,42 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
         }
 
+        public async Task RemoveMemberAsync(int leaderId, int memberIdToRemove)
+        {
+            var leaderRecord = await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.StudentId == leaderId && tm.Role == TeamMemberRole.Leader);
+
+            if (leaderRecord == null)
+                throw new UnauthorizedAccessException("Only the team leader can remove members.");
+
+            if (leaderId == memberIdToRemove)
+                throw new InvalidOperationException("The team leader cannot be removed.");
+
+            var memberToRemove = await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.StudentId == memberIdToRemove && tm.TeamId == leaderRecord.TeamId);
+
+            if (memberToRemove == null)
+                throw new KeyNotFoundException("Member not found in your team.");
+
+            _unitOfWork.Repository<TeamMember>().Delete(memberToRemove);
+            await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task LeaveTeamAsync(int studentId)
+        {
+            var memberRecord = await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.StudentId == studentId);
+
+            if (memberRecord == null)
+                throw new KeyNotFoundException("You are not part of any team.");
+
+            if (memberRecord.Role == TeamMemberRole.Leader)
+                throw new InvalidOperationException("The team leader cannot leave. You must delete the team instead.");
+
+            _unitOfWork.Repository<TeamMember>().Delete(memberRecord);
+            await _unitOfWork.CompleteAsync();
+        }
+
         public async Task DeleteTeamAsync(int userId)
         {
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()

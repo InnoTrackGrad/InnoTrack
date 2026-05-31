@@ -65,6 +65,25 @@ namespace InnoTrack.API.Controllers
         }
 
         /// <summary>
+        /// Verifies if the provided reset code is valid and not expired.
+        /// </summary>
+        /// <param name="dto">The email address and token.</param>
+        /// <returns>Returns Ok if valid, BadRequest if invalid.</returns>
+        [HttpPost("verify-reset-code")]
+        public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetTokenDto dto)
+        {
+            try
+            {
+                await _authService.VerifyResetTokenAsync(dto);
+                return Ok(new { message = "Token is valid." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Resets the user's password using the provided reset token.
         /// </summary>
         /// <param name="dto">The reset password request containing email, token, and new password.</param>
