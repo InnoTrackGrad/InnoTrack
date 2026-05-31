@@ -553,8 +553,6 @@ namespace InnoTrack.Infrastructure.Services
                             .AsNoTracking()
                             .FirstOrDefaultAsync(p => p.Title == sp.ProjectTitle);
 
-                var matchedFeatures = sp.MatchedFeatures ?? new List<JsonElement>();
-
                 similarProjects.Add(new SimilarProjectResultDto(
                     referencedProject?.Id,
                     sp.ProjectTitle ?? "Unknown Project",

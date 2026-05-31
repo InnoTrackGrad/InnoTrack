@@ -174,8 +174,7 @@ namespace InnoTrack.API.Controllers
                                 {
                                     columns.ConstantColumn(60);
                                     columns.RelativeColumn();
-                                    columns.ConstantColumn(80);
-                                    columns.RelativeColumn();
+                                    columns.ConstantColumn(100);
                                 });
 
                                 table.Header(header =>
@@ -183,7 +182,6 @@ namespace InnoTrack.API.Controllers
                                     header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("ID").FontColor(Colors.White).SemiBold();
                                     header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("Project Title").FontColor(Colors.White).SemiBold();
                                     header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("Match %").FontColor(Colors.White).SemiBold();
-                                    header.Cell().Background(Colors.Grey.Darken3).Padding(5).Text("Match Reason").FontColor(Colors.White).SemiBold();
                                 });
 
                                 foreach (var sp in report.SimilarProjects)

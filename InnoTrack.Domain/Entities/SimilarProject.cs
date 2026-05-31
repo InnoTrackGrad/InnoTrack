@@ -10,13 +10,6 @@ namespace InnoTrack.Domain.Entities
         [Column(TypeName = "decimal(5,2)"), Range(0, 100)]
         public decimal SimilarityPercentage { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
-        public string? MatchReason { get; set; }
-
-        //[Column(TypeName = "nvarchar(max)")]
-        //public string? MatchedContentSnippet { get; set; }
-
-
         public string ProjectTitle { get; set; } = string.Empty;
         [Required]
         public int OriginalityReportId { get; set; }

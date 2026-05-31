@@ -79,9 +79,9 @@ namespace InnoTrack.Application.Services
             {
                 decimal overallScore = aiResponse.TopSimilarProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
 
-                string generatedSummary = aiResponse.ExtractedFeatures.Any()
-                    ? "Features: " + string.Join(", ", aiResponse.ExtractedFeatures)
-                    : "No summary generated.";
+                string generatedSummary = aiResponse.ExtractedFeatures != null && aiResponse.ExtractedFeatures.Any()
+                    ? "Identified Key Features: " + string.Join(", ", aiResponse.ExtractedFeatures)
+                    : "No summary features extracted by AI.";
 
                 var vector = new VectorEmbedding
                 {
@@ -109,14 +109,11 @@ namespace InnoTrack.Application.Services
                         .GetQueryable()
                         .FirstOrDefaultAsync(p => p.Title == sp.ProjectTitle);
 
-                    var matchedFeatures = sp.MatchedFeatures ?? new List<JsonElement>();
-
                     report.SimilarProjects.Add(new SimilarProject
                     {
                         ReferencedProjectId = referencedProject?.Id,
                         ProjectTitle = sp.ProjectTitle ?? "Unknown External Project",
                         SimilarityPercentage = NormalizePercent(sp.SimilarityScore),
-                        MatchReason = "Matched: " + string.Join(", ", matchedFeatures.Select(f => f.ToString()))
                     });
                 }
                 await _unitOfWork.Repository<OriginalityReport>().AddAsync(report);

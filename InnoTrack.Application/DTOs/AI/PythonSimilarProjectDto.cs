@@ -8,12 +8,6 @@ namespace InnoTrack.Application.DTOs.AI
         [JsonPropertyName("project_title")]
         public string ProjectTitle { get; set; } = string.Empty;
 
-        [JsonPropertyName("matched_features")]
-        public List<JsonElement> MatchedFeatures { get; set; } = new();
-
-        [JsonPropertyName("unique_features")]
-        public List<JsonElement> UniqueFeatures { get; set; } = new();
-
         [JsonPropertyName("similarity_score")]
         public decimal SimilarityScore { get; set; }
 
