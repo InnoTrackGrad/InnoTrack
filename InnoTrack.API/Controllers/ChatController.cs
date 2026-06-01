@@ -1,8 +1,10 @@
 ﻿using InnoTrack.API.Attributes;
+using InnoTrack.API.Hubs;
 using InnoTrack.Application.DTOs.Chat;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
@@ -13,10 +15,12 @@ namespace InnoTrack.API.Controllers
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatService;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public ChatController(IChatService chatService)
+        public ChatController(IChatService chatService, IHubContext<ChatHub> hubContext)
         {
             _chatService = chatService;
+            _hubContext = hubContext;
         }
 
         private int GetUserId()
@@ -53,6 +57,13 @@ namespace InnoTrack.API.Controllers
         {
             var userId = GetUserId();
             var result = await _chatService.SendMessageAsync(userId, dto.Content);
+            await _hubContext.Clients.Group($"Team_{result.TeamId}").SendAsync("ReceiveMessage", new
+            {
+                senderId = result.SenderId,
+                content = result.Content,
+                sentAt = result.SentAt
+            });
+
             return CreatedAtAction(nameof(GetTeamChat), result);
         }
     }

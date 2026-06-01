@@ -101,7 +101,7 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.Repository<ChatMessage>().AddAsync(message);
             await _unitOfWork.CompleteAsync();
 
-            return new ChatMessageResponseDto(message.Id, user.FullName, message.Content, message.SentAt);
+            return new ChatMessageResponseDto(message.Id, chatRoom.TeamId, userId, user.FullName, message.Content, message.SentAt);
         }
     }
 }
