@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Chat;
+using InnoTrack.Application.DTOs.Chat;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -42,12 +42,24 @@ namespace InnoTrack.Application.Services
                         return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials);
                     }).ToList();
 
+            var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
+                .GetQueryable()
+                .Where(h => h.UserId == userId)
+                .Select(h => h.ChatMessageId)
+                .ToListAsync();
+
             var messages = await _unitOfWork.Repository<ChatMessage>()
                 .GetQueryable()
-                .Where(m => m.ChatRoomId == chatRoom.Id)
+                .Where(m => m.ChatRoomId == chatRoom.Id && !hiddenMessageIds.Contains(m.Id))
                 .Include(m => m.Sender)
                 .OrderByDescending(m => m.SentAt)
                 .Take(50)
+                .ToListAsync();
+
+            var messageIds = messages.Select(m => m.Id).ToList();
+            var reactions = await _unitOfWork.Repository<ChatMessageReaction>()
+                .GetQueryable()
+                .Where(r => messageIds.Contains(r.ChatMessageId))
                 .ToListAsync();
 
             messages.Reverse();
@@ -57,7 +69,14 @@ namespace InnoTrack.Application.Services
                 msg.SenderId,
                 msg.Sender?.FullName ?? "Unknown",
                 msg.Content,
-                msg.SentAt
+                msg.SentAt,
+                msg.IsEdited,
+                msg.IsDeletedForAll,
+                msg.IsPinned,
+                msg.ParentMessageId,
+                reactions.Where(r => r.ChatMessageId == msg.Id)
+                         .Select(r => new ChatMessageReactionDto(r.UserId, r.Emoji))
+                         .ToList()
             )).ToList();
 
             return new TeamChatDto(
@@ -102,6 +121,108 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
 
             return new ChatMessageResponseDto(message.Id, chatRoom.TeamId, userId, user.FullName, message.Content, message.SentAt);
+        }
+
+        public async Task<ChatMessageResponseDto> ReplyToMessageAsync(int userId, int parentMessageId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                throw new ArgumentException("Message content cannot be empty.");
+
+            var teamMember = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.StudentId == userId);
+            if (teamMember == null) throw new InvalidOperationException("You are not in a team.");
+
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>().FindAsync(c => c.TeamId == teamMember.TeamId);
+            if (chatRoom == null) throw new KeyNotFoundException("Chat room not found.");
+
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId) ?? throw new KeyNotFoundException("User not found.");
+
+            var parentMessage = await _unitOfWork.Repository<ChatMessage>().GetByIdAsync(parentMessageId);
+            if (parentMessage == null || parentMessage.ChatRoomId != chatRoom.Id)
+                throw new KeyNotFoundException("Parent message not found.");
+
+            var message = new ChatMessage
+            {
+                ChatRoomId = chatRoom.Id,
+                SenderId = userId,
+                Content = content,
+                Type = MessageType.Text,
+                SentAt = DateTime.UtcNow,
+                ParentMessageId = parentMessageId
+            };
+
+            await _unitOfWork.Repository<ChatMessage>().AddAsync(message);
+            await _unitOfWork.CompleteAsync();
+
+            return new ChatMessageResponseDto(message.Id, chatRoom.TeamId, userId, user.FullName, message.Content, message.SentAt, ParentMessageId: parentMessageId);
+        }
+
+        public async Task EditMessageAsync(int userId, int messageId, string newContent)
+        {
+            if (string.IsNullOrWhiteSpace(newContent)) throw new ArgumentException("Content cannot be empty.");
+
+            var message = await _unitOfWork.Repository<ChatMessage>().GetByIdAsync(messageId)
+                ?? throw new KeyNotFoundException("Message not found.");
+
+            if (message.SenderId != userId) throw new UnauthorizedAccessException("Cannot edit someone else's message.");
+            
+            message.Content = newContent;
+            message.IsEdited = true;
+
+            await _unitOfWork.Repository<ChatMessage>().UpdateAsync(message);
+            await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task DeleteMessageAsync(int userId, int messageId, bool deleteForAll)
+        {
+            var message = await _unitOfWork.Repository<ChatMessage>().GetByIdAsync(messageId)
+                ?? throw new KeyNotFoundException("Message not found.");
+
+            if (deleteForAll)
+            {
+                if (message.SenderId != userId) throw new UnauthorizedAccessException("Cannot delete someone else's message for all.");
+                message.IsDeletedForAll = true;
+                message.Content = "This message was deleted";
+                await _unitOfWork.Repository<ChatMessage>().UpdateAsync(message);
+            }
+            else
+            {
+                var hidden = new ChatMessageHidden { ChatMessageId = messageId, UserId = userId };
+                await _unitOfWork.Repository<ChatMessageHidden>().AddAsync(hidden);
+            }
+
+            await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task TogglePinMessageAsync(int userId, int messageId)
+        {
+            var message = await _unitOfWork.Repository<ChatMessage>().GetByIdAsync(messageId)
+                ?? throw new KeyNotFoundException("Message not found.");
+
+            // Verify user is in the same chat room
+            var teamMember = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.StudentId == userId);
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>().FindAsync(c => c.TeamId == teamMember.TeamId);
+            if (chatRoom == null || chatRoom.Id != message.ChatRoomId) throw new UnauthorizedAccessException();
+
+            message.IsPinned = !message.IsPinned;
+            await _unitOfWork.Repository<ChatMessage>().UpdateAsync(message);
+            await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task ReactToMessageAsync(int userId, int messageId, string emoji)
+        {
+            var existingReaction = await _unitOfWork.Repository<ChatMessageReaction>()
+                .FindAsync(r => r.ChatMessageId == messageId && r.UserId == userId && r.Emoji == emoji);
+
+            if (existingReaction != null)
+            {
+                await _unitOfWork.Repository<ChatMessageReaction>().DeleteAsync(existingReaction);
+            }
+            else
+            {
+                var reaction = new ChatMessageReaction { ChatMessageId = messageId, UserId = userId, Emoji = emoji };
+                await _unitOfWork.Repository<ChatMessageReaction>().AddAsync(reaction);
+            }
+            await _unitOfWork.CompleteAsync();
         }
     }
 }

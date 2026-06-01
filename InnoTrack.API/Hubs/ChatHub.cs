@@ -12,7 +12,10 @@ namespace InnoTrack.API.Hubs
     {
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public ChatHub(IServiceScopeFactory scopeFactory) => _scopeFactory = scopeFactory;
+        public ChatHub(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
 
         public async Task JoinTeamChat(int teamId)
         {
@@ -83,6 +86,75 @@ namespace InnoTrack.API.Hubs
                     sentAt = message.SentAt
                 });
             }
+        }
+
+        public async Task EditMessage(int teamId, int messageId, string newContent)
+        {
+            var userId = GetUserId();
+            using var scope = _scopeFactory.CreateScope();
+            var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
+            
+            await chatService.EditMessageAsync(userId, messageId, newContent);
+            await Clients.Group($"Team_{teamId}").SendAsync("MessageEdited", messageId, newContent);
+        }
+
+        public async Task DeleteMessage(int teamId, int messageId, bool deleteForAll)
+        {
+            var userId = GetUserId();
+            using var scope = _scopeFactory.CreateScope();
+            var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
+            
+            await chatService.DeleteMessageAsync(userId, messageId, deleteForAll);
+            if (deleteForAll)
+            {
+                await Clients.Group($"Team_{teamId}").SendAsync("MessageDeleted", messageId);
+            }
+        }
+
+        public async Task TogglePin(int teamId, int messageId)
+        {
+            var userId = GetUserId();
+            using var scope = _scopeFactory.CreateScope();
+            var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
+            
+            await chatService.TogglePinMessageAsync(userId, messageId);
+            await Clients.Group($"Team_{teamId}").SendAsync("MessagePinned", messageId);
+        }
+
+        public async Task ReactToMessage(int teamId, int messageId, string emoji)
+        {
+            var userId = GetUserId();
+            using var scope = _scopeFactory.CreateScope();
+            var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
+            
+            await chatService.ReactToMessageAsync(userId, messageId, emoji);
+            await Clients.Group($"Team_{teamId}").SendAsync("ReactionAdded", messageId, userId, emoji);
+        }
+
+        public async Task ReplyToMessage(int teamId, int parentMessageId, string content)
+        {
+            var userId = GetUserId();
+            using var scope = _scopeFactory.CreateScope();
+            var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
+            
+            var result = await chatService.ReplyToMessageAsync(userId, parentMessageId, content);
+            await Clients.GroupExcept($"Team_{teamId}", Context.ConnectionId).SendAsync("ReceiveMessage", new
+            {
+                senderId = userId,
+                content = content,
+                sentAt = result.SentAt,
+                parentMessageId = parentMessageId
+            });
+        }
+
+        private int GetUserId()
+        {
+            var claimValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claimValue) || !int.TryParse(claimValue, out int userId))
+            {
+                throw new HubException("Unauthorized: Invalid user identity.");
+            }
+            return userId;
         }
     }
 }

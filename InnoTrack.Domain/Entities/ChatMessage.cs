@@ -1,4 +1,4 @@
-﻿using InnoTrack.Domain.Entities.Enums;
+using InnoTrack.Domain.Entities.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -24,6 +24,17 @@ namespace InnoTrack.Domain.Entities
         [ForeignKey(nameof(SenderId))]
         public User Sender { get; set; } = null!;
         public ICollection<ChatMessageAttachment> Attachments { get; set; } = new HashSet<ChatMessageAttachment>();
+
+        public bool IsEdited { get; set; }
+        public bool IsDeletedForAll { get; set; }
+        public bool IsPinned { get; set; }
+
+        public int? ParentMessageId { get; set; }
+        [ForeignKey(nameof(ParentMessageId))]
+        public ChatMessage? ParentMessage { get; set; }
+
+        public ICollection<ChatMessageReaction> Reactions { get; set; } = new HashSet<ChatMessageReaction>();
+        public ICollection<ChatMessageHidden> HiddenForUsers { get; set; } = new HashSet<ChatMessageHidden>();
 
     }
 }

@@ -44,6 +44,8 @@ namespace InnoTrack.Infrastructure.Data
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ChatMessageAttachment> ChatMessageAttachments { get; set; }
+        public DbSet<ChatMessageReaction> ChatMessageReactions { get; set; }
+        public DbSet<ChatMessageHidden> ChatMessageHiddens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Feedback> Feedbacks { get; set; }
 
@@ -331,6 +333,30 @@ namespace InnoTrack.Infrastructure.Data
                         .WithMany(m => m.Attachments)
                         .HasForeignKey(a => a.ChatMessageId)
                         .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChatMessageReaction>()
+                        .HasOne(r => r.ChatMessage)
+                        .WithMany(m => m.Reactions)
+                        .HasForeignKey(r => r.ChatMessageId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChatMessageReaction>()
+                        .HasOne(r => r.User)
+                        .WithMany()
+                        .HasForeignKey(r => r.UserId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChatMessageHidden>()
+                        .HasOne(h => h.ChatMessage)
+                        .WithMany(m => m.HiddenForUsers)
+                        .HasForeignKey(h => h.ChatMessageId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChatMessageHidden>()
+                        .HasOne(h => h.User)
+                        .WithMany()
+                        .HasForeignKey(h => h.UserId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
 
             modelBuilder.Entity<User>().Ignore(u => u.FullName);

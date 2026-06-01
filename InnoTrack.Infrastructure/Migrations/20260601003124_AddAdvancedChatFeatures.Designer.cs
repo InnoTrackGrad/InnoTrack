@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InnoTrack.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260523121434_AddPublicShowcaseToProject")]
-    partial class AddPublicShowcaseToProject
+    [Migration("20260601003124_AddAdvancedChatFeatures")]
+    partial class AddAdvancedChatFeatures
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -105,6 +105,18 @@ namespace InnoTrack.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<bool>("IsDeletedForAll")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ParentMessageId")
+                        .HasColumnType("int");
+
                     b.Property<int>("SenderId")
                         .HasColumnType("int");
 
@@ -117,6 +129,8 @@ namespace InnoTrack.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentMessageId");
 
                     b.HasIndex("SenderId");
 
@@ -160,6 +174,63 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("ChatMessageId");
 
                     b.ToTable("ChatMessageAttachments");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessageHidden", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatMessageId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("HiddenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatMessageId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChatMessageHiddens");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessageReaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatMessageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Emoji")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("ReactedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatMessageId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChatMessageReactions");
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatRoom", b =>
@@ -278,6 +349,10 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -383,12 +458,18 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AbandonReason")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Abstract")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("AcademicYearId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -403,19 +484,41 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<bool>("IsPublicShowcase")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Objectives")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("OriginalityScore")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ProblemStatement")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProposalDepartment")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ProposalMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProposalTeamMembers")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProposedSolution")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("StudentNames")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("TeamId")
+                    b.Property<int?>("TeamId")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -426,6 +529,9 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AcademicYearId");
@@ -433,7 +539,8 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasIndex("DomainId");
 
                     b.HasIndex("TeamId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[TeamId] IS NOT NULL");
 
                     b.ToTable("Projects");
                 });
@@ -485,6 +592,87 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.ToTable("ProjectAttachments");
                 });
 
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectDraft", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Abstract")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DomainId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Objectives")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("OriginalityScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ProblemStatement")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProposedSolution")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StudentNames")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DomainId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("ProjectDrafts");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectDraftTechnology", b =>
+                {
+                    b.Property<int>("ProjectDraftId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TechnologyId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProjectDraftId", "TechnologyId");
+
+                    b.HasIndex("TechnologyId");
+
+                    b.ToTable("ProjectDraftTechnologies");
+                });
+
             modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectTechnology", b =>
                 {
                     b.Property<int>("ProjectId")
@@ -508,11 +696,12 @@ namespace InnoTrack.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("MatchReason")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("OriginalityReportId")
                         .HasColumnType("int");
+
+                    b.Property<string>("ProjectTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("ReferencedProjectId")
                         .HasColumnType("int");
@@ -707,6 +896,12 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ResetPasswordToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResetPasswordTokenExpiry")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -765,11 +960,6 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Property<int>("MaxTeamLoad")
                         .HasColumnType("int");
 
-                    b.Property<string>("Specialization")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasIndex("DepartmentId");
 
                     b.ToTable("Users", t =>
@@ -817,6 +1007,11 @@ namespace InnoTrack.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("InnoTrack.Domain.Entities.ChatMessage", "ParentMessage")
+                        .WithMany()
+                        .HasForeignKey("ParentMessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("InnoTrack.Domain.Entities.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderId")
@@ -824,6 +1019,8 @@ namespace InnoTrack.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("ChatRoom");
+
+                    b.Navigation("ParentMessage");
 
                     b.Navigation("Sender");
                 });
@@ -837,6 +1034,44 @@ namespace InnoTrack.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("ChatMessage");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessageHidden", b =>
+                {
+                    b.HasOne("InnoTrack.Domain.Entities.ChatMessage", "ChatMessage")
+                        .WithMany("HiddenForUsers")
+                        .HasForeignKey("ChatMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InnoTrack.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChatMessage");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessageReaction", b =>
+                {
+                    b.HasOne("InnoTrack.Domain.Entities.ChatMessage", "ChatMessage")
+                        .WithMany("Reactions")
+                        .HasForeignKey("ChatMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InnoTrack.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChatMessage");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatRoom", b =>
@@ -913,7 +1148,7 @@ namespace InnoTrack.Infrastructure.Migrations
             modelBuilder.Entity("InnoTrack.Domain.Entities.Project", b =>
                 {
                     b.HasOne("InnoTrack.Domain.Entities.AcademicYear", "AcademicYear")
-                        .WithMany()
+                        .WithMany("Projects")
                         .HasForeignKey("AcademicYearId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -927,8 +1162,7 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.HasOne("InnoTrack.Domain.Entities.Team", "Team")
                         .WithOne("Project")
                         .HasForeignKey("InnoTrack.Domain.Entities.Project", "TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("AcademicYear");
 
@@ -954,6 +1188,52 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("Uploader");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectDraft", b =>
+                {
+                    b.HasOne("InnoTrack.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InnoTrack.Domain.Entities.Domain", "Domain")
+                        .WithMany()
+                        .HasForeignKey("DomainId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InnoTrack.Domain.Entities.Team", "Team")
+                        .WithMany("ProjectDrafts")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Domain");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectDraftTechnology", b =>
+                {
+                    b.HasOne("InnoTrack.Domain.Entities.ProjectDraft", "ProjectDraft")
+                        .WithMany("DraftTechnologies")
+                        .HasForeignKey("ProjectDraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InnoTrack.Domain.Entities.Technology", "Technology")
+                        .WithMany()
+                        .HasForeignKey("TechnologyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProjectDraft");
+
+                    b.Navigation("Technology");
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectTechnology", b =>
@@ -1074,9 +1354,17 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Navigation("Department");
                 });
 
+            modelBuilder.Entity("InnoTrack.Domain.Entities.AcademicYear", b =>
+                {
+                });
+
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatMessage", b =>
                 {
                     b.Navigation("Attachments");
+
+                    b.Navigation("HiddenForUsers");
+
+                    b.Navigation("Reactions");
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.ChatRoom", b =>
@@ -1113,6 +1401,11 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Navigation("VectorEmbedding");
                 });
 
+            modelBuilder.Entity("InnoTrack.Domain.Entities.ProjectDraft", b =>
+                {
+                    b.Navigation("DraftTechnologies");
+                });
+
             modelBuilder.Entity("InnoTrack.Domain.Entities.Skill", b =>
                 {
                     b.Navigation("StudentSkills");
@@ -1125,6 +1418,8 @@ namespace InnoTrack.Infrastructure.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Project");
+
+                    b.Navigation("ProjectDrafts");
                 });
 
             modelBuilder.Entity("InnoTrack.Domain.Entities.Technology", b =>

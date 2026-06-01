@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Chat
+namespace InnoTrack.Application.DTOs.Chat
 {
     public record TeamChatDto(
         int ChatId,
@@ -14,6 +14,11 @@
         int AuthorId,
         string AuthorName,
         string Content,
-        DateTime SentAt
+        DateTime SentAt,
+        bool IsEdited = false,
+        bool IsDeletedForAll = false,
+        bool IsPinned = false,
+        int? ParentMessageId = null,
+        List<ChatMessageReactionDto>? Reactions = null
     );
 }
