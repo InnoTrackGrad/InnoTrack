@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Projects;
+using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Interfaces;
@@ -68,6 +68,7 @@ namespace InnoTrack.Application.Services
                 throw new KeyNotFoundException("Attachment not found.");
 
             var project = await _unitOfWork.Repository<Project>().GetByIdAsync(attachment.ProjectId);
+            if (project == null) throw new KeyNotFoundException("Project not found.");
 
             var isMember = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.TeamId == project.TeamId && tm.StudentId == userId);

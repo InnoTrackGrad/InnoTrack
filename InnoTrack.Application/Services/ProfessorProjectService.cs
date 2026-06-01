@@ -25,7 +25,7 @@ namespace InnoTrack.Application.Services
 
             var query = _unitOfWork.Repository<Project>().GetQueryable()
                 .AsNoTracking()
-                .Where(p => p.Status == ProjectStatus.UnderReview && p.Team.ProfessorId == professorId);
+                .Where(p => p.Status == ProjectStatus.UnderReview && p.Team != null && p.Team.ProfessorId == professorId);
 
             var totalCount = await query.CountAsync();
 
@@ -52,6 +52,7 @@ namespace InnoTrack.Application.Services
             if (project == null)
                 throw new KeyNotFoundException("Project not found.");
 
+            if (!project.TeamId.HasValue) throw new InvalidOperationException("Project does not belong to a team.");
             var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value);
             if (team is null || team.ProfessorId != professorId)
                 throw new UnauthorizedAccessException("You are not authorized to review this project.");

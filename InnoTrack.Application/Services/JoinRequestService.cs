@@ -55,11 +55,14 @@ namespace InnoTrack.Application.Services
             {
                 var student = await _unitOfWork.Repository<User>().GetByIdAsync(studentId);
 
-                await _notificationService.SendNotificationAsync(
-                    leader.StudentId,
-                    "New Join Request",
-                    $"{student.FirstName} {student.LastName} wants to join your team: {team.Name}",
-                    NotificationType.Info);
+                if (student != null)
+                {
+                    await _notificationService.SendNotificationAsync(
+                        leader.StudentId,
+                        "New Join Request",
+                        $"{student.FirstName} {student.LastName} wants to join your team: {team.Name}",
+                        NotificationType.Info);
+                }
             }
         }
 

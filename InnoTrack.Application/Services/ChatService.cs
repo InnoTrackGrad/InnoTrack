@@ -168,7 +168,7 @@ namespace InnoTrack.Application.Services
             message.Content = newContent;
             message.IsEdited = true;
 
-            await _unitOfWork.Repository<ChatMessage>().UpdateAsync(message);
+            _unitOfWork.Repository<ChatMessage>().Update(message);
             await _unitOfWork.CompleteAsync();
         }
 
@@ -182,7 +182,7 @@ namespace InnoTrack.Application.Services
                 if (message.SenderId != userId) throw new UnauthorizedAccessException("Cannot delete someone else's message for all.");
                 message.IsDeletedForAll = true;
                 message.Content = "This message was deleted";
-                await _unitOfWork.Repository<ChatMessage>().UpdateAsync(message);
+                _unitOfWork.Repository<ChatMessage>().Update(message);
             }
             else
             {
@@ -200,11 +200,13 @@ namespace InnoTrack.Application.Services
 
             // Verify user is in the same chat room
             var teamMember = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.StudentId == userId);
+            if (teamMember == null) throw new UnauthorizedAccessException();
+            
             var chatRoom = await _unitOfWork.Repository<ChatRoom>().FindAsync(c => c.TeamId == teamMember.TeamId);
             if (chatRoom == null || chatRoom.Id != message.ChatRoomId) throw new UnauthorizedAccessException();
 
             message.IsPinned = !message.IsPinned;
-            await _unitOfWork.Repository<ChatMessage>().UpdateAsync(message);
+            _unitOfWork.Repository<ChatMessage>().Update(message);
             await _unitOfWork.CompleteAsync();
         }
 
@@ -215,7 +217,7 @@ namespace InnoTrack.Application.Services
 
             if (existingReaction != null)
             {
-                await _unitOfWork.Repository<ChatMessageReaction>().DeleteAsync(existingReaction);
+                _unitOfWork.Repository<ChatMessageReaction>().Delete(existingReaction);
             }
             else
             {

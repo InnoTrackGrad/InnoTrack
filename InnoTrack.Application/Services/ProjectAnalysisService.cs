@@ -175,8 +175,8 @@ namespace InnoTrack.Application.Services
         {
             var report = await _unitOfWork.Repository<OriginalityReport>()
                 .GetQueryable()
-                .Include(r => r.Project)
-                    .ThenInclude(p => p.Team).ThenInclude(t => t.Supervisor)
+                .Include(r => r.Project!)
+                    .ThenInclude(p => p.Team!).ThenInclude(t => t.Supervisor!)
                 .Include(r => r.SimilarProjects)
                     .ThenInclude(sp => sp.ReferencedProject)
                 .FirstOrDefaultAsync(r => r.ProjectId == projectId);
@@ -192,7 +192,7 @@ namespace InnoTrack.Application.Services
                 report.Project?.Team?.Name ?? "Unknown Team",
                 report.Project?.Team?.Supervisor?.FullName ?? "Unknown Supervisor",
                 Math.Round(displayScore, 2),
-                report.Summary,
+                report.Summary ?? "No summary available",
                 report.GeneratedAt,
                 report.SimilarProjects
                     .Select(sp => new SimilarProjectResultDto(
