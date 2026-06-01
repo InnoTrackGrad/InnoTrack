@@ -39,53 +39,13 @@ namespace InnoTrack.API.Hubs
 
         public async Task SendMessage(int teamId, string messageContent)
         {
-            if (string.IsNullOrWhiteSpace(messageContent))
-                throw new HubException("Message cannot be empty.");
-
-            if (messageContent.Length > 2000)
-                throw new HubException("Message exceeds the maximum allowed length of 2000 characters.");
-
-            if (teamId <= 0)
-                throw new HubException("Invalid team ID.");
-
-
-            var claimValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(claimValue) || !int.TryParse(claimValue, out int userId))
-            {
-                throw new HubException("Unauthorized: Invalid user identity.");
-            }
-
+            var userId = GetUserId();
             using var scope = _scopeFactory.CreateScope();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
 
-            var isMember = await unitOfWork.Repository<TeamMember>()
-                .FindAsync(tm => tm.TeamId == teamId && tm.StudentId == userId);
-            if (isMember == null)
-            {
-                throw new HubException("Access Denied: You cannot send messages to a team you do not belong to.");
-            }
+            var result = await chatService.SendMessageAsync(userId, messageContent);
 
-            var chatRoom = await unitOfWork.Repository<ChatRoom>().FindAsync(c => c.TeamId == teamId);
-            if (chatRoom != null)
-            {
-                var message = new ChatMessage
-                {
-                    ChatRoomId = chatRoom.Id,
-                    SenderId = userId,
-                    Content = messageContent,
-                    Type = MessageType.Text,
-                    SentAt = DateTime.UtcNow
-                };
-                await unitOfWork.Repository<ChatMessage>().AddAsync(message);
-                await unitOfWork.CompleteAsync();
-
-                await Clients.GroupExcept($"Team_{teamId}", Context.ConnectionId).SendAsync("ReceiveMessage", new
-                {
-                    senderId = userId,
-                    content = messageContent,
-                    sentAt = message.SentAt
-                });
-            }
+            await Clients.Group($"Team_{teamId}").SendAsync("ReceiveMessage", result);
         }
 
         public async Task EditMessage(int teamId, int messageId, string newContent)
@@ -136,15 +96,9 @@ namespace InnoTrack.API.Hubs
             var userId = GetUserId();
             using var scope = _scopeFactory.CreateScope();
             var chatService = scope.ServiceProvider.GetRequiredService<InnoTrack.Application.Interfaces.IChatService>();
-            
+
             var result = await chatService.ReplyToMessageAsync(userId, parentMessageId, content);
-            await Clients.GroupExcept($"Team_{teamId}", Context.ConnectionId).SendAsync("ReceiveMessage", new
-            {
-                senderId = userId,
-                content = content,
-                sentAt = result.SentAt,
-                parentMessageId = parentMessageId
-            });
+            await Clients.Group($"Team_{teamId}").SendAsync("ReceiveMessage", result);
         }
 
         private int GetUserId()
