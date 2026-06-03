@@ -226,5 +226,115 @@ namespace InnoTrack.Application.Services
             }
             await _unitOfWork.CompleteAsync();
         }
+
+        public async Task<TeamChatDto> GetTeamChatForProfessorAsync(int professorId, int teamId)
+        {
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
+            if (team == null || team.ProfessorId != professorId)
+                throw new UnauthorizedAccessException("You are not authorized to view this chat.");
+
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>().FindAsync(c => c.TeamId == teamId);
+            if (chatRoom == null) throw new KeyNotFoundException("Chat room not found.");
+
+            var project = await _unitOfWork.Repository<Project>().FindAsync(p => p.TeamId == teamId);
+
+            var allMembers = await _unitOfWork.Repository<TeamMember>()
+                .GetQueryable()
+                .Include(tm => tm.Student)
+                .Where(tm => tm.TeamId == teamId)
+                .ToListAsync();
+
+            var memberDtos = allMembers
+                    .Where(m => m.Student != null)
+                    .Select(member =>
+                    {
+                        var initials = $"{member.Student!.FirstName[0]}{member.Student.LastName[0]}".ToUpperInvariant();
+                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials);
+                    }).ToList();
+
+            var professorUser = await _unitOfWork.Repository<User>().GetByIdAsync(professorId);
+            if (professorUser != null)
+            {
+                var profInitials = $"{professorUser.FirstName[0]}{professorUser.LastName[0]}".ToUpperInvariant();
+                memberDtos.Add(new ChatMemberDto(professorId, professorUser.FullName, "Professor", profInitials));
+            }
+
+            var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
+                .GetQueryable()
+                .Where(h => h.UserId == professorId)
+                .Select(h => h.ChatMessageId)
+                .ToListAsync();
+
+            var messages = await _unitOfWork.Repository<ChatMessage>()
+                .GetQueryable()
+                .Where(m => m.ChatRoomId == chatRoom.Id && !hiddenMessageIds.Contains(m.Id))
+                .Include(m => m.Sender)
+                .OrderByDescending(m => m.SentAt)
+                .Take(50)
+                .ToListAsync();
+
+            var messageIds = messages.Select(m => m.Id).ToList();
+            var reactions = await _unitOfWork.Repository<ChatMessageReaction>()
+                .GetQueryable()
+                .Where(r => messageIds.Contains(r.ChatMessageId))
+                .ToListAsync();
+
+            messages.Reverse();
+
+            var messageDtos = messages.Select(msg => new ChatMessageDetailDto(
+                msg.Id,
+                msg.SenderId,
+                msg.Sender?.FullName ?? "Unknown",
+                msg.Content,
+                msg.SentAt,
+                msg.IsEdited,
+                msg.IsDeletedForAll,
+                msg.IsPinned,
+                msg.ParentMessageId,
+                reactions.Where(r => r.ChatMessageId == msg.Id)
+                         .Select(r => new ChatMessageReactionDto(r.UserId, r.Emoji))
+                         .ToList()
+            )).ToList();
+
+            return new TeamChatDto(
+                chatRoom.Id,
+                project?.Title,
+                memberDtos.AsReadOnly(),
+                messageDtos.AsReadOnly()
+            );
+        }
+
+        public async Task<ChatMessageResponseDto> SendProfessorMessageAsync(int professorId, int teamId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                throw new ArgumentException("Message content cannot be empty.");
+
+            if (content.Length > 2000)
+                throw new ArgumentException("Message cannot exceed 2000 characters.");
+
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
+            if (team == null || team.ProfessorId != professorId)
+                throw new UnauthorizedAccessException("You are not authorized to send messages to this chat.");
+
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>().FindAsync(c => c.TeamId == teamId);
+            if (chatRoom == null) throw new KeyNotFoundException("Chat room not found.");
+
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(professorId)
+                ?? throw new KeyNotFoundException("User not found.");
+
+            var message = new ChatMessage
+            {
+                ChatRoomId = chatRoom.Id,
+                SenderId = professorId,
+                Content = content,
+                Type = MessageType.Text,
+                SentAt = DateTime.UtcNow,
+            };
+
+            await _unitOfWork.Repository<ChatMessage>().AddAsync(message);
+            await _unitOfWork.CompleteAsync();
+
+            return new ChatMessageResponseDto(message.Id, chatRoom.TeamId, professorId, user.FullName, message.Content, message.SentAt);
+        }
     }
 }

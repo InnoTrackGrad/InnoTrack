@@ -1,3 +1,4 @@
+using InnoTrack.Application.DTOs.Feedback;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -64,6 +65,25 @@ namespace InnoTrack.Application.Services
             feedback.IsRead = true;
             _unitOfWork.Repository<Feedback>().Update(feedback);
             await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task<IReadOnlyList<FeedbackHistoryItemDto>> GetFeedbackHistoryAsync(int professorId)
+        {
+            var feedback = await _unitOfWork.Repository<Feedback>().GetQueryable()
+                .AsNoTracking()
+                .Include(f => f.Project)
+                .Where(f => f.ProfessorId == professorId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            return feedback.Select(f => new FeedbackHistoryItemDto(
+                f.Id,
+                f.ProjectId,
+                f.Project?.Title ?? "Unknown Project",
+                f.Content,
+                f.CreatedAt,
+                f.IsRead
+            )).ToList().AsReadOnly();
         }
     }
 }

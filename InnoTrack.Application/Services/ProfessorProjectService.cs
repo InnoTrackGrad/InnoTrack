@@ -1,5 +1,6 @@
 using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Projects;
+using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -92,6 +93,59 @@ namespace InnoTrack.Application.Services
                 }
             }
 
+        }
+
+        public async Task<IReadOnlyList<ProfessorSupervisedProjectDto>> GetSupervisedProjectsAsync(int professorId)
+        {
+            var projects = await _unitOfWork.Repository<Project>().GetQueryable()
+                .AsNoTracking()
+                .Include(p => p.Team)
+                .Include(p => p.ProjectTechnologies).ThenInclude(pt => pt.Technology)
+                .Where(p => p.Team != null && p.Team.ProfessorId == professorId)
+                .ToListAsync();
+
+            return projects.Select(p => new ProfessorSupervisedProjectDto(
+                p.Id,
+                p.Title,
+                p.Team?.Name,
+                p.Description,
+                p.Abstract,
+                p.Domain,
+                p.ProjectTechnologies?.Select(pt => pt.Technology?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
+                p.Status.ToString(),
+                p.OriginalityScore,
+                p.SubmittedAt,
+                p.Progress
+            )).ToList().AsReadOnly();
+        }
+
+        public async Task<IReadOnlyList<ProfessorSupervisedTeamDto>> GetSupervisedTeamsAsync(int professorId)
+        {
+            var teams = await _unitOfWork.Repository<Team>().GetQueryable()
+                .AsNoTracking()
+                .Include(t => t.Project)
+                .Include(t => t.TeamMembers)
+                    .ThenInclude(tm => tm.Student)
+                        .ThenInclude(s => s.StudentSkills)
+                            .ThenInclude(ss => ss.Skill)
+                .Where(t => t.ProfessorId == professorId)
+                .ToListAsync();
+
+            return teams.Select(t => new ProfessorSupervisedTeamDto(
+                t.Id,
+                t.Name,
+                t.Project?.Id,
+                t.Project?.Title,
+                t.JoinCode,
+                t.Project?.Progress ?? 0,
+                t.TeamMembers.Where(tm => tm.Student != null).Select(tm => new TeamMemberDetailDto(
+                    tm.StudentId,
+                    tm.Student!.FullName,
+                    tm.Role.ToString(),
+                    tm.Student.Email ?? "",
+                    tm.Student.StudentSkills?.Select(sk => sk.Skill?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
+                )).ToList()
+            )).ToList().AsReadOnly();
         }
     }
 }

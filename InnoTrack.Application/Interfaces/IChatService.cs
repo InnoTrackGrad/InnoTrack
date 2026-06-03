@@ -11,5 +11,7 @@ namespace InnoTrack.Application.Interfaces
         Task DeleteMessageAsync(int userId, int messageId, bool deleteForAll);
         Task TogglePinMessageAsync(int userId, int messageId);
         Task ReactToMessageAsync(int userId, int messageId, string emoji);
+        Task<TeamChatDto> GetTeamChatForProfessorAsync(int professorId, int teamId);
+        Task<ChatMessageResponseDto> SendProfessorMessageAsync(int professorId, int teamId, string content);
     }
 }
