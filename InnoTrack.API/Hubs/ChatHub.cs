@@ -17,7 +17,44 @@ namespace InnoTrack.API.Hubs
             _scopeFactory = scopeFactory;
         }
 
-        public async Task JoinTeamChat(int teamId)
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _onlineUsers = new();
+
+        public override async Task OnConnectedAsync()
+        {
+            var claimValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(claimValue) && int.TryParse(claimValue, out int userId))
+            {
+                var newCount = _onlineUsers.AddOrUpdate(userId, 1, (key, oldValue) => oldValue + 1);
+                if (newCount == 1)
+                {
+                    await Clients.All.SendAsync("UserOnline", userId);
+                }
+            }
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            var claimValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(claimValue) && int.TryParse(claimValue, out int userId))
+            {
+                if (_onlineUsers.TryGetValue(userId, out int count))
+                {
+                    if (count <= 1)
+                    {
+                        _onlineUsers.TryRemove(userId, out _);
+                        await Clients.All.SendAsync("UserOffline", userId);
+                    }
+                    else
+                    {
+                        _onlineUsers.TryUpdate(userId, count - 1, count);
+                    }
+                }
+            }
+            await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task<IEnumerable<int>> JoinTeamChat(int teamId)
         {
             var claimValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(claimValue) || !int.TryParse(claimValue, out int userId))
@@ -39,6 +76,7 @@ namespace InnoTrack.API.Hubs
                 }
             }
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Team_{teamId}");
+            return _onlineUsers.Keys;
         }
 
         public async Task SendMessage(int teamId, string messageContent)

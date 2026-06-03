@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Services;
@@ -22,6 +22,7 @@ namespace InnoTrack.Tests
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockMapper = new Mock<IMapper>();
             _mockCodeGenerator = new Mock<IJoinCodeGenerator>();
+            _notificationService = new Mock<INotificationService>();
             _teamService = new TeamService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCodeGenerator.Object, _notificationService.Object);
         }
 
