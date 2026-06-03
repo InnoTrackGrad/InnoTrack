@@ -100,23 +100,41 @@ namespace InnoTrack.Infrastructure.Services
 
             var totalCount = await query.CountAsync();
 
-            var data = await query
+            var rawData = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(p => new ProjectCatalogItemDto(
+                .Select(p => new {
                     p.Id,
                     p.Title,
-                    p.Domain.Name,
-                    MapStatus(p.Status),
-                    p.Year ?? p.CreatedAt.Year,
-                    p.Team.Supervisor != null ? p.Team.Supervisor.FullName : null,
-                    p.Team.Members.Select(m => m.Student.FullName).ToList(),
-                    p.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList(),
+                    DomainName = p.Domain.Name,
+                    p.Status,
+                    Year = p.Year ?? p.CreatedAt.Year,
+                    Supervisor = p.Team.Supervisor != null ? p.Team.Supervisor.FullName : null,
+                    Members = p.Team.Members.Select(m => m.Student.FullName).ToList(),
+                    StudentNames = p.StudentNames,
+                    Technologies = p.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList(),
                     p.OriginalityScore,
-                    (p.AcademicYearId == activeYearId) && (p.Team.Members.Count < p.Team.MaxSize)
-                ))
+                    AcceptsJoin = (p.AcademicYearId == activeYearId) && (p.Team.Members.Count < p.Team.MaxSize)
+                })
                 .ToListAsync();
+
+            var data = rawData.Select(p => new ProjectCatalogItemDto(
+                p.Id,
+                p.Title,
+                p.DomainName,
+                MapStatus(p.Status),
+                p.Year,
+                p.Supervisor,
+                p.Members.Any()
+                    ? p.Members
+                    : (string.IsNullOrWhiteSpace(p.StudentNames)
+                        ? new List<string>()
+                        : p.StudentNames.Split(new[] { ',', '&', '-', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(n => n.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList()),
+                p.Technologies,
+                p.OriginalityScore,
+                p.AcceptsJoin
+            )).ToList();
 
             return new PagedResult<ProjectCatalogItemDto>(data.AsReadOnly(), totalCount, pageNumber, pageSize);
         }
@@ -175,7 +193,8 @@ namespace InnoTrack.Infrastructure.Services
                 students = project.Team.Members.Select(m => new StudentInProjectDto(
                     m.Student.FullName,
                     m.Role.ToString(),
-                    m.Student.Department?.Name ?? string.Empty
+                    m.Student.Department?.Name ?? string.Empty,
+                    m.Student.ProfilePictureURL
                 )).ToList();
             }
             else if (!string.IsNullOrWhiteSpace(project.StudentNames))
@@ -188,7 +207,8 @@ namespace InnoTrack.Infrastructure.Services
                 students = legacyNames.Select(name => new StudentInProjectDto(
                     Name: name,
                     Role: "Member",
-                    Department: "Unknown"
+                    Department: "Unknown",
+                    ProfilePictureUrl: null
                 )).ToList();
             }
 

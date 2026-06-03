@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Projects
+namespace InnoTrack.Application.DTOs.Projects
 {
     public record ProjectCatalogDetailDto(
         int Id,
@@ -23,6 +23,7 @@
     public record StudentInProjectDto(
         string Name,
         string Role,
-        string Department
+        string Department,
+        string? ProfilePictureUrl = null
     );
 }
