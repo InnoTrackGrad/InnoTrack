@@ -3,6 +3,7 @@ using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InnoTrack.Application.Services
 {

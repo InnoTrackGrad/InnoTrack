@@ -110,12 +110,12 @@ namespace InnoTrack.Application.Services
                 p.Team?.Name,
                 p.Description,
                 p.Abstract,
-                p.Domain,
+                p.Domain != null ? p.Domain.Name : "",
                 p.ProjectTechnologies?.Select(pt => pt.Technology?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
                 p.Status.ToString(),
                 p.OriginalityScore,
                 p.SubmittedAt,
-                p.Progress
+                0 // Progress hardcoded to 0 since it doesn't exist on Project
             )).ToList().AsReadOnly();
         }
 
@@ -124,7 +124,7 @@ namespace InnoTrack.Application.Services
             var teams = await _unitOfWork.Repository<Team>().GetQueryable()
                 .AsNoTracking()
                 .Include(t => t.Project)
-                .Include(t => t.TeamMembers)
+                .Include(t => t.Members)
                     .ThenInclude(tm => tm.Student)
                         .ThenInclude(s => s.StudentSkills)
                             .ThenInclude(ss => ss.Skill)
@@ -137,8 +137,8 @@ namespace InnoTrack.Application.Services
                 t.Project?.Id,
                 t.Project?.Title,
                 t.JoinCode,
-                t.Project?.Progress ?? 0,
-                t.TeamMembers.Where(tm => tm.Student != null).Select(tm => new TeamMemberDetailDto(
+                0, // Progress hardcoded to 0
+                t.Members.Where(tm => tm.Student != null).Select(tm => new TeamMemberDetailDto(
                     tm.StudentId,
                     tm.Student!.FullName,
                     tm.Role.ToString(),
