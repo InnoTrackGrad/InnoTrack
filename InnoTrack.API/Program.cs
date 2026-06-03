@@ -117,6 +117,9 @@ builder.Services.AddScoped<IFeedbackReadService, FeedbackReadService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IProjectCatalogService, ProjectCatalogService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IProfessorAdminService, ProfessorAdminService>();
+builder.Services.AddScoped<IProfessorService, ProfessorService>();
+builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
 builder.Services.AddSingleton<IJoinCodeGenerator, JoinCodeGenerator>();
@@ -259,5 +262,6 @@ app.UseHangfireDashboard("/hangfire");
 
 await DbSeeder.SeedAdminAsync(app.Services);
 await DbSeeder.SeedProfessorAsync(app.Services);
+await DbSeeder.SeedAcademicYearAsync(app.Services);
 
 app.Run();

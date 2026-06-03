@@ -1,0 +1,124 @@
+﻿// InnoTrack.Application/Services/AcademicYearService.cs
+using InnoTrack.Application.DTOs.Admin;
+using InnoTrack.Application.Interfaces;
+using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
+namespace InnoTrack.Application.Services
+{
+    public class AcademicYearService : IAcademicYearService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+
+        public AcademicYearService(IUnitOfWork unitOfWork) => _unitOfWork = unitOfWork;
+
+        public async Task<AcademicYearDto> CreateAsync(CreateAcademicYearDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Length > 20)
+                throw new ArgumentException("Academic year name must be between 1 and 20 characters.");
+
+            if (dto.EndDate <= dto.StartDate)
+                throw new ArgumentException("End date must be after start date.");
+
+            var duplicate = await _unitOfWork.Repository<AcademicYear>()
+                .FindAsync(y => y.Name == dto.Name.Trim());
+            if (duplicate is not null)
+                throw new InvalidOperationException(
+                    $"An academic year named '{dto.Name}' already exists.");
+
+            var academicYear = new AcademicYear
+            {
+                Name = dto.Name.Trim(),
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                IsActive = false  // always inactive on creation; use Activate to promote
+            };
+
+            await _unitOfWork.Repository<AcademicYear>().AddAsync(academicYear);
+            await _unitOfWork.CompleteAsync();
+
+            return MapToDto(academicYear, projectCount: 0);
+        }
+
+        public async Task<IReadOnlyList<AcademicYearDto>> GetAllAsync()
+        {
+            var years = await _unitOfWork.Repository<AcademicYear>()
+                .GetQueryable()
+                .AsNoTracking()
+                .OrderByDescending(y => y.StartDate)
+                .Select(y => new AcademicYearDto(
+                    y.Id, y.Name, y.StartDate, y.EndDate, y.IsActive,
+                    y.Projects.Count))
+                .ToListAsync();
+
+            return years.AsReadOnly();
+        }
+
+        public async Task<AcademicYearDto?> GetActiveAsync()
+        {
+            var year = await _unitOfWork.Repository<AcademicYear>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Include(y => y.Projects)
+                .FirstOrDefaultAsync(y => y.IsActive);
+
+            return year is null ? null : MapToDto(year, year.Projects.Count);
+        }
+
+        public async Task ActivateAsync(int academicYearId)
+        {
+            var target = await _unitOfWork.Repository<AcademicYear>().GetByIdAsync(academicYearId)
+                ?? throw new KeyNotFoundException("Academic year not found.");
+
+            if (target.IsActive) return; // already active — idempotent
+
+            // Only one academic year may be active at a time.
+            // Deactivate the currently active one first.
+            var currentlyActive = await _unitOfWork.Repository<AcademicYear>()
+                .FindAsync(y => y.IsActive);
+
+            if (currentlyActive is not null)
+            {
+                currentlyActive.IsActive = false;
+                _unitOfWork.Repository<AcademicYear>().Update(currentlyActive);
+            }
+
+            target.IsActive = true;
+            _unitOfWork.Repository<AcademicYear>().Update(target);
+            await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task UpdateAsync(int academicYearId, UpdateAcademicYearDto dto)
+        {
+            var year = await _unitOfWork.Repository<AcademicYear>().GetByIdAsync(academicYearId)
+                ?? throw new KeyNotFoundException("Academic year not found.");
+
+            if (dto.Name is not null)
+            {
+                if (dto.Name.Trim().Length > 20)
+                    throw new ArgumentException("Name must not exceed 20 characters.");
+
+                var conflict = await _unitOfWork.Repository<AcademicYear>()
+                    .FindAsync(y => y.Name == dto.Name.Trim() && y.Id != academicYearId);
+                if (conflict is not null)
+                    throw new InvalidOperationException(
+                        $"Another academic year with the name '{dto.Name}' already exists.");
+
+                year.Name = dto.Name.Trim();
+            }
+
+            if (dto.StartDate.HasValue) year.StartDate = dto.StartDate.Value;
+            if (dto.EndDate.HasValue) year.EndDate = dto.EndDate.Value;
+
+            if (year.EndDate <= year.StartDate)
+                throw new ArgumentException("End date must be after start date.");
+
+            _unitOfWork.Repository<AcademicYear>().Update(year);
+            await _unitOfWork.CompleteAsync();
+        }
+
+        private static AcademicYearDto MapToDto(AcademicYear y, int projectCount) =>
+            new(y.Id, y.Name, y.StartDate, y.EndDate, y.IsActive, projectCount);
+    }
+}
