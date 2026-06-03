@@ -168,7 +168,7 @@ namespace InnoTrack.Application.Services
                             leader.StudentId,
                             "New Team Member",
                             $"{studentJoining.FullName} has joined your team using the join code.",
-                            NotificationType.Success);
+                            NotificationType.Success, team.Id, ReferenceType.System);
                     }
                 }
                 catch
@@ -226,8 +226,19 @@ namespace InnoTrack.Application.Services
             if (memberToRemove == null)
                 throw new KeyNotFoundException("Member not found in your team.");
 
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(leaderRecord.TeamId);
             _unitOfWork.Repository<TeamMember>().Delete(memberToRemove);
             await _unitOfWork.CompleteAsync();
+            
+            try 
+            {
+                await _notificationService.SendNotificationAsync(
+                    memberIdToRemove, 
+                    "Removed from Team", 
+                    $"You have been removed from the team '{team?.Name}'.", 
+                    NotificationType.Warning);
+            }
+            catch { }
         }
 
         public async Task LeaveTeamAsync(int studentId)
@@ -243,6 +254,17 @@ namespace InnoTrack.Application.Services
 
             _unitOfWork.Repository<TeamMember>().Delete(memberRecord);
             await _unitOfWork.CompleteAsync();
+
+            try
+            {
+                var leader = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.TeamId == memberRecord.TeamId && tm.Role == TeamMemberRole.Leader);
+                var student = await _unitOfWork.Repository<Student>().GetByIdAsync(studentId);
+                if (leader != null && student != null)
+                {
+                    await _notificationService.SendNotificationAsync(leader.StudentId, "Member Left", $"{student.FullName} has left the team.", NotificationType.Info);
+                }
+            }
+            catch { }
         }
 
         public async Task DeleteTeamAsync(int userId)
@@ -295,6 +317,15 @@ namespace InnoTrack.Application.Services
             }
 
             await _unitOfWork.CompleteAsync();
+
+            try
+            {
+                foreach (var member in teamMembers.Where(m => m.StudentId != userId))
+                {
+                    await _notificationService.SendNotificationAsync(member.StudentId, "Team Deleted", $"The team '{team?.Name}' has been deleted by the leader.", NotificationType.Error);
+                }
+            }
+            catch { }
         }
     }
 }

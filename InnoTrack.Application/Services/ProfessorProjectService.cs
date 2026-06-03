@@ -86,7 +86,9 @@ namespace InnoTrack.Application.Services
                         member.StudentId,
                         "Project Review Updated",
                         message,
-                        notifType);
+                        notifType,
+                        project.Id,
+                        ReferenceType.Project);
                 }
             }
 

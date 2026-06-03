@@ -11,10 +11,12 @@ namespace InnoTrack.Application.Services
     public class ProjectService : IProjectService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public ProjectService(IUnitOfWork unitOfWork)
+        public ProjectService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
 
         public async Task VerifyProjectForSubmissionAsync(int projectId, int userId, SubmitProjectRequestDto dto)
@@ -107,6 +109,18 @@ namespace InnoTrack.Application.Services
                 await _unitOfWork.RollbackTransactionAsync();
                 throw;
             }
+
+            try
+            {
+                await _notificationService.SendNotificationAsync(
+                    supervisorId,
+                    "New Project Submission",
+                    $"A new project '{project.Title}' has been submitted for your review.",
+                    NotificationType.Info,
+                    project.Id,
+                    ReferenceType.Project);
+            }
+            catch { }
 
             BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(project.Id));
         }

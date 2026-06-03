@@ -67,7 +67,9 @@ namespace InnoTrack.Application.Services
                         await _notificationService.SendNotificationAsync(leader.StudentId,
                             "Analysis Failed",
                             "The AI analysis failed due to a server error. Please resubmit your project.",
-                            NotificationType.Error);
+                            NotificationType.Error,
+                            project.Id,
+                            ReferenceType.Project);
                     }
                 }
 
@@ -156,7 +158,7 @@ namespace InnoTrack.Application.Services
                     if (teamLeader != null)
                     {
                         await _notificationService.SendNotificationAsync(
-                            teamLeader.StudentId, notifTitle, notifMessage, notifType);
+                            teamLeader.StudentId, notifTitle, notifMessage, notifType, project.Id, ReferenceType.Project);
                     }
                 }
                 catch (Exception ex)

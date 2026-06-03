@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Interfaces;
+using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
@@ -41,7 +41,9 @@ namespace InnoTrack.Application.Services
                 _notificationService.SendNotificationAsync(
                     member.StudentId, "New Feedback",
                     message,
-                    notifType));
+                    notifType,
+                    project.Id,
+                    ReferenceType.Project));
 
             await Task.WhenAll(notificationTasks);
         }

@@ -61,7 +61,9 @@ namespace InnoTrack.Application.Services
                         leader.StudentId,
                         "New Join Request",
                         $"{student.FirstName} {student.LastName} wants to join your team: {team.Name}",
-                        NotificationType.Info);
+                        NotificationType.Info,
+                        request.Id,
+                        ReferenceType.TeamRequest);
                 }
             }
         }
@@ -130,7 +132,7 @@ namespace InnoTrack.Application.Services
 
                 try
                 {
-                    await _notificationService.SendNotificationAsync(userId, notifTitle, notifMessage, notifType);
+                    await _notificationService.SendNotificationAsync(userId, notifTitle, notifMessage, notifType, request.Id, ReferenceType.TeamRequest);
                 }
                 catch (Exception ex)
                 {

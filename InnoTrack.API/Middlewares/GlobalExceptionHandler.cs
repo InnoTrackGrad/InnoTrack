@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Exceptions;
+using InnoTrack.Application.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,15 +36,16 @@ namespace InnoTrack.API.Middlewares
                 _ => (StatusCodes.Status500InternalServerError, "Server Error")
             };
 
-            //var detail = _env.IsDevelopment()
-            //    ? exception.Message
-            //    : "An unexpected error occurred. Please contact support.";
+            var rootCause = exception.GetBaseException().Message;
+            var detail = exception.Message;
+            
+            if (exception.InnerException != null && rootCause != exception.Message)
+            {
+                detail += $" (Inner issue: {rootCause})";
+            }
 
-            var detail = (_env.IsDevelopment() || statusCode != StatusCodes.Status500InternalServerError)
-                ? exception.Message
-                : "An unexpected error occurred. Please contact support.";
-                
-            //var detail = exception.Message;
+            // Always return the detail so the frontend/user can see what caused the error
+            // Previously this was hidden behind an IsDevelopment() check for 500 errors.
 
             var problemDetails = new ProblemDetails
             {

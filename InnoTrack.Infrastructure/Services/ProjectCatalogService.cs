@@ -339,6 +339,11 @@ namespace InnoTrack.Infrastructure.Services
             if (existingProject != null)
                 throw new InvalidOperationException("Your team already has a project.");
 
+            var draftsCount = await _context.ProjectDrafts
+                .CountAsync(d => d.TeamId == leaderRecord.TeamId);
+            if (draftsCount >= 5)
+                throw new InvalidOperationException("Your team can only have a maximum of 5 project drafts.");
+
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
