@@ -32,7 +32,11 @@ namespace InnoTrack.API.Hubs
 
             if (isMember == null)
             {
-                throw new HubException("Access Denied: You are not a member of this team.");
+                var team = await unitOfWork.Repository<Team>().GetByIdAsync(teamId);
+                if (team == null || team.ProfessorId != userId)
+                {
+                    throw new HubException("Access Denied: You are not a member of this team.");
+                }
             }
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Team_{teamId}");
         }
