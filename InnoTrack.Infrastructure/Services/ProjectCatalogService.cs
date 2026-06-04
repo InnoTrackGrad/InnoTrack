@@ -526,22 +526,22 @@ namespace InnoTrack.Infrastructure.Services
             // Build activity log entries for changed fields
             var logMessages = new List<string>();
             if (dto.Title != null && dto.Title != oldTitle)
-                logMessages.Add($"Project name has changed to \"{dto.Title}\"");
+                logMessages.Add($"Title changed to \"{dto.Title.Trim()}\"");
             if (dto.Description != null && dto.Description != oldDescription)
-                logMessages.Add("Project description updated");
+                logMessages.Add("Description updated");
             if (dto.Objectives != null && dto.Objectives != oldObjectives)
-                logMessages.Add("Project objectives updated");
+                logMessages.Add("Objectives updated");
 
             if (!isLimitedMode)
             {
                 if (dto.Abstract != null && dto.Abstract != oldAbstract)
-                    logMessages.Add("Project abstract updated");
+                    logMessages.Add("Abstract updated");
                 if (dto.ProblemStatement != null && dto.ProblemStatement != oldProblemStatement)
-                    logMessages.Add("Project problem statement updated");
+                    logMessages.Add("Problem statement updated");
                 if (dto.ProposedSolution != null && dto.ProposedSolution != oldProposedSolution)
-                    logMessages.Add("Project proposed solution updated");
+                    logMessages.Add("Proposed solution updated");
                 if (dto.DomainId.HasValue && dto.DomainId.Value != oldDomainId)
-                    logMessages.Add("Project domain updated");
+                    logMessages.Add("Domain updated");
             }
 
             if (dto.TechnologyIds != null)
@@ -549,7 +549,7 @@ namespace InnoTrack.Infrastructure.Services
                 bool techChanged = existingTechIds.Count != dto.TechnologyIds.Count || !existingTechIds.All(dto.TechnologyIds.Contains);
                 if (techChanged)
                 {
-                    logMessages.Add("Project technologies updated");
+                    logMessages.Add("Technologies updated");
                 }
             }
 
@@ -578,7 +578,7 @@ namespace InnoTrack.Infrastructure.Services
 
             if (project.Team?.ProfessorId != null && logMessages.Any())
             {
-                var notificationMessage = $"The team for project '{project.Title}' has updated its details: {string.Join(", ", logMessages)}.";
+                var notificationMessage = $"Project '{project.Title.Trim()}': {string.Join(", ", logMessages)}.";
                 await _notificationService.SendNotificationAsync(
                     userId: project.Team.ProfessorId.Value,
                     title: "Project Details Updated",
