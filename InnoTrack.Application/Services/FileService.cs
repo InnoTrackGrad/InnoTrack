@@ -1,17 +1,21 @@
 using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace InnoTrack.Application.Services
 {
     public class FileService : IFileService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public FileService(IUnitOfWork unitOfWork)
+        public FileService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
         private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -56,7 +60,75 @@ namespace InnoTrack.Application.Services
             };
 
             await _unitOfWork.Repository<ProjectAttachment>().AddAsync(attachment);
+
+            // Fetch project details including the supervising professor
+            var project = await _unitOfWork.Repository<Project>().GetQueryable()
+                .Include(p => p.Team)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+
+            // Get uploader name
+            var uploaderName = "Team Member";
+            var student = await _unitOfWork.Repository<Student>().GetByIdAsync(uploaderId);
+            if (student != null)
+            {
+                uploaderName = student.FullName;
+            }
+            else
+            {
+                var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(uploaderId);
+                if (professor != null)
+                {
+                    uploaderName = professor.FullName;
+                }
+            }
+
+            // Create project activity log
+            var log = new ProjectActivityLog
+            {
+                ProjectId = projectId,
+                Type = "update",
+                Message = $"File uploaded: {fileName}",
+                ActorName = uploaderName,
+                IconName = "FileText",
+                ColorClass = "text-blue-500",
+                BgClass = "bg-blue-500/10",
+                Timestamp = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
             await _unitOfWork.CompleteAsync();
+
+            // Broadcast activity log live
+            try
+            {
+                await _notificationService.SendProjectActivityLogAsync(
+                    projectId,
+                    log.Type,
+                    log.Message,
+                    log.ActorName,
+                    log.IconName ?? "FileText",
+                    log.ColorClass ?? "text-blue-500",
+                    log.BgClass ?? "bg-blue-500/10"
+                );
+            }
+            catch { }
+
+            // Notify supervisor if assigned
+            if (project?.Team?.ProfessorId != null)
+            {
+                try
+                {
+                    await _notificationService.SendNotificationAsync(
+                        userId: project.Team.ProfessorId.Value,
+                        title: "New File Uploaded",
+                        message: $"A new file '{fileName}' was uploaded to project '{project.Title}' by {uploaderName}.",
+                        type: NotificationType.Info,
+                        referenceId: project.Id,
+                        referenceType: ReferenceType.Project
+                    );
+                }
+                catch { }
+            }
 
             return new ProjectAttachmentDto(attachment.Id, attachment.OriginalName, attachment.FilePath);
         }

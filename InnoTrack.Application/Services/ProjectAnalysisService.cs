@@ -152,6 +152,18 @@ namespace InnoTrack.Application.Services
 
                 try
                 {
+                    var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId ?? 0);
+                    if (team?.ProfessorId != null)
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            team.ProfessorId.Value,
+                            "AI Originality Analysis Completed",
+                            $"AI Report generated for '{project.Title}'. Score: {overallScore}%. Review is required.",
+                            NotificationType.Info,
+                            project.Id,
+                            ReferenceType.Project);
+                    }
+
                     var teamLeader = await _unitOfWork.Repository<TeamMember>()
                         .FindAsync(tm => tm.TeamId == project.TeamId && tm.Role == TeamMemberRole.Leader);
 

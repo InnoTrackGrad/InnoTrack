@@ -467,7 +467,9 @@ namespace InnoTrack.Infrastructure.Services
 
         public async Task UpdateProjectDetailsAsync(int projectId, int userId, UpdateProjectDetailsDto dto)
         {
-            var project = await _context.Projects.FindAsync(projectId);
+            var project = await _context.Projects
+                .Include(p => p.Team)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
             if (project == null) throw new KeyNotFoundException("Project not found.");
 
             var isLeader = await _context.TeamMembers
@@ -533,11 +535,28 @@ namespace InnoTrack.Infrastructure.Services
                     BgClass = "bg-primary/10"
                 };
                 _context.ProjectActivityLogs.Add(log);
-
-                await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
             }
 
             await _context.SaveChangesAsync();
+
+            // Notify and broadcast logs after SaveChangesAsync
+            foreach (var msg in logMessages)
+            {
+                await _notificationService.SendProjectActivityLogAsync(projectId, "update", msg, "Team Leader", "FileText", "text-primary", "bg-primary/10");
+            }
+
+            if (project.Team?.ProfessorId != null && logMessages.Any())
+            {
+                var notificationMessage = $"The team for project '{project.Title}' has updated its details: {string.Join(", ", logMessages)}.";
+                await _notificationService.SendNotificationAsync(
+                    userId: project.Team.ProfessorId.Value,
+                    title: "Project Details Updated",
+                    message: notificationMessage,
+                    type: NotificationType.Info,
+                    referenceId: project.Id,
+                    referenceType: ReferenceType.Project
+                );
+            }
         }
 
         public async Task RecallSubmissionAsync(int projectId, int userId)
@@ -586,6 +605,7 @@ namespace InnoTrack.Infrastructure.Services
                 }
 
                 var team = await _context.Teams.FindAsync(project.TeamId);
+                int? professorId = team?.ProfessorId;
                 if (team != null && team.ProfessorId.HasValue)
                 {
                     team.ProfessorId = null;
@@ -594,6 +614,22 @@ namespace InnoTrack.Infrastructure.Services
                 _context.Projects.Remove(project);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                if (professorId.HasValue)
+                {
+                    try
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            userId: professorId.Value,
+                            title: "Project Submission Recalled",
+                            message: $"The team for project '{project.Title}' has recalled their submission, returning it to draft.",
+                            type: NotificationType.Warning,
+                            referenceId: null,
+                            referenceType: ReferenceType.System
+                        );
+                    }
+                    catch { }
+                }
             }
             catch
             {
@@ -696,6 +732,24 @@ namespace InnoTrack.Infrastructure.Services
                     referenceType: ReferenceType.Project
                 );
             }
+
+            // Log activity first, before unlinking the team!
+            var log = new ProjectActivityLog
+            {
+                ProjectId = project.Id,
+                Type = "status",
+                Message = $"Project abandoned by the team leader. Reason: {reason}",
+                ActorName = "Team Leader",
+                IconName = "AlertTriangle",
+                ColorClass = "text-red-500",
+                BgClass = "bg-red-500/10",
+                Timestamp = DateTime.UtcNow
+            };
+            _context.ProjectActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            // Broadcast log activity to team members & professor before unlinking the team
+            await _notificationService.SendProjectActivityLogAsync(project.Id, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
 
             var team = await _context.Teams.FindAsync(project.TeamId);
             if (team != null)

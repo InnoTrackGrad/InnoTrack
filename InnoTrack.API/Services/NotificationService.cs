@@ -57,24 +57,44 @@ namespace InnoTrack.API.Services
         public async Task SendProjectActivityLogAsync(int projectId, string type, string message, string actorName, string iconName, string colorClass, string bgClass)
         {
             var project = await _unitOfWork.Repository<Project>().GetQueryable()
-                .AsNoTracking()
-                .Include(p => p.Team).ThenInclude(t => t.Members)
+                .Include(p => p.Team)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
 
-            if (project == null || project.Team == null) return;
+            if (project == null) return;
 
             var userIds = new List<int>();
-            if (project.Team.ProfessorId.HasValue)
+            int? professorId = null;
+            IEnumerable<TeamMember> members = Array.Empty<TeamMember>();
+
+            if (project.Team != null)
             {
-                userIds.Add(project.Team.ProfessorId.Value);
+                professorId = project.Team.ProfessorId;
+                members = await _unitOfWork.Repository<TeamMember>()
+                    .GetAllAsync(tm => tm.TeamId == project.TeamId);
             }
-            foreach (var member in project.Team.Members)
+            else if (project.TeamId.HasValue)
+            {
+                var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value);
+                if (team != null)
+                {
+                    professorId = team.ProfessorId;
+                    members = await _unitOfWork.Repository<TeamMember>()
+                        .GetAllAsync(tm => tm.TeamId == team.Id);
+                }
+            }
+
+            if (professorId.HasValue)
+            {
+                userIds.Add(professorId.Value);
+            }
+            foreach (var member in members)
             {
                 userIds.Add(member.StudentId);
             }
 
             var logDto = new
             {
+                Id = Guid.NewGuid().ToString(),
                 ProjectId = projectId,
                 Type = type,
                 Message = message,
