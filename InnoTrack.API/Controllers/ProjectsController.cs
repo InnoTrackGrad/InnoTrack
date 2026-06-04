@@ -3,6 +3,7 @@ using InnoTrack.Application.DTOs.Projects;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -14,7 +15,7 @@ namespace InnoTrack.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [AuthorizeRoles(UserRole.Student)]
+    [Authorize]
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService _projectService;
@@ -47,6 +48,7 @@ namespace InnoTrack.API.Controllers
         /// File uploads are limited to 25 MB.
         /// </remarks>
         [HttpPost("{projectId}/upload")]
+        [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> UploadAttachment(int projectId, IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -85,6 +87,7 @@ namespace InnoTrack.API.Controllers
         /// The submission automatically triggers asynchronous AI originality analysis.
         /// </remarks>
         [HttpPost("{projectId}/submit")]
+        [AuthorizeRoles(UserRole.Student)]
         public async Task<IActionResult> SubmitProject(int projectId, [FromBody] SubmitProjectRequestDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -107,6 +110,7 @@ namespace InnoTrack.API.Controllers
         /// based on the stored AI analysis results.
         /// </remarks>
         [HttpGet("{projectId}/originality-report/pdf")]
+        [AuthorizeRoles(UserRole.Student, UserRole.Professor)]
         public async Task<IActionResult> DownloadReportPdf(int projectId)
         {
             var report = await _projectAnalysisService.GetOriginalityReportAsync(projectId);
@@ -212,6 +216,23 @@ namespace InnoTrack.API.Controllers
 
             byte[] pdfBytes = pdfDocument.GeneratePdf();
             return File(pdfBytes, "application/pdf", $"OriginalityReport_PRJ{projectId}.pdf");
+        }
+
+        [HttpGet("{projectId}/logs")]
+        [AuthorizeRoles(UserRole.Professor)]
+        public async Task<IActionResult> GetProjectLogs(int projectId)
+        {
+            var logs = await _projectService.GetProjectLogsAsync(projectId);
+            return Ok(logs);
+        }
+
+        [HttpPost("{projectId}/mute")]
+        [AuthorizeRoles(UserRole.Professor)]
+        public async Task<IActionResult> ToggleProjectMute(int projectId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _projectService.ToggleProjectMuteAsync(userId, projectId);
+            return Ok(new { message = "Project mute state toggled successfully." });
         }
     }
 }

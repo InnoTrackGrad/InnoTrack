@@ -125,6 +125,22 @@ namespace InnoTrack.Application.Services
 
             await NotifyTeamMembersAsync(project.TeamId.Value, "Project Review Update",
                 message, notifType, project.Id);
+
+            // Log activity
+            var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(new ProjectActivityLog
+            {
+                ProjectId = projectId,
+                Type = "status",
+                Message = approve
+                    ? "Proposal approved — project moved to In Progress"
+                    : "Proposal rejected by supervisor",
+                ActorName = professor?.FullName ?? "Supervisor",
+                IconName = approve ? "GitCommit" : "History",
+                ColorClass = approve ? "text-emerald-500" : "text-red-500",
+                BgClass = approve ? "bg-emerald-500/10" : "bg-red-500/10"
+            });
+            await _unitOfWork.CompleteAsync();
         }
 
         public async Task<IReadOnlyList<ProfessorSupervisedProjectDto>> GetSupervisedProjectsAsync(
@@ -346,6 +362,20 @@ namespace InnoTrack.Application.Services
                 $"Review the feedback and resubmit.",
                 NotificationType.Warning,
                 project.Id);
+
+            // Log activity
+            var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(new ProjectActivityLog
+            {
+                ProjectId = projectId,
+                Type = "warning",
+                Message = $"Revision requested: {reason}",
+                ActorName = professor?.FullName ?? "Supervisor",
+                IconName = "FileText",
+                ColorClass = "text-amber-500",
+                BgClass = "bg-amber-500/10"
+            });
+            await _unitOfWork.CompleteAsync();
         }
 
         public async Task<ProfessorDashboardDto> GetDashboardAsync(int professorId)

@@ -17,7 +17,8 @@ namespace InnoTrack.Application.DTOs.Projects
         string? ProblemStatement,
         string? ProposedSolution,
         string? Objectives,
-        IReadOnlyList<StudentInProjectDto> Students
+        IReadOnlyList<StudentInProjectDto> Students,
+        bool IsMuted = false
     );
 
     public record StudentInProjectDto(

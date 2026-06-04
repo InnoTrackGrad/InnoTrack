@@ -212,6 +212,18 @@ namespace InnoTrack.Infrastructure.Services
                 )).ToList();
             }
 
+            bool isMuted = false;
+            if (userId.HasValue)
+            {
+                var pref = await _context.ProjectNotificationPreferences
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.UserId == userId.Value && p.ProjectId == projectId);
+                if (pref != null)
+                {
+                    isMuted = pref.IsMuted;
+                }
+            }
+
             return new ProjectCatalogDetailDto(
                     project.Id,
                     project.Title,
@@ -229,7 +241,8 @@ namespace InnoTrack.Infrastructure.Services
                     project.ProblemStatement,
                     project.ProposedSolution,
                     project.Objectives,
-                    students.AsReadOnly()
+                    students.AsReadOnly(),
+                    isMuted
                 );
         }
 
@@ -469,6 +482,8 @@ namespace InnoTrack.Infrastructure.Services
 
             bool isLimitedMode = project.Status == ProjectStatus.In_Progress;
 
+            string oldTitle = project.Title;
+
             if (dto.Title != null) project.Title = dto.Title;
             if (dto.Objectives != null) project.Objectives = dto.Objectives;
             if (dto.Description != null) project.Description = dto.Description;
@@ -493,6 +508,32 @@ namespace InnoTrack.Infrastructure.Services
 
             project.UpdatedAt = DateTime.UtcNow;
             _context.Projects.Update(project);
+
+            // Build activity log entries for changed fields
+            var logMessages = new List<string>();
+            if (dto.Title != null && dto.Title != oldTitle)
+                logMessages.Add($"Project name has changed to \"{dto.Title}\"");
+            if (dto.Description != null)
+                logMessages.Add("Project description updated");
+            if (dto.Objectives != null)
+                logMessages.Add("Project objectives updated");
+            if (dto.TechnologyIds != null)
+                logMessages.Add("Project technologies updated");
+
+            foreach (var msg in logMessages)
+            {
+                _context.ProjectActivityLogs.Add(new ProjectActivityLog
+                {
+                    ProjectId = projectId,
+                    Type = "update",
+                    Message = msg,
+                    ActorName = "Team Leader",
+                    IconName = "FileText",
+                    ColorClass = "text-primary",
+                    BgClass = "bg-primary/10"
+                });
+            }
+
             await _context.SaveChangesAsync();
         }
 

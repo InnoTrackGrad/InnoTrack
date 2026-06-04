@@ -34,6 +34,8 @@ namespace InnoTrack.Infrastructure.Data
         public DbSet<Technology> Technologies { get; set; }
         public DbSet<ProjectTechnology> ProjectTechnologies { get; set; }
         public DbSet<ProjectAttachment> ProjectAttachments { get; set; }
+        public DbSet<ProjectActivityLog> ProjectActivityLogs { get; set; }
+        public DbSet<ProjectNotificationPreference> ProjectNotificationPreferences { get; set; }
 
         // --- 5. AI Analysis Data ---
         public DbSet<VectorEmbedding> VectorEmbeddings { get; set; }
@@ -290,6 +292,28 @@ namespace InnoTrack.Infrastructure.Data
                         .HasOne(pa => pa.Project)
                         .WithMany(p => p.Attachments)
                         .HasForeignKey(pa => pa.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectActivityLog>()
+                        .HasOne(l => l.Project)
+                        .WithMany()
+                        .HasForeignKey(l => l.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectNotificationPreference>()
+                        .HasIndex(p => new { p.UserId, p.ProjectId })
+                        .IsUnique();
+
+            modelBuilder.Entity<ProjectNotificationPreference>()
+                        .HasOne(p => p.Project)
+                        .WithMany()
+                        .HasForeignKey(p => p.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectNotificationPreference>()
+                        .HasOne(p => p.User)
+                        .WithMany()
+                        .HasForeignKey(p => p.UserId)
                         .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ProjectTechnology>()

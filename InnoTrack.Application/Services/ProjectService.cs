@@ -123,6 +123,64 @@ namespace InnoTrack.Application.Services
             catch { }
 
             BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(project.Id));
+
+            // Log the submission activity
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(new ProjectActivityLog
+            {
+                ProjectId = project.Id,
+                Type = "status",
+                Message = "Project submitted for review",
+                ActorName = "Team Leader",
+                IconName = "GitCommit",
+                ColorClass = "text-purple-500",
+                BgClass = "bg-purple-500/10"
+            });
+            await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task<List<ProjectActivityLogDto>> GetProjectLogsAsync(int projectId)
+        {
+            var logs = await _unitOfWork.Repository<ProjectActivityLog>()
+                .GetQueryable()
+                .Where(l => l.ProjectId == projectId)
+                .OrderByDescending(l => l.Timestamp)
+                .ToListAsync();
+
+            return logs.Select(l => new ProjectActivityLogDto(
+                l.Id,
+                l.Type,
+                l.Message,
+                l.Timestamp.ToString("o"),
+                l.ActorName,
+                l.IconName,
+                l.ColorClass,
+                l.BgClass
+            )).ToList();
+        }
+
+        public async Task ToggleProjectMuteAsync(int userId, int projectId)
+        {
+            var pref = await _unitOfWork.Repository<ProjectNotificationPreference>()
+                .FindAsync(p => p.UserId == userId && p.ProjectId == projectId);
+
+            if (pref == null)
+            {
+                pref = new ProjectNotificationPreference
+                {
+                    UserId = userId,
+                    ProjectId = projectId,
+                    IsMuted = true
+                };
+                await _unitOfWork.Repository<ProjectNotificationPreference>().AddAsync(pref);
+            }
+            else
+            {
+                pref.IsMuted = !pref.IsMuted;
+                pref.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<ProjectNotificationPreference>().Update(pref);
+            }
+
+            await _unitOfWork.CompleteAsync();
         }
     }
 }
