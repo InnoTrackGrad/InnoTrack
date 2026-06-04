@@ -125,7 +125,7 @@ namespace InnoTrack.Application.Services
             BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(project.Id));
 
             // Log the submission activity
-            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(new ProjectActivityLog
+            var log = new ProjectActivityLog
             {
                 ProjectId = project.Id,
                 Type = "status",
@@ -134,8 +134,11 @@ namespace InnoTrack.Application.Services
                 IconName = "GitCommit",
                 ColorClass = "text-purple-500",
                 BgClass = "bg-purple-500/10"
-            });
+            };
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
             await _unitOfWork.CompleteAsync();
+
+            await _notificationService.SendProjectActivityLogAsync(project.Id, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
         }
 
         public async Task<List<ProjectActivityLogDto>> GetProjectLogsAsync(int projectId)

@@ -11,6 +11,7 @@ namespace InnoTrack.Application.DTOs.Projects
         string Status,
         decimal? OriginalityScore,
         DateTime? SubmittedAt,
-        int Progress
+        int Progress,
+        bool IsMuted = false
     );
 }

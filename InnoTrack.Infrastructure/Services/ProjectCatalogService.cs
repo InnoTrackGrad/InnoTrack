@@ -522,7 +522,7 @@ namespace InnoTrack.Infrastructure.Services
 
             foreach (var msg in logMessages)
             {
-                _context.ProjectActivityLogs.Add(new ProjectActivityLog
+                var log = new ProjectActivityLog
                 {
                     ProjectId = projectId,
                     Type = "update",
@@ -531,7 +531,10 @@ namespace InnoTrack.Infrastructure.Services
                     IconName = "FileText",
                     ColorClass = "text-primary",
                     BgClass = "bg-primary/10"
-                });
+                };
+                _context.ProjectActivityLogs.Add(log);
+
+                await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
             }
 
             await _context.SaveChangesAsync();

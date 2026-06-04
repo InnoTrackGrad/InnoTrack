@@ -128,7 +128,7 @@ namespace InnoTrack.Application.Services
 
             // Log activity
             var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
-            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(new ProjectActivityLog
+            var log = new ProjectActivityLog
             {
                 ProjectId = projectId,
                 Type = "status",
@@ -139,8 +139,11 @@ namespace InnoTrack.Application.Services
                 IconName = approve ? "GitCommit" : "History",
                 ColorClass = approve ? "text-emerald-500" : "text-red-500",
                 BgClass = approve ? "bg-emerald-500/10" : "bg-red-500/10"
-            });
+            };
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
             await _unitOfWork.CompleteAsync();
+
+            await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
         }
 
         public async Task<IReadOnlyList<ProfessorSupervisedProjectDto>> GetSupervisedProjectsAsync(
@@ -155,6 +158,14 @@ namespace InnoTrack.Application.Services
                     .ThenInclude(pt => pt.Technology)
                 .Where(p => p.Team != null && p.Team.ProfessorId == professorId)
                 .OrderByDescending(p => p.SubmittedAt ?? p.CreatedAt)
+                .ToListAsync();
+
+            var projectIds = projects.Select(p => p.Id).ToList();
+            var mutedProjectIds = await _unitOfWork.Repository<ProjectNotificationPreference>()
+                .GetQueryable()
+                .AsNoTracking()
+                .Where(pref => pref.UserId == professorId && projectIds.Contains(pref.ProjectId) && pref.IsMuted)
+                .Select(pref => pref.ProjectId)
                 .ToListAsync();
 
             return projects
@@ -172,7 +183,8 @@ namespace InnoTrack.Application.Services
                     p.Status.ToString(),
                     p.OriginalityScore,
                     p.SubmittedAt,
-                    ToProgressPercent(p.Status)
+                    ToProgressPercent(p.Status),
+                    mutedProjectIds.Contains(p.Id)
                 ))
                 .ToList()
                 .AsReadOnly();
@@ -365,7 +377,7 @@ namespace InnoTrack.Application.Services
 
             // Log activity
             var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
-            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(new ProjectActivityLog
+            var log = new ProjectActivityLog
             {
                 ProjectId = projectId,
                 Type = "warning",
@@ -374,8 +386,11 @@ namespace InnoTrack.Application.Services
                 IconName = "FileText",
                 ColorClass = "text-amber-500",
                 BgClass = "bg-amber-500/10"
-            });
+            };
+            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
             await _unitOfWork.CompleteAsync();
+
+            await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
         }
 
         public async Task<ProfessorDashboardDto> GetDashboardAsync(int professorId)
