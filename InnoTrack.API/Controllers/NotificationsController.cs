@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Interfaces;
+using InnoTrack.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -71,6 +71,20 @@ namespace InnoTrack.API.Controllers
         {
             var userId = GetUserId();
             await _notificationReadService.MarkAllAsReadAsync(userId);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Deletes all notifications for the authenticated user.
+        /// </summary>
+        /// <returns>
+        /// Returns no content after all notifications are cleared.
+        /// </returns>
+        [HttpDelete("clear-all")]
+        public async Task<IActionResult> ClearAllNotifications()
+        {
+            var userId = GetUserId();
+            await _notificationReadService.ClearAllNotificationsAsync(userId);
             return NoContent();
         }
     }

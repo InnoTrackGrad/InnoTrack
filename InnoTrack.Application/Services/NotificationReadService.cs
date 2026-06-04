@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Notifications;
+using InnoTrack.Application.DTOs.Notifications;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Interfaces;
@@ -59,6 +59,20 @@ namespace InnoTrack.Application.Services
             }
 
             if (unread.Any())
+                await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task ClearAllNotificationsAsync(int userId)
+        {
+            var userNotifications = await _unitOfWork.Repository<Notification>()
+                .GetAllAsync(n => n.UserId == userId);
+
+            foreach (var notification in userNotifications)
+            {
+                _unitOfWork.Repository<Notification>().Delete(notification);
+            }
+
+            if (userNotifications.Any())
                 await _unitOfWork.CompleteAsync();
         }
     }
