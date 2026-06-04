@@ -374,8 +374,11 @@ namespace InnoTrack.Application.Services
             var totalTeams = await _unitOfWork.Repository<Team>()
                 .CountAsync(t => t.ProfessorId == professorId);
 
-            // Reuse the fixed GetSupervisedTeamsAsync for the recent-teams widget
+            // Reuse the fixed GetSupervisedTeamsAsync for the recent-teams widget, only approved/active
             var recentTeams = (await GetSupervisedTeamsAsync(professorId))
+                .Where(t => t.ProjectStatus == ProjectStatus.In_Progress.ToString() || 
+                            t.ProjectStatus == ProjectStatus.Approved.ToString() ||
+                            t.ProjectStatus == ProjectStatus.Completed.ToString())
                 .OrderByDescending(t => t.SubmittedAt ?? DateTime.MinValue)
                 .Take(5)
                 .ToList()
