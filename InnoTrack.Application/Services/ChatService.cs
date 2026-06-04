@@ -42,6 +42,17 @@ namespace InnoTrack.Application.Services
                         return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials);
                     }).ToList();
 
+            var team = await _unitOfWork.Repository<Team>()
+                .GetQueryable()
+                .Include(t => t.Supervisor)
+                .FirstOrDefaultAsync(t => t.Id == teamMember.TeamId);
+
+            if (team?.Supervisor != null)
+            {
+                var profInitials = $"{team.Supervisor.FirstName[0]}{team.Supervisor.LastName[0]}".ToUpperInvariant();
+                memberDtos.Add(new ChatMemberDto(team.ProfessorId!.Value, team.Supervisor.FullName, "Professor", profInitials));
+            }
+
             var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
                 .GetQueryable()
                 .Where(h => h.UserId == userId)
