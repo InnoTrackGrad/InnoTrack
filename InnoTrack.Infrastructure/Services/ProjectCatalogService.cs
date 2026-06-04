@@ -484,7 +484,19 @@ namespace InnoTrack.Infrastructure.Services
 
             bool isLimitedMode = project.Status == ProjectStatus.In_Progress;
 
+            // Capture old values for comparison
             string oldTitle = project.Title;
+            string? oldDescription = project.Description;
+            string? oldObjectives = project.Objectives;
+            string? oldAbstract = project.Abstract;
+            string? oldProblemStatement = project.ProblemStatement;
+            string? oldProposedSolution = project.ProposedSolution;
+            int oldDomainId = project.DomainId;
+
+            var existingTechIds = await _context.ProjectTechnologies
+                .Where(pt => pt.ProjectId == projectId)
+                .Select(pt => pt.TechnologyId)
+                .ToListAsync();
 
             if (dto.Title != null) project.Title = dto.Title;
             if (dto.Objectives != null) project.Objectives = dto.Objectives;
@@ -515,12 +527,31 @@ namespace InnoTrack.Infrastructure.Services
             var logMessages = new List<string>();
             if (dto.Title != null && dto.Title != oldTitle)
                 logMessages.Add($"Project name has changed to \"{dto.Title}\"");
-            if (dto.Description != null)
+            if (dto.Description != null && dto.Description != oldDescription)
                 logMessages.Add("Project description updated");
-            if (dto.Objectives != null)
+            if (dto.Objectives != null && dto.Objectives != oldObjectives)
                 logMessages.Add("Project objectives updated");
+
+            if (!isLimitedMode)
+            {
+                if (dto.Abstract != null && dto.Abstract != oldAbstract)
+                    logMessages.Add("Project abstract updated");
+                if (dto.ProblemStatement != null && dto.ProblemStatement != oldProblemStatement)
+                    logMessages.Add("Project problem statement updated");
+                if (dto.ProposedSolution != null && dto.ProposedSolution != oldProposedSolution)
+                    logMessages.Add("Project proposed solution updated");
+                if (dto.DomainId.HasValue && dto.DomainId.Value != oldDomainId)
+                    logMessages.Add("Project domain updated");
+            }
+
             if (dto.TechnologyIds != null)
-                logMessages.Add("Project technologies updated");
+            {
+                bool techChanged = existingTechIds.Count != dto.TechnologyIds.Count || !existingTechIds.All(dto.TechnologyIds.Contains);
+                if (techChanged)
+                {
+                    logMessages.Add("Project technologies updated");
+                }
+            }
 
             foreach (var msg in logMessages)
             {
