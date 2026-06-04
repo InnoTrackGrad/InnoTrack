@@ -153,7 +153,7 @@ namespace InnoTrack.Application.Services
                 l.Id,
                 l.Type,
                 l.Message,
-                l.Timestamp.ToString("o"),
+                DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc).ToString("o"),
                 l.ActorName,
                 l.IconName,
                 l.ColorClass,
