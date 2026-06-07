@@ -151,7 +151,10 @@ namespace InnoTrack.Infrastructure.Services
             var query = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Domain)
-                .Where(p => p.OriginalityScore.HasValue && p.Status != ProjectStatus.Rejected && p.Status != ProjectStatus.Abandoned);
+                .Where(p => p.OriginalityScore.HasValue && 
+                            (p.Status == ProjectStatus.In_Progress || 
+                             p.Status == ProjectStatus.Approved || 
+                             p.Status == ProjectStatus.Completed));
 
             if (thisYearOnly)
             {
@@ -163,13 +166,13 @@ namespace InnoTrack.Infrastructure.Services
             }
 
             var rawProjects = await query
-                .OrderByDescending(p => p.OriginalityScore)
+                .OrderByDescending(p => p.OriginalityScore.Value > 1 ? p.OriginalityScore.Value / 100m : p.OriginalityScore.Value)
                 .Take(limit)
                 .Select(p => new
                 {
                     p.Id,
                     DomainName = p.Domain.Name,
-                    OriginalityScore = p.OriginalityScore.Value,
+                    OriginalityScore = p.OriginalityScore.Value > 1 ? p.OriginalityScore.Value / 100m : p.OriginalityScore.Value,
                     p.Title,
                     p.Abstract,
                     Year = p.CreatedAt.Year,
