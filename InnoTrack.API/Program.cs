@@ -202,16 +202,16 @@ builder.Services.AddHangfireServer();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("InnoTrackPolicy", policy =>
-    {
-        policy
-            .WithOrigins(
-                builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-                ?? ["http://localhost:3000", "http://localhost:5173"])
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
-    });
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy
+                .WithOrigins(
+                    "https://inno-track-front-end.vercel.app"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
 });
 
 QuestPDF.Settings.License = LicenseType.Community;
@@ -248,7 +248,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseCors("InnoTrackPolicy");
+app.UseCors("AllowFrontend"); 
 app.UseAuthentication();
 app.UseAuthorization();
 
