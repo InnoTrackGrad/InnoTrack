@@ -108,7 +108,7 @@ namespace InnoTrack.API.Controllers
             _auditService.LogAction(adminId, "Create Professor",
                 $"Provisioned professor: {dto.Email} → ID {result.Id}.");
 
-            return CreatedAtAction(nameof(_professorAdminService.GetProfessorByIdAsync), new { professorId = result.Id }, result);
+            return CreatedAtAction(nameof(GetProfessorById), new { id = result.Id }, result);
         }
 
         /// <summary>Returns all professor accounts with current team load info.</summary>
