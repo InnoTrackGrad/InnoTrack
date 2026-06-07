@@ -210,7 +210,8 @@ builder.Services.AddCors(options =>
                     "https://inno-track-front-end.vercel.app"
                 )
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
 
