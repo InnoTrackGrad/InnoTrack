@@ -11,7 +11,8 @@ namespace InnoTrack.Application.DTOs.Chat
         bool IsDeletedForAll = false,
         bool IsPinned = false,
         int? ParentMessageId = null,
-        List<ChatMessageReactionDto>? Reactions = null
+        List<ChatMessageReactionDto>? Reactions = null,
+        ChatMessageAttachmentDto? Attachment = null
     );
 
     public record ChatMessageReactionDto(

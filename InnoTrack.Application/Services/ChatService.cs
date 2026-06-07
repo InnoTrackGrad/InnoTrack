@@ -63,6 +63,7 @@ namespace InnoTrack.Application.Services
                 .GetQueryable()
                 .Where(m => m.ChatRoomId == chatRoom.Id && !hiddenMessageIds.Contains(m.Id))
                 .Include(m => m.Sender)
+                .Include(m => m.Attachments)
                 .OrderByDescending(m => m.SentAt)
                 .Take(50)
                 .ToListAsync();
@@ -87,7 +88,13 @@ namespace InnoTrack.Application.Services
                 msg.ParentMessageId,
                 reactions.Where(r => r.ChatMessageId == msg.Id)
                          .Select(r => new ChatMessageReactionDto(r.UserId, r.Emoji))
-                         .ToList()
+                         .ToList(),
+                msg.Attachments.FirstOrDefault() != null ? new ChatMessageAttachmentDto(
+                    msg.Attachments.First().FileName,
+                    msg.Attachments.First().FileName.Contains("_") ? msg.Attachments.First().FileName.Substring(msg.Attachments.First().FileName.IndexOf("_") + 1) : msg.Attachments.First().FileName,
+                    msg.Attachments.First().FileType ?? "application/octet-stream",
+                    msg.Attachments.First().FileSize
+                ) : null
             )).ToList();
 
             return new TeamChatDto(
