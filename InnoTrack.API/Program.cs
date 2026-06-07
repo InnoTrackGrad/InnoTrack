@@ -207,6 +207,7 @@ builder.Services.AddCors(options =>
         {
             policy
                 .WithOrigins(
+                    "http://localhost:3000",
                     "https://inno-track-front-end.vercel.app"
                 )
                 .AllowAnyHeader()
