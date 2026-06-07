@@ -8,6 +8,7 @@ namespace InnoTrack.Application.DTOs.Chat
     );
 
     public record ChatMemberDto(int Id, string FullName, string Role, string Initials, DateTime? LastOnlineAt = null);
+
     public record ChatMessageDetailDto(
         int Id,
         int AuthorId,

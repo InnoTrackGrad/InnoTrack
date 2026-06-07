@@ -43,7 +43,7 @@ namespace InnoTrack.API.Hubs
                     if (count <= 1)
                     {
                         _onlineUsers.TryRemove(userId, out _);
-
+                        
                         using var scope = _scopeFactory.CreateScope();
                         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                         var user = await unitOfWork.Repository<User>().GetByIdAsync(userId);
