@@ -12,7 +12,7 @@ namespace InnoTrack.API.Controllers
 {
     [Route("api/teams/me/chat")]
     [ApiController]
-    [AuthorizeRoles(UserRole.Student)]
+    [AuthorizeRoles(UserRole.Student, UserRole.Professor)]
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatService;
