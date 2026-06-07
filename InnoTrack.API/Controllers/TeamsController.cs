@@ -7,6 +7,7 @@ using InnoTrack.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
+using static QuestPDF.Helpers.Colors;
 
 namespace InnoTrack.API.Controllers
 {
@@ -101,7 +102,12 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> HandleJoinRequest([FromBody] HandleRequestDto dto)
         {
             var leaderId = GetUserId();
+            var team = await _teamReadService.GetMyTeamAsync(leaderId);
             await _joinRequestService.HandleRequestAsync(leaderId, dto);
+            if (dto.Accept && team != null)
+            {
+                await _hubContext.Clients.Group($"Team_{team.Id}").SendAsync("TeamUpdated");
+            }
             string action = dto.Accept ? "accepted" : "denied";
             return Ok(new { message = $"The join request has been successfully {action}." });
         }
@@ -130,7 +136,12 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> LeaveTeam()
         {
             var studentId = GetUserId();
+            var team = await _teamReadService.GetMyTeamAsync(studentId);
             await _teamService.LeaveTeamAsync(studentId);
+            if (team != null)
+            {
+                await _hubContext.Clients.Group($"Team_{team.Id}").SendAsync("MemberRemoved", studentId);
+            }
             return Ok(new { message = "You have successfully left the team." });
         }
 
@@ -173,6 +184,8 @@ namespace InnoTrack.API.Controllers
 
             var userId = GetUserId();
             var result = await _teamService.DirectJoinByCodeAsync(userId, dto.JoinCode);
+
+            await _hubContext.Clients.Group($"Team_{result.TeamId}").SendAsync("TeamUpdated");
             return Ok(result);
         }
 
@@ -286,7 +299,12 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> RenameTeam([FromBody] RenameTeamDto dto)
         {
             var userId = GetUserId();
+            var team = await _teamReadService.GetMyTeamAsync(userId);
             await _teamService.RenameTeamAsync(userId, dto.Name);
+            if (team != null)
+            {
+                await _hubContext.Clients.Group($"Team_{team.Id}").SendAsync("TeamRenamed", dto.Name);
+            }
             return Ok(new { message = "Team renamed successfully." });
         }
 
@@ -299,7 +317,12 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> DeleteTeam()
         {
             var userId = GetUserId();
+            var team = await _teamReadService.GetMyTeamAsync(userId);
             await _teamService.DeleteTeamAsync(userId);
+            if (team != null)
+            {
+                await _hubContext.Clients.Group($"Team_{team.Id}").SendAsync("TeamDeleted");
+            }
             return Ok(new { message = "Team deleted successfully." });
         }
 
