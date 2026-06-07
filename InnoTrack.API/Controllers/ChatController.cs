@@ -3,6 +3,7 @@ using InnoTrack.API.Hubs;
 using InnoTrack.Application.DTOs.Chat;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
@@ -88,6 +89,37 @@ namespace InnoTrack.API.Controllers
             );
 
             return Ok(chatMessage);
+        }
+
+        /// <summary>
+        /// Downloads a file attached in a team chat.
+        /// </summary>
+        /// <param name="fileName">The unique generated file name.</param>
+        /// <returns>The physical file stream.</returns>
+        [HttpGet("files/{fileName}")]
+        [Authorize] // السماح للطلبة والدكاترة، والـ Service هتفلترهم
+        public async Task<IActionResult> DownloadChatFile(string fileName)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            try
+            {
+                var (filePath, contentType, downloadName) = await _chatService.GetChatFileAsync(fileName, userId);
+
+                return PhysicalFile(filePath, contentType, downloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
 }

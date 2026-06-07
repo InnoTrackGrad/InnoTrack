@@ -1,8 +1,11 @@
 using InnoTrack.API.Attributes;
+using InnoTrack.API.Hubs;
 using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
+using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace InnoTrack.API.Controllers
@@ -15,14 +18,16 @@ namespace InnoTrack.API.Controllers
         private readonly ITeamReadService _teamReadService;
         private readonly IJoinRequestService _joinRequestService;
         private readonly IEmailService _emailService;
+        private readonly IHubContext<ChatHub> _hubContext;
 
 
-        public TeamsController(ITeamService teamService, ITeamReadService teamReadService, IJoinRequestService joinRequestService, IEmailService emailService)
+        public TeamsController(ITeamService teamService, ITeamReadService teamReadService, IJoinRequestService joinRequestService, IEmailService emailService, IHubContext<ChatHub> hubContext)
         {
             _teamService = teamService;
             _teamReadService = teamReadService;
             _joinRequestService = joinRequestService;
             _emailService = emailService;
+            _hubContext = hubContext;
         }
 
         private int GetUserId()
@@ -111,7 +116,8 @@ namespace InnoTrack.API.Controllers
         public async Task<IActionResult> RemoveMember(int memberId)
         {
             var leaderId = GetUserId();
-            await _teamService.RemoveMemberAsync(leaderId, memberId);
+            var teamId = await _teamService.RemoveMemberAsync(leaderId, memberId);
+            await _hubContext.Clients.Group($"Team_{teamId}").SendAsync("MemberRemoved", memberId);
             return Ok(new { message = "Member removed successfully." });
         }
 

@@ -13,8 +13,7 @@ namespace InnoTrack.Application.Services
         private readonly IMapper _mapper;
         private readonly IJoinCodeGenerator _codeGenerator;
         private readonly INotificationService _notificationService;
-
-
+    
         public TeamService(IUnitOfWork unitOfWork, IMapper mapper, IJoinCodeGenerator codeGenerator, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
@@ -209,7 +208,7 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
         }
 
-        public async Task RemoveMemberAsync(int leaderId, int memberIdToRemove)
+        public async Task<int> RemoveMemberAsync(int leaderId, int memberIdToRemove)
         {
             var leaderRecord = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.StudentId == leaderId && tm.Role == TeamMemberRole.Leader);
@@ -239,6 +238,8 @@ namespace InnoTrack.Application.Services
                     NotificationType.Warning);
             }
             catch { }
+
+            return leaderRecord.TeamId;
         }
 
         public async Task LeaveTeamAsync(int studentId)

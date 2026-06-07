@@ -39,7 +39,7 @@ namespace InnoTrack.Application.Services
                     .Select(member =>
                     {
                         var initials = $"{member.Student!.FirstName[0]}{member.Student.LastName[0]}".ToUpperInvariant();
-                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials);
+                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials, member.Student.LastOnlineAt);
                     }).ToList();
 
             var team = await _unitOfWork.Repository<Team>()
@@ -50,7 +50,7 @@ namespace InnoTrack.Application.Services
             if (team?.Supervisor != null)
             {
                 var profInitials = $"{team.Supervisor.FirstName[0]}{team.Supervisor.LastName[0]}".ToUpperInvariant();
-                memberDtos.Add(new ChatMemberDto(team.ProfessorId!.Value, team.Supervisor.FullName, "Professor", profInitials));
+                memberDtos.Add(new ChatMemberDto(team.ProfessorId!.Value, team.Supervisor.FullName, "Professor", profInitials, team.Supervisor.LastOnlineAt));
             }
 
             var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
@@ -206,6 +206,50 @@ namespace InnoTrack.Application.Services
                 chatMessage.SentAt
             );
         }
+
+        public async Task<(string FilePath, string ContentType, string DownloadName)> GetChatFileAsync(string fileName, int userId)
+        {
+            var attachment = await _unitOfWork.Repository<ChatMessageAttachment>()
+                .GetQueryable()
+                .Include(a => a.ChatMessage)
+                .ThenInclude(m => m.ChatRoom)
+                .FirstOrDefaultAsync(a => a.FileName == fileName);
+
+            if (attachment == null)
+                throw new KeyNotFoundException("File not found in database.");
+
+            var chatMessage = attachment.ChatMessage;
+            var chatRoom = chatMessage.ChatRoom;
+
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(chatRoom.TeamId);
+            if (team == null) throw new KeyNotFoundException("Team not found.");
+
+            bool isAuthorized = false;
+
+            if (team.ProfessorId == userId)
+            {
+                isAuthorized = true;
+            }
+            else
+            {
+                var isMember = await _unitOfWork.Repository<TeamMember>()
+                    .FindAsync(tm => tm.TeamId == team.Id && tm.StudentId == userId);
+                if (isMember != null) isAuthorized = true;
+            }
+
+            if (!isAuthorized)
+                throw new UnauthorizedAccessException("You are not authorized to download this file.");
+
+            var chatUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "chat-uploads");
+            var physicalPath = Path.Combine(chatUploadsFolder, attachment.FileName);
+
+            if (!File.Exists(physicalPath))
+                throw new FileNotFoundException("The physical file does not exist on the server.");
+
+            var originalName = chatMessage.Content ?? attachment.FileName;
+
+            return (physicalPath, attachment.FileType ?? "application/octet-stream", originalName);
+        }
         public async Task<ChatMessageResponseDto> ReplyToMessageAsync(int userId, int parentMessageId, string content)
         {
             if (string.IsNullOrWhiteSpace(content))
@@ -332,14 +376,14 @@ namespace InnoTrack.Application.Services
                     .Select(member =>
                     {
                         var initials = $"{member.Student!.FirstName[0]}{member.Student.LastName[0]}".ToUpperInvariant();
-                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials);
+                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials, member.Student.LastOnlineAt);
                     }).ToList();
 
             var professorUser = await _unitOfWork.Repository<User>().GetByIdAsync(professorId);
             if (professorUser != null)
             {
                 var profInitials = $"{professorUser.FirstName[0]}{professorUser.LastName[0]}".ToUpperInvariant();
-                memberDtos.Add(new ChatMemberDto(professorId, professorUser.FullName, "Professor", profInitials));
+                memberDtos.Add(new ChatMemberDto(professorId, professorUser.FullName, "Professor", profInitials, professorUser.LastOnlineAt));
             }
 
             var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
