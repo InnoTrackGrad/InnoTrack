@@ -134,6 +134,78 @@ namespace InnoTrack.Application.Services
             return new ChatMessageResponseDto(message.Id, chatRoom.TeamId, userId, user.FullName, message.Content, message.SentAt);
         }
 
+        private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".pdf", ".doc", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".zip"
+        };
+        private static readonly long MaxFileSizeBytes = 25 * 1024 * 1024;
+        public async Task<ChatMessageDto> UploadTeamChatFileAsync(
+            Stream fileStream, string fileName, string contentType, long fileSize, int teamId, int senderId)
+        {
+            var safeFileName = Path.GetFileName(fileName);
+            var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+
+            if (!AllowedExtensions.Contains(extension))
+                throw new ArgumentException($"File type '{extension}' is not allowed in chat.");
+
+            if (fileSize > MaxFileSizeBytes)
+                throw new ArgumentException("File exceeds the maximum allowed size of 25 MB.");
+
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>()
+                .FindAsync(c => c.TeamId == teamId);
+            if (chatRoom == null)
+                throw new KeyNotFoundException("Chat room not found for this team.");
+
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(senderId)
+                ?? throw new KeyNotFoundException("User not found.");
+
+            var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
+            var chatUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "chat-uploads");
+            if (!Directory.Exists(chatUploadsFolder))
+                Directory.CreateDirectory(chatUploadsFolder);
+
+            var filePath = Path.Combine(chatUploadsFolder, uniqueFileName);
+
+            using (var fileStreamOutput = new FileStream(filePath, FileMode.Create))
+            {
+                await fileStream.CopyToAsync(fileStreamOutput);
+            }
+
+            var fileUrl = $"/api/chat/files/{uniqueFileName}";
+
+            var chatMessage = new ChatMessage
+            {
+                ChatRoomId = chatRoom.Id,
+                SenderId = senderId,
+                Content = safeFileName,
+                Type = MessageType.File,
+                SentAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Repository<ChatMessage>().AddAsync(chatMessage);
+            await _unitOfWork.CompleteAsync();
+
+            var attachment = new ChatMessageAttachment
+            {
+                FileName = uniqueFileName,
+                FileType = contentType,
+                FileSize = fileSize,
+                FileUrl = fileUrl,
+                ChatMessageId = chatMessage.Id
+            };
+
+            await _unitOfWork.Repository<ChatMessageAttachment>().AddAsync(attachment);
+            await _unitOfWork.CompleteAsync();
+
+            return new ChatMessageDto(
+                chatMessage.Id,
+                user.FullName,
+                chatMessage.Content,
+                chatMessage.Type.ToString(),
+                fileUrl,
+                chatMessage.SentAt
+            );
+        }
         public async Task<ChatMessageResponseDto> ReplyToMessageAsync(int userId, int parentMessageId, string content)
         {
             if (string.IsNullOrWhiteSpace(content))

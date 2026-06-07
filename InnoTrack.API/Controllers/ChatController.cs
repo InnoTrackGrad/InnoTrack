@@ -60,5 +60,34 @@ namespace InnoTrack.API.Controllers
             await _hubContext.Clients.Group($"Team_{result.TeamId}").SendAsync("ReceiveMessage", result);
             return CreatedAtAction(nameof(GetTeamChat), result);
         }
+
+        /// <summary>
+        /// Uploads a file directly into the team's chat.
+        /// </summary>
+        /// <param name="teamId">The identifier of the target team.</param>
+        /// <param name="file">The file to upload to the chat.</param>
+        /// <returns>Returns the chat message object containing the file URL.</returns>
+        [HttpPost("teams/{teamId}/chat/upload")]
+        [AuthorizeRoles(UserRole.Student, UserRole.Professor)]
+        public async Task<IActionResult> UploadChatFile(int teamId, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file was uploaded.");
+
+            var userId = GetUserId();
+
+            using var stream = file.OpenReadStream();
+
+            var chatMessage = await _chatService.UploadTeamChatFileAsync(
+                stream,
+                file.FileName,
+                file.ContentType,
+                file.Length,
+                teamId,
+                userId
+            );
+
+            return Ok(chatMessage);
+        }
     }
 }
