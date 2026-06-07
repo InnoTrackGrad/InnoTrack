@@ -1,4 +1,4 @@
-﻿using InnoTrack.Domain.Entities.Enums;
+using InnoTrack.Domain.Entities.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace InnoTrack.Domain.Entities
@@ -25,6 +25,7 @@ namespace InnoTrack.Domain.Entities
         [MaxLength(2048)]
         public string? ProfilePictureURL { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastOnlineAt { get; set; }
 
         [Required]
         public UserRole Role { get; set; }
