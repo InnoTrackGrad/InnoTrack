@@ -6,7 +6,7 @@ namespace InnoTrack.Application.Interfaces
     {
         Task<TeamChatDto> GetTeamChatAsync(int userId);
         Task<ChatMessageResponseDto> SendMessageAsync(int userId, string content);
-        Task<ChatMessageDto> UploadTeamChatFileAsync(Stream fileStream, string fileName, string contentType, long fileSize, int teamId, int senderId);
+        Task<ChatMessageResponseDto> UploadTeamChatFileAsync(Stream fileStream, string fileName, string contentType, long fileSize, int teamId, int senderId);
         Task<(string FilePath, string ContentType, string DownloadName)> GetChatFileAsync(string fileName, int userId);
         Task<ChatMessageResponseDto> ReplyToMessageAsync(int userId, int parentMessageId, string content);
         Task EditMessageAsync(int userId, int messageId, string newContent);

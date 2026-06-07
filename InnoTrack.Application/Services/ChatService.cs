@@ -146,7 +146,7 @@ namespace InnoTrack.Application.Services
             ".pdf", ".doc", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".zip"
         };
         private static readonly long MaxFileSizeBytes = 25 * 1024 * 1024;
-        public async Task<ChatMessageDto> UploadTeamChatFileAsync(
+        public async Task<ChatMessageResponseDto> UploadTeamChatFileAsync(
             Stream fileStream, string fileName, string contentType, long fileSize, int teamId, int senderId)
         {
             var safeFileName = Path.GetFileName(fileName);
@@ -204,13 +204,21 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.Repository<ChatMessageAttachment>().AddAsync(attachment);
             await _unitOfWork.CompleteAsync();
 
-            return new ChatMessageDto(
+            var attachmentDto = new ChatMessageAttachmentDto(
+                uniqueFileName,
+                safeFileName,
+                contentType,
+                fileSize
+            );
+
+            return new ChatMessageResponseDto(
                 chatMessage.Id,
+                chatRoom.TeamId,
+                senderId,
                 user.FullName,
                 chatMessage.Content,
-                chatMessage.Type.ToString(),
-                fileUrl,
-                chatMessage.SentAt
+                chatMessage.SentAt,
+                Attachment: attachmentDto
             );
         }
 
