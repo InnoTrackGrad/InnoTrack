@@ -130,7 +130,7 @@ namespace InnoTrack.Infrastructure.Services
                     ? p.Members
                     : (string.IsNullOrWhiteSpace(p.StudentNames)
                         ? new List<string>()
-                        : p.StudentNames.Split(new[] { ',', '&', '-', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(n => n.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList()),
+                        : p.StudentNames.Split(new[] { ',', '&', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(n => n.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList()),
                 p.Technologies,
                 p.OriginalityScore,
                 p.AcceptsJoin
@@ -200,7 +200,7 @@ namespace InnoTrack.Infrastructure.Services
             else if (!string.IsNullOrWhiteSpace(project.StudentNames))
             {
                 var legacyNames = project.StudentNames
-                    .Split(new[] { ',', '&', '-', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Split(new[] { ',', '&', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(name => name.Trim())
                     .Where(name => !string.IsNullOrEmpty(name));
 
@@ -847,7 +847,7 @@ namespace InnoTrack.Infrastructure.Services
 
         private static decimal NormalizePercent(decimal score)
         {
-            return score > 0m && score <= 1m ? score * 100m : score;
+            return score > 1m ? score / 100m : score;
         }
     }
 }

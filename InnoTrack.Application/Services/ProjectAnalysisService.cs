@@ -97,7 +97,7 @@ namespace InnoTrack.Application.Services
                 var report = new OriginalityReport
                 {
                     ProjectId = project.Id,
-                    OverallScore = overallScore,
+                    OverallScore = NormalizePercent(overallScore),
                     Summary = generatedSummary,
                     GeneratedAt = DateTime.UtcNow,
                     SimilarProjects = new List<SimilarProject>()
@@ -120,7 +120,7 @@ namespace InnoTrack.Application.Services
                 }
                 await _unitOfWork.Repository<OriginalityReport>().AddAsync(report);
 
-                project.OriginalityScore = overallScore;
+                project.OriginalityScore = NormalizePercent(overallScore);
                 project.UpdatedAt = DateTime.UtcNow;
 
                 var (status, notifTitle, notifMessage, notifType) = overallScore switch
@@ -137,7 +137,7 @@ namespace InnoTrack.Application.Services
                 var currentProjectState = await _unitOfWork.Repository<Project>().GetByIdAsync(project.Id);
                 if (currentProjectState != null && currentProjectState.Status == ProjectStatus.Draft)
                 {
-                    currentProjectState.OriginalityScore = overallScore;
+                    currentProjectState.OriginalityScore = NormalizePercent(overallScore);
                     _unitOfWork.Repository<Project>().Update(currentProjectState);
                     await _unitOfWork.CompleteAsync();
                     await _unitOfWork.CommitTransactionAsync();
@@ -221,7 +221,7 @@ namespace InnoTrack.Application.Services
 
         private static decimal NormalizePercent(decimal score)
         {
-            return score > 0m && score <= 1m ? score * 100m : score;
+            return score > 1m ? score / 100m : score;
         }
     }
 }
