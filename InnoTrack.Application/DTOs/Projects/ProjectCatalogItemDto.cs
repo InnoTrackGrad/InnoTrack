@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Projects
+namespace InnoTrack.Application.DTOs.Projects
 {
     public record ProjectCatalogItemDto(
         int Id,
@@ -6,6 +6,7 @@
         string Domain,
         string Status,
         int Year,
+        int? TeamId,
         string? Supervisor,
         IReadOnlyList<string> Students,
         IReadOnlyList<string> Technologies,

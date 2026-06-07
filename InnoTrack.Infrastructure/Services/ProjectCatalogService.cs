@@ -115,6 +115,7 @@ namespace InnoTrack.Infrastructure.Services
                     StudentNames = p.StudentNames,
                     Technologies = p.ProjectTechnologies.Select(pt => pt.Technology.Name).ToList(),
                     p.OriginalityScore,
+                    TeamId = p.TeamId,
                     AcceptsJoin = (p.AcademicYearId == activeYearId) && (p.Team.Members.Count < p.Team.MaxSize)
                 })
                 .ToListAsync();
@@ -125,6 +126,7 @@ namespace InnoTrack.Infrastructure.Services
                 p.DomainName,
                 MapStatus(p.Status),
                 p.Year,
+                p.TeamId,
                 p.Supervisor,
                 p.Members.Any()
                     ? p.Members

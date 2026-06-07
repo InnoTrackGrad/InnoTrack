@@ -1,4 +1,4 @@
-﻿using InnoTrack.API.Attributes;
+using InnoTrack.API.Attributes;
 using InnoTrack.API.Hubs;
 using InnoTrack.Application.DTOs.Chat;
 using InnoTrack.Application.Interfaces;
@@ -87,6 +87,8 @@ namespace InnoTrack.API.Controllers
                 teamId,
                 userId
             );
+
+            await _hubContext.Clients.Group($"Team_{teamId}").SendAsync("ReceiveMessage", chatMessage);
 
             return Ok(chatMessage);
         }
