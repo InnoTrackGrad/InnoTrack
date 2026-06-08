@@ -528,7 +528,7 @@ namespace InnoTrack.Infrastructure.Services
             // Build activity log entries for changed fields
             var logMessages = new List<string>();
             if (dto.Title != null && dto.Title != oldTitle)
-                logMessages.Add($"Title changed to \"{dto.Title.Trim()}\"");
+                logMessages.Add("Title updated");
             if (dto.Description != null && dto.Description != oldDescription)
                 logMessages.Add("Description updated");
             if (dto.Objectives != null && dto.Objectives != oldObjectives)
@@ -580,7 +580,9 @@ namespace InnoTrack.Infrastructure.Services
 
             if (project.Team?.ProfessorId != null && logMessages.Any())
             {
-                var notificationMessage = $"Project '{project.Title.Trim()}': {string.Join(", ", logMessages)}.";
+                var shortTitle = project.Title.Trim();
+                if (shortTitle.Length > 40) shortTitle = shortTitle.Substring(0, 37) + "...";
+                var notificationMessage = $"Project '{shortTitle}': {string.Join(", ", logMessages)}.";
                 await _notificationService.SendNotificationAsync(
                     userId: project.Team.ProfessorId.Value,
                     title: "Project Details Updated",
