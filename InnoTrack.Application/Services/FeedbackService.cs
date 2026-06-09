@@ -39,15 +39,15 @@ namespace InnoTrack.Application.Services
             var teamMembers = await _unitOfWork.Repository<TeamMember>()
                 .GetAllAsync(tm => tm.TeamId == project.TeamId);
 
-            var notificationTasks = teamMembers.Select(member =>
-                _notificationService.SendNotificationAsync(
+            foreach (var member in teamMembers)
+            {
+                await _notificationService.SendNotificationAsync(
                     member.StudentId, "New Feedback",
                     message,
                     notifType,
                     project.Id,
-                    ReferenceType.Project));
-
-            await Task.WhenAll(notificationTasks);
+                    ReferenceType.Project);
+            }
         }
 
         public async Task MarkFeedbackAsReadAsync(int feedbackId, int userId)
