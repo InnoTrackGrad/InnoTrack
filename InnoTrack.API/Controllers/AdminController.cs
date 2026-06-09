@@ -15,20 +15,22 @@ namespace InnoTrack.API.Controllers
     [AuthorizeRoles(UserRole.Admin)]
     public class AdminController : ControllerBase
     {
+        private readonly IAdminService _adminService;
         private readonly IStudentService _studentService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IProfessorAdminService _professorAdminService;
         private readonly IAcademicYearService _academicYearService;
         private readonly IAuditService _auditService;
 
-
         public AdminController(
+            IAdminService adminService,
             IStudentService studentService,
             IUnitOfWork unitOfWork,
             IProfessorAdminService professorAdminService,
             IAcademicYearService academicYearService,
             IAuditService auditService)
         {
+            _adminService = adminService;
             _studentService = studentService;
             _unitOfWork = unitOfWork;
             _professorAdminService = professorAdminService;
@@ -44,30 +46,266 @@ namespace InnoTrack.API.Controllers
             return id;
         }
 
-
-        // ── Students ─────────────────────────────────────────────────────────────
+        // ══════════════════════════════════════════════════════════════════════════
+        // DASHBOARD
+        // ══════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Gets a list of all students in the system (Admin Only).
+        /// Returns a comprehensive admin dashboard: user/team/project counts,
+        /// originality score average, system-health alerts, and the 10 most recent
+        /// audit entries. The response surface is designed for an admin's landing page.
         /// </summary>
-        [HttpGet("students")]
-        public async Task<IActionResult> GetAllStudents()
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
         {
-            var students = await _studentService.GetAllStudentsForAdminAsync();
-            return Ok(students);
+            var dashboard = await _adminService.GetDashboardAsync();
+            return Ok(dashboard);
         }
 
-
-        // ── Projects ─────────────────────────────────────────────────────────────
+        // ══════════════════════════════════════════════════════════════════════════
+        // STUDENT MANAGEMENT
+        // ══════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Toggles the showcase status of a project. Only projects with Approved status and originality score of 85 or higher can be showcased.
+        /// Paginated, searchable, and filterable student list.
+        /// Supports free-text search across name and email, department filter,
+        /// team-membership filter, and active-status filter.
+        /// Supersedes the legacy GET /api/admin/students endpoint.
         /// </summary>
-        /// <param name="projectId">The ID of the project to toggle.</param>
-        /// <returns>A message indicating whether the project was added to or removed from the showcase.</returns>
-        /// <response code="200">Showcase status toggled successfully.</response>
-        /// <response code="400">Project cannot be showcased due to status or score requirements.</response>
-        /// <response code="404">Project not found.</response>
+        [HttpGet("students")]
+        public async Task<IActionResult> SearchStudents(
+            [FromQuery] string? search,
+            [FromQuery] int? departmentId,
+            [FromQuery] bool? hasTeam,
+            [FromQuery] bool? isActive,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var result = await _adminService.SearchStudentsAsync(
+                search, departmentId, hasTeam, isActive, pageNumber, pageSize);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Returns the complete admin-level profile for a single student,
+        /// including team membership, project info, skills, and deletion status.
+        /// </summary>
+        [HttpGet("students/{studentId:int}")]
+        public async Task<IActionResult> GetStudentDetail(int studentId)
+        {
+            var student = await _adminService.GetStudentDetailAsync(studentId);
+            return Ok(student);
+        }
+
+        /// <summary>
+        /// Activates or deactivates a student account.
+        /// Deactivation immediately invalidates the student's active session.
+        /// </summary>
+        [HttpPatch("students/{studentId:int}/status")]
+        public async Task<IActionResult> SetStudentStatus(
+            int studentId, [FromBody] AdminSetStudentStatusDto dto)
+        {
+            var adminId = GetUserId();
+            await _adminService.SetStudentActiveStatusAsync(studentId, dto.IsActive);
+
+            _auditService.LogAction(adminId, "Student Status Change",
+                $"Student {studentId} active status → {dto.IsActive}.");
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Resets a student's password and immediately invalidates their current session.
+        /// </summary>
+        [HttpPatch("students/{studentId:int}/reset-password")]
+        public async Task<IActionResult> ResetStudentPassword(
+            int studentId, [FromBody] AdminResetPasswordDto dto)
+        {
+            var adminId = GetUserId();
+            await _adminService.ResetStudentPasswordAsync(studentId, dto.NewPassword);
+
+            _auditService.LogAction(adminId, "Student Password Reset",
+                $"Admin reset password for student ID {studentId}.");
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Soft-deletes a student account (IsDeleted = true, session invalidated).
+        /// Blocked if the student is a team leader with an active project.
+        /// Soft-deleted students are invisible to all non-admin queries due to the global query filter.
+        /// </summary>
+        [HttpDelete("students/{studentId:int}")]
+        public async Task<IActionResult> SoftDeleteStudent(int studentId)
+        {
+            var adminId = GetUserId();
+            await _adminService.SoftDeleteStudentAsync(adminId, studentId);
+            return NoContent();
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // PROFESSOR MANAGEMENT  (unchanged from previous session)
+        // ══════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Provisions a new professor account.
+        /// This is the ONLY way professor accounts are created — the public
+        /// /auth/register endpoint creates Students exclusively.
+        /// </summary>
+        [HttpPost("professors")]
+        public async Task<IActionResult> CreateProfessor([FromBody] CreateProfessorDto dto)
+        {
+            var adminId = GetUserId();
+            var result = await _professorAdminService.CreateProfessorAsync(dto);
+
+            _auditService.LogAction(adminId, "Create Professor",
+                $"Provisioned professor: {dto.Email} → ID {result.Id}.");
+
+            return CreatedAtAction(nameof(GetProfessorById), new { professorId = result.Id }, result);
+        }
+
+        /// <summary>Returns all professor accounts with current team load info.</summary>
+        [HttpGet("professors")]
+        public async Task<IActionResult> GetAllProfessors()
+        {
+            return Ok(await _professorAdminService.GetAllProfessorsAsync());
+        }
+
+        /// <summary>Returns full details for a single professor.</summary>
+        [HttpGet("professors/{professorId:int}")]
+        public async Task<IActionResult> GetProfessorById(int professorId)
+        {
+            return Ok(await _professorAdminService.GetProfessorByIdAsync(professorId));
+        }
+
+        /// <summary>Updates a professor's name, department, capacity, or active status.</summary>
+        [HttpPut("professors/{professorId:int}")]
+        public async Task<IActionResult> UpdateProfessor(
+            int professorId, [FromBody] UpdateProfessorAdminDto dto)
+        {
+            var adminId = GetUserId();
+            await _professorAdminService.UpdateProfessorAsync(professorId, dto);
+
+            _auditService.LogAction(adminId, "Update Professor", $"Updated professor ID {professorId}.");
+
+            return NoContent();
+        }
+
+        /// <summary>Activates or deactivates a professor account.</summary>
+        [HttpPatch("professors/{professorId:int}/status")]
+        public async Task<IActionResult> SetProfessorStatus(
+            int professorId, [FromBody] SetActiveStatusDto dto)
+        {
+            var adminId = GetUserId();
+            await _professorAdminService.SetProfessorActiveStatusAsync(professorId, dto.IsActive);
+
+            _auditService.LogAction(adminId, "Professor Status",
+                $"Professor {professorId} active → {dto.IsActive}.");
+
+            return NoContent();
+        }
+
+        /// <summary>Admin-initiated password reset for a professor account.</summary>
+        [HttpPatch("professors/{professorId:int}/reset-password")]
+        public async Task<IActionResult> ResetProfessorPassword(
+            int professorId, [FromBody] AdminResetPasswordDto dto)
+        {
+            var adminId = GetUserId();
+            await _professorAdminService.ResetProfessorPasswordAsync(professorId, dto.NewPassword);
+
+            _auditService.LogAction(adminId, "Reset Professor Password",
+                $"Admin reset password for professor ID {professorId}.");
+
+            return NoContent();
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // TEAM MANAGEMENT
+        // ══════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Returns a paginated list of all teams with supervisor status, project info,
+        /// and a SupervisorIsActive flag that surfaces teams with deactivated supervisors.
+        /// </summary>
+        [HttpGet("teams")]
+        public async Task<IActionResult> GetAllTeams(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var result = await _adminService.GetAllTeamsAsync(pageNumber, pageSize);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Assigns a professor as supervisor for the specified team.
+        /// Enforces capacity limits and requires the professor to be active.
+        /// Replaces any existing supervisor assignment.
+        /// Both the professor and team members are notified.
+        /// </summary>
+        [HttpPatch("teams/{teamId:int}/assign-supervisor")]
+        public async Task<IActionResult> AssignSupervisor(
+            int teamId, [FromBody] AssignSupervisorDto dto)
+        {
+            var adminId = GetUserId();
+            await _adminService.AssignSupervisorToTeamAsync(teamId, dto.ProfessorId);
+
+            _auditService.LogAction(adminId, "Assign Supervisor",
+                $"Admin assigned professor {dto.ProfessorId} to team {teamId}.");
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Removes the supervisor from the specified team without assigning a replacement.
+        /// Use this before assigning a new supervisor when switching professors.
+        /// Team members are notified.
+        /// </summary>
+        [HttpPatch("teams/{teamId:int}/remove-supervisor")]
+        public async Task<IActionResult> RemoveSupervisor(int teamId)
+        {
+            var adminId = GetUserId();
+            await _adminService.RemoveSupervisorFromTeamAsync(teamId);
+
+            _auditService.LogAction(adminId, "Remove Supervisor",
+                $"Admin removed supervisor from team {teamId}.");
+
+            return NoContent();
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // PROJECT MANAGEMENT
+        // ══════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Returns a paginated list of all projects across all statuses and academic years.
+        /// Optional query parameters: status (e.g. "Draft", "UnderReview"), academicYearId.
+        /// </summary>
+        [HttpGet("projects")]
+        public async Task<IActionResult> GetAllProjects(
+            [FromQuery] string? status,
+            [FromQuery] int? academicYearId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var result = await _adminService.GetAllProjectsAsync(
+                status, academicYearId, pageNumber, pageSize);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Returns the full admin-level project detail including all proposal text,
+        /// team composition, technologies, supervisor, and timestamps.
+        /// </summary>
+        [HttpGet("projects/{projectId:int}")]
+        public async Task<IActionResult> GetProjectDetail(int projectId)
+        {
+            var detail = await _adminService.GetProjectDetailAsync(projectId);
+            return Ok(detail);
+        }
+
+        /// <summary>
+        /// Toggles showcase visibility for an approved project with originality ≥ 85.
+        /// </summary>
         [HttpPatch("projects/{projectId:int}/toggle-showcase")]
         public async Task<IActionResult> ToggleShowcase(int projectId)
         {
@@ -88,97 +326,76 @@ namespace InnoTrack.API.Controllers
             _auditService.LogAction(adminId, "Toggle Showcase",
                 $"Project {projectId} showcase → {project.IsPublicShowcase}.");
 
-            return Ok(new { message = project.IsPublicShowcase ? "Added to showcase." : "Removed from showcase." });
+            return Ok(new
+            {
+                message = project.IsPublicShowcase ? "Added to showcase." : "Removed from showcase."
+            });
         }
 
-
-        // ── Professors ────────────────────────────────────────────────────────────
-
         /// <summary>
-        /// Provisions a new professor account.
-        /// This is the ONLY way professor accounts are created —
-        /// the public /auth/register endpoint creates Students exclusively.
+        /// Force-transitions a project to any status with a mandatory audit reason.
+        /// Notifies all team members of the change.
+        /// Use this for escalations, corrections, or resolving disputes.
         /// </summary>
-        [HttpPost("professors")]
-        public async Task<IActionResult> CreateProfessor([FromBody] CreateProfessorDto dto)
+        [HttpPatch("projects/{projectId:int}/override-status")]
+        public async Task<IActionResult> OverrideProjectStatus(
+            int projectId, [FromBody] AdminOverrideProjectDto dto)
         {
+            if (!Enum.TryParse<ProjectStatus>(dto.Status, ignoreCase: true, out var parsedStatus))
+                return BadRequest(new
+                {
+                    error = $"'{dto.Status}' is not a valid ProjectStatus. " +
+                            $"Valid values: {string.Join(", ", Enum.GetNames<ProjectStatus>())}"
+                });
+
             var adminId = GetUserId();
-            var result = await _professorAdminService.CreateProfessorAsync(dto);
+            await _adminService.OverrideProjectStatusAsync(adminId, projectId, parsedStatus, dto.Reason);
 
-            _auditService.LogAction(adminId, "Create Professor",
-                $"Provisioned professor: {dto.Email} → ID {result.Id}.");
-
-            return CreatedAtAction(nameof(GetProfessorById), new { professorId = result.Id }, result);
-        }
-
-        /// <summary>Returns all professor accounts with current team load info.</summary>
-        [HttpGet("professors")]
-        public async Task<IActionResult> GetAllProfessors()
-        {
-            var professors = await _professorAdminService.GetAllProfessorsAsync();
-            return Ok(professors);
-        }
-
-        /// <summary>Returns full details for a single professor.</summary>
-        [HttpGet("professors/{professorId:int}")]
-        public async Task<IActionResult> GetProfessorById(int professorId)
-        {
-            var professor = await _professorAdminService.GetProfessorByIdAsync(professorId);
-            return Ok(professor);
+            return Ok(new { message = $"Project status overridden to '{parsedStatus}'." });
         }
 
         /// <summary>
-        /// Updates a professor's name, department, team capacity, or active status.
-        /// All fields optional — only provided fields are applied.
+        /// Reassigns the supervising professor for a project's team.
+        /// Enforces capacity limits on the new professor.
+        /// Both the new professor and team members are notified.
         /// </summary>
-        [HttpPut("professors/{professorId:int}")]
-        public async Task<IActionResult> UpdateProfessor(
-            int professorId, [FromBody] UpdateProfessorAdminDto dto)
+        [HttpPatch("projects/{projectId:int}/reassign-supervisor")]
+        public async Task<IActionResult> ReassignProjectSupervisor(
+            int projectId, [FromBody] AssignSupervisorDto dto)
         {
             var adminId = GetUserId();
-            await _professorAdminService.UpdateProfessorAsync(professorId, dto);
+            await _adminService.ReassignProjectSupervisorAsync(adminId, projectId, dto.ProfessorId);
 
-            _auditService.LogAction(adminId, "Update Professor", $"Updated professor ID {professorId}.");
-
-            return NoContent();
-        }
-
-        /// <summary>Activates or deactivates a professor account without deleting it.</summary>
-        [HttpPatch("professors/{professorId:int}/status")]
-        public async Task<IActionResult> SetProfessorStatus(
-            int professorId, [FromBody] SetActiveStatusDto dto)
-        {
-            var adminId = GetUserId();
-            await _professorAdminService.SetProfessorActiveStatusAsync(professorId, dto.IsActive);
-
-            _auditService.LogAction(adminId, "Professor Status",
-                $"Professor {professorId} active → {dto.IsActive}.");
-
-            return NoContent();
+            return Ok(new { message = "Supervisor reassigned successfully." });
         }
 
         /// <summary>
-        /// Resets a professor's password. Used when the professor
-        /// cannot use the standard forgot-password flow.
+        /// Finds all projects that have been stuck in 'UnderReview' for over 48 hours
+        /// with no originality score (indicating a failed Hangfire AI job) and resets
+        /// them to 'Draft' so students can resubmit. Returns the count of reset projects.
         /// </summary>
-        [HttpPatch("professors/{professorId:int}/reset-password")]
-        public async Task<IActionResult> ResetProfessorPassword(
-            int professorId, [FromBody] AdminResetPasswordDto dto)
+        [HttpPost("projects/reset-stuck")]
+        public async Task<IActionResult> ResetStuckProjects()
         {
             var adminId = GetUserId();
-            await _professorAdminService.ResetProfessorPasswordAsync(professorId, dto.NewPassword);
+            var count = await _adminService.ResetStuckProjectsAsync(adminId);
 
-            _auditService.LogAction(adminId, "Reset Professor Password",
-                $"Admin reset password for professor ID {professorId}.");
-
-            return NoContent();
+            return Ok(new
+            {
+                message = count > 0
+                    ? $"{count} stuck project(s) reset to Draft. Affected teams have been notified."
+                    : "No stuck projects found.",
+                resetCount = count
+            });
         }
 
-        // ── Academic Years ────────────────────────────────────────────────────────
+        // ══════════════════════════════════════════════════════════════════════════
+        // ACADEMIC YEAR MANAGEMENT  (unchanged from previous session)
+        // ══════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Creates a new academic year. It is created inactive;
-        /// use PATCH .../activate to make it the current year.
+        /// Creates a new academic year (inactive by default).
+        /// Call PATCH .../activate to make it the current year.
         /// </summary>
         [HttpPost("academic-years")]
         public async Task<IActionResult> CreateAcademicYear([FromBody] CreateAcademicYearDto dto)
@@ -196,23 +413,22 @@ namespace InnoTrack.API.Controllers
         [HttpGet("academic-years")]
         public async Task<IActionResult> GetAllAcademicYears()
         {
-            var years = await _academicYearService.GetAllAsync();
-            return Ok(years);
+            return Ok(await _academicYearService.GetAllAsync());
         }
 
-        /// <summary>Returns the currently active academic year, or 404 if none is set.</summary>
+        /// <summary>Returns the currently active academic year, or 404 if none is configured.</summary>
         [HttpGet("academic-years/active")]
         public async Task<IActionResult> GetActiveAcademicYear()
         {
             var year = await _academicYearService.GetActiveAsync();
-            if (year is null) return NotFound(new { error = "No active academic year is configured." });
+            if (year is null)
+                return NotFound(new { error = "No active academic year is configured." });
             return Ok(year);
         }
 
         /// <summary>
-        /// Makes the specified academic year the active one.
-        /// Any previously active year is automatically deactivated.
-        /// Only one academic year may be active at a time.
+        /// Makes the specified year active. The previously active year is automatically deactivated.
+        /// Only one year may be active at a time.
         /// </summary>
         [HttpPatch("academic-years/{academicYearId:int}/activate")]
         public async Task<IActionResult> ActivateAcademicYear(int academicYearId)
@@ -233,6 +449,29 @@ namespace InnoTrack.API.Controllers
         {
             await _academicYearService.UpdateAsync(academicYearId, dto);
             return NoContent();
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // AUDIT LOG VIEWER
+        // ══════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Returns paginated audit log entries. Supports filtering by userId, action keyword,
+        /// and date range. Ordered by most recent first.
+        /// Audit entries include the actor's resolved full name.
+        /// </summary>
+        [HttpGet("audit-logs")]
+        public async Task<IActionResult> GetAuditLogs(
+            [FromQuery] int? userId,
+            [FromQuery] string? action,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 30)
+        {
+            var result = await _adminService.GetAuditLogsAsync(
+                userId, action, from, to, pageNumber, pageSize);
+            return Ok(result);
         }
     }
 }
