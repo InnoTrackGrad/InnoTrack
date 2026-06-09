@@ -329,12 +329,13 @@ namespace InnoTrack.Infrastructure.Services
                 .AsNoTracking()
                 .Include(p => p.Department)
                 .Include(p => p.SupervisedTeams)
+                    .ThenInclude(t => t.Project)
                 .Select(p => new SupervisorDto(
                     p.Id,
                     p.FullName,
                     p.Department.Name,
                     p.Email,
-                    p.SupervisedTeams.Count,
+                    p.SupervisedTeams.Count(t => t.Project == null || t.Project.Status != ProjectStatus.Completed),
                     p.MaxTeamLoad
                 ))
                 .ToListAsync();

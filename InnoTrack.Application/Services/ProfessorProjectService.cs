@@ -156,8 +156,10 @@ namespace InnoTrack.Application.Services
                 .Include(p => p.Domain)
                 .Include(p => p.ProjectTechnologies)
                     .ThenInclude(pt => pt.Technology)
-                .Where(p => p.Team != null && p.Team.ProfessorId == professorId)
-                .OrderByDescending(p => p.SubmittedAt ?? p.CreatedAt)
+                .Where(p => p.Team != null && p.Team.ProfessorId == professorId &&
+                   (p.Status == ProjectStatus.UnderReview ||
+                    p.Status == ProjectStatus.Approved ||
+                    p.Status == ProjectStatus.In_Progress)).OrderByDescending(p => p.SubmittedAt ?? p.CreatedAt)
                 .ToListAsync();
 
             var projectIds = projects.Select(p => p.Id).ToList();
@@ -201,7 +203,8 @@ namespace InnoTrack.Application.Services
                     .ThenInclude(tm => tm.Student)
                         .ThenInclude(s => s.StudentSkills)
                             .ThenInclude(ss => ss.Skill)
-                .Where(t => t.ProfessorId == professorId)
+                .Where(t => t.ProfessorId == professorId &&
+                            (t.Project == null || t.Project.Status != ProjectStatus.Completed))
                 .OrderBy(t => t.Name)
                 .ToListAsync();
 
@@ -417,7 +420,8 @@ namespace InnoTrack.Application.Services
                 .FirstOrDefaultAsync();
 
             var totalTeams = await _unitOfWork.Repository<Team>()
-                .CountAsync(t => t.ProfessorId == professorId);
+                .CountAsync(t => t.ProfessorId == professorId &&
+                                 (t.Project == null || t.Project.Status != ProjectStatus.Completed));
 
             // Reuse the fixed GetSupervisedTeamsAsync for the recent-teams widget, only approved/active
             var recentTeams = (await GetSupervisedTeamsAsync(professorId))

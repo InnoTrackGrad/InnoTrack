@@ -2,6 +2,7 @@
 using InnoTrack.Application.DTOs.Professors;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
+using InnoTrack.Domain.Entities.Enums;
 using InnoTrack.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,7 +24,8 @@ namespace InnoTrack.Application.Services
                 ?? throw new KeyNotFoundException("Professor profile not found.");
 
             var currentLoad = await _unitOfWork.Repository<Team>()
-                .CountAsync(t => t.ProfessorId == professorId);
+                .CountAsync(t => t.ProfessorId == professorId &&
+                     (t.Project == null || t.Project.Status != ProjectStatus.Completed));
 
             return new ProfessorProfileDto(
                 professor.Id, professor.FirstName, professor.LastName,
@@ -43,7 +45,8 @@ namespace InnoTrack.Application.Services
 
             // Guard: cannot reduce capacity below active team count
             var currentLoad = await _unitOfWork.Repository<Team>()
-                .CountAsync(t => t.ProfessorId == professorId);
+                .CountAsync(t => t.ProfessorId == professorId &&
+                     (t.Project == null || t.Project.Status != ProjectStatus.Completed));
 
             if (dto.MaxTeamLoad.Value < currentLoad)
                 throw new InvalidOperationException(
