@@ -41,7 +41,7 @@ namespace InnoTrack.Application.Services
         /// </summary>
         private async Task NotifyTeamMembersAsync(
             int teamId, string title, string message,
-            NotificationType type, int referenceId)
+            NotificationType type, int? referenceId = null)
         {
             var teamMembers = await _unitOfWork.Repository<TeamMember>()
                 .GetAllAsync(tm => tm.TeamId == teamId);
@@ -336,7 +336,12 @@ namespace InnoTrack.Application.Services
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException("A revision reason is required.");
 
-            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId)
+            var project = await _unitOfWork.Repository<Project>()
+                .GetQueryable()
+                .Include(p => p.Team)
+                .ThenInclude(t => t.Members)
+                .Include(p => p.ProjectTechnologies)
+                .FirstOrDefaultAsync(p => p.Id == projectId)
                 ?? throw new KeyNotFoundException("Project not found.");
 
             if (!project.TeamId.HasValue)
@@ -353,49 +358,53 @@ namespace InnoTrack.Application.Services
                 throw new InvalidOperationException(
                     "Revision can only be requested for projects with 'UnderReview' status.");
 
-            // Return project to Draft so the team can edit and resubmit
-            project.Status = ProjectStatus.Draft;
-            project.UpdatedAt = DateTime.UtcNow;
-            _unitOfWork.Repository<Project>().Update(project);
-
-            // Store revision reason as a Feedback record for traceability.
-            // The [REJECTED] prefix lets students visually distinguish rejection notes
-            // from general feedback in the UI.
-            var feedback = new Feedback
+            // Move project to Drafts so the team can edit and resubmit
+            var draft = new ProjectDraft
             {
-                ProfessorId = professorId,
-                ProjectId = projectId,
-                Content = $"[REJECTED] {reason}",
+                Title = project.Title,
+                Abstract = project.Abstract,
+                Description = project.Description,
+                Year = project.Year ?? project.CreatedAt.Year,
+                StudentNames = project.StudentNames,
+                OriginalityScore = project.OriginalityScore,
                 CreatedAt = DateTime.UtcNow,
-                IsRead = false
+                TeamId = project.TeamId.Value,
+                CreatedByUserId = project.Team?.Members.FirstOrDefault(m => m.Role == TeamMemberRole.Leader)?.StudentId ?? 0,
+                DomainId = project.DomainId,
+                ProblemStatement = project.ProblemStatement,
+                ProposedSolution = project.ProposedSolution,
+                Objectives = project.Objectives,
             };
-            await _unitOfWork.Repository<Feedback>().AddAsync(feedback);
+            
+            await _unitOfWork.Repository<ProjectDraft>().AddAsync(draft);
+            
+            // Add technologies to the new draft
+            var techRepo = _unitOfWork.Repository<ProjectDraftTechnology>();
+            foreach (var tech in project.ProjectTechnologies)
+            {
+                await techRepo.AddAsync(new ProjectDraftTechnology
+                {
+                    ProjectDraft = draft,
+                    TechnologyId = tech.TechnologyId
+                });
+            }
+
+            // Remove project, it's now a draft
+            _unitOfWork.Repository<Project>().Delete(project);
+            
+            // Wait, what about feedback? Feedback is tied to ProjectId which is about to be deleted.
+            // Since this is a rejection, we send the feedback in the notification and it's also saved 
+            // in the project activity logs, but Activity Logs ALSO cascade delete with the Project!
+            // To prevent losing the reason, we can append it to the notification, but the DB constraints 
+            // mean we can't save Feedback or ProjectActivityLog on a deleted project.
             await _unitOfWork.CompleteAsync();
 
             await NotifyTeamMembersAsync(
                 project.TeamId.Value,
                 "Proposal Rejected",
-                $"Your supervisor has rejected the proposal '{project.Title}'. and returned it to Draft." +
-                $"Please review the feedback and resubmit.",
+                $"Your supervisor has rejected the proposal '{project.Title}'. Please review the feedback and resubmit. Feedback: {reason}",
                 NotificationType.Error,
-                project.Id);
-
-            // Log activity
-            var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
-            var log = new ProjectActivityLog
-            {
-                ProjectId = projectId,
-                Type = "error",
-                Message = $"Proposal rejected: {reason}",
-                ActorName = professor?.FullName ?? "Supervisor",
-                IconName = "FileText",
-                ColorClass = "text-red-500",
-                BgClass = "bg-red-500/10"
-            };
-            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
-            await _unitOfWork.CompleteAsync();
-
-            await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
+                null); // ReferenceId is null because project is deleted
         }
 
         public async Task<ProfessorDashboardDto> GetDashboardAsync(int professorId)
