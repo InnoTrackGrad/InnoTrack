@@ -582,7 +582,7 @@ namespace InnoTrack.Infrastructure.Services
             if (project.Team?.ProfessorId != null && logMessages.Any())
             {
                 var shortTitle = project.Title.Trim();
-                if (shortTitle.Length > 40) shortTitle = shortTitle.Substring(0, 37) + "...";
+                if (shortTitle.Length > 80) shortTitle = shortTitle.Substring(0, 77) + "...";
                 var notificationMessage = $"Project '{shortTitle}': {string.Join(", ", logMessages)}.";
                 await _notificationService.SendNotificationAsync(
                     userId: project.Team.ProfessorId.Value,

@@ -359,13 +359,13 @@ namespace InnoTrack.Application.Services
             _unitOfWork.Repository<Project>().Update(project);
 
             // Store revision reason as a Feedback record for traceability.
-            // The [REVISION] prefix lets students visually distinguish revision notes
+            // The [REJECTED] prefix lets students visually distinguish rejection notes
             // from general feedback in the UI.
             var feedback = new Feedback
             {
                 ProfessorId = professorId,
                 ProjectId = projectId,
-                Content = $"[REVISION REQUESTED] {reason}",
+                Content = $"[REJECTED] {reason}",
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false
             };
@@ -374,10 +374,10 @@ namespace InnoTrack.Application.Services
 
             await NotifyTeamMembersAsync(
                 project.TeamId.Value,
-                "Revision Requested",
-                $"Your supervisor has requested revisions on '{project.Title}'. " +
-                $"Review the feedback and resubmit.",
-                NotificationType.Warning,
+                "Proposal Rejected",
+                $"Your supervisor has rejected the proposal '{project.Title}'. and returned it to Draft." +
+                $"Please review the feedback and resubmit.",
+                NotificationType.Error,
                 project.Id);
 
             // Log activity
@@ -385,12 +385,12 @@ namespace InnoTrack.Application.Services
             var log = new ProjectActivityLog
             {
                 ProjectId = projectId,
-                Type = "warning",
-                Message = $"Revision requested: {reason}",
+                Type = "error",
+                Message = $"Proposal rejected: {reason}",
                 ActorName = professor?.FullName ?? "Supervisor",
                 IconName = "FileText",
-                ColorClass = "text-amber-500",
-                BgClass = "bg-amber-500/10"
+                ColorClass = "text-red-500",
+                BgClass = "bg-red-500/10"
             };
             await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
             await _unitOfWork.CompleteAsync();
