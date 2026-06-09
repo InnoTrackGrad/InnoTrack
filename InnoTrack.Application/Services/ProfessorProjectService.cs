@@ -157,9 +157,8 @@ namespace InnoTrack.Application.Services
                 .Include(p => p.ProjectTechnologies)
                     .ThenInclude(pt => pt.Technology)
                 .Where(p => p.Team != null && p.Team.ProfessorId == professorId &&
-                   (p.Status == ProjectStatus.UnderReview ||
-                    p.Status == ProjectStatus.Approved ||
-                    p.Status == ProjectStatus.In_Progress)).OrderByDescending(p => p.SubmittedAt ?? p.CreatedAt)
+                            (p.Status == ProjectStatus.In_Progress || p.Status == ProjectStatus.Approved))
+                .OrderByDescending(p => p.SubmittedAt ?? p.CreatedAt)
                 .ToListAsync();
 
             var projectIds = projects.Select(p => p.Id).ToList();
@@ -204,7 +203,8 @@ namespace InnoTrack.Application.Services
                         .ThenInclude(s => s.StudentSkills)
                             .ThenInclude(ss => ss.Skill)
                 .Where(t => t.ProfessorId == professorId &&
-                            (t.Project == null || t.Project.Status != ProjectStatus.Completed))
+                        t.Project != null &&
+                        (t.Project.Status == ProjectStatus.In_Progress || t.Project.Status == ProjectStatus.Approved))
                 .OrderBy(t => t.Name)
                 .ToListAsync();
 
