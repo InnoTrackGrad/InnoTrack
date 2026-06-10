@@ -75,9 +75,6 @@ namespace InnoTrack.Application.Services
             var totalTechnologies = await _unitOfWork.Repository<Technology>().GetQueryable().CountAsync();
             var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>().GetQueryable().CountAsync();
 
-            var totalTechnologies = await _unitOfWork.Repository<Technology>().GetQueryable().CountAsync();
-            var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>().GetQueryable().CountAsync();
-
             // ── Alerts (computed in memory — small result sets) ──────────────────
             var alerts = await BuildSystemAlertsAsync(
                 teamsWithoutSupervisor, activeYear is null, projStats?.UnderReview ?? 0);
