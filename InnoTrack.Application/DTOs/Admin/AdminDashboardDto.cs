@@ -22,6 +22,9 @@
         // ── Academic Year ────────────────────────────────────────────────────────
         bool HasActiveAcademicYear,
         string? ActiveAcademicYearName,
+         // ── Additional Stats ─────────────────────────────────────────────────────
+        int TotalTechnologies,
+        int TotalDomains,
         // ── Alerts and Activity ──────────────────────────────────────────────────
         IReadOnlyList<SystemAlertDto> Alerts,
         IReadOnlyList<RecentAuditEntryDto> RecentActivity
