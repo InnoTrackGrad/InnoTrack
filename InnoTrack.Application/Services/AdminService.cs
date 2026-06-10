@@ -63,21 +63,72 @@ namespace InnoTrack.Application.Services
                     Approved = g.Count(p => p.Status == ProjectStatus.Approved),
                     Rejected = g.Count(p => p.Status == ProjectStatus.Rejected),
                     Completed = g.Count(p => p.Status == ProjectStatus.Completed),
-                    AvgScore = g.Where(p => p.OriginalityScore != null)
-                                   .Select(p => (decimal?)p.OriginalityScore).Average()
+                    RawAvgScore = g.Where(p => p.OriginalityScore != null)
+                                   .Select(p => (decimal?)p.OriginalityScore)
+                                   .Average()
                 })
                 .FirstOrDefaultAsync();
+
+            // ── Task 1: Normalize average score to the 0–100 scale ───────────────
+            // Some rows may store the score as a 0–1 decimal (e.g., 0.79) rather than
+            // a percentage (79). Detect and correct before returning to the client.
+            decimal? averageOriginalityScore = null;
+            if (projStats?.RawAvgScore.HasValue == true)
+            {
+                var raw = projStats.RawAvgScore.Value;
+                averageOriginalityScore = Math.Round(raw <= 1m ? raw * 100m : raw, 2);
+            }
 
             // ── Academic year ────────────────────────────────────────────────────
             var activeYear = await _unitOfWork.Repository<AcademicYear>()
                 .FindAsync(y => y.IsActive);
-            // ── System data counts ───────────────────────────────────────────────
-            var totalTechnologies = await _unitOfWork.Repository<Technology>().GetQueryable().CountAsync();
-            var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>().GetQueryable().CountAsync();
 
-            // ── Alerts (computed in memory — small result sets) ──────────────────
+            // ── System data counts ───────────────────────────────────────────────
+            var totalTechnologies = await _unitOfWork.Repository<Technology>()
+                .GetQueryable().CountAsync();
+            var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>()
+                .GetQueryable().CountAsync();
+
+            // ── Task 3: Stuck project count (computed once, reused in alerts + DTO) 
+            var stuckCutoff = DateTime.UtcNow.AddHours(-48);
+            var stuckProjectsCount = await _unitOfWork.Repository<Project>().CountAsync(
+                p => p.Status == ProjectStatus.UnderReview
+                  && p.SubmittedAt < stuckCutoff
+                  && p.OriginalityScore == null);
+
+            // ── Alerts (stuckCount passed in to avoid a second DB query) ─────────
             var alerts = await BuildSystemAlertsAsync(
-                teamsWithoutSupervisor, activeYear is null, projStats?.UnderReview ?? 0);
+                teamsWithoutSupervisor, activeYear is null, stuckProjectsCount);
+
+            // ── Task 2: Chart data ────────────────────────────────────────────────
+            // Build status chart from already-computed projStats (zero extra DB hits)
+            var projectsByStatus = new[]
+            {
+        new ChartDataPointDto("Draft",        projStats?.Draft       ?? 0),
+        new ChartDataPointDto("Under Review", projStats?.UnderReview ?? 0),
+        new ChartDataPointDto("In Progress",  projStats?.InProgress  ?? 0),
+        new ChartDataPointDto("Approved",     projStats?.Approved    ?? 0),
+        new ChartDataPointDto("Rejected",     projStats?.Rejected    ?? 0),
+        new ChartDataPointDto("Completed",    projStats?.Completed   ?? 0),
+    }
+            .Where(x => x.Count > 0)               // omit zero-count statuses from pie/bar charts
+            .OrderByDescending(x => x.Count)
+            .ToList()
+            .AsReadOnly();
+
+            // Domain distribution requires a join — one focused query, top 10 domains
+            var projectsByDomain = await (
+                from p in _unitOfWork.Repository<Project>()
+                                      .GetQueryable().AsNoTracking()
+                join d in _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>()
+                                      .GetQueryable().AsNoTracking()
+                    on p.DomainId equals d.Id
+                group p by d.Name into g
+                orderby g.Count() descending
+                select new ChartDataPointDto(g.Key, g.Count())
+            )
+            .Take(10)
+            .ToListAsync();
 
             // ── Recent audit entries ─────────────────────────────────────────────
             var recent = await FetchRecentAuditEntriesAsync(10);
@@ -93,19 +144,24 @@ namespace InnoTrack.Application.Services
                 projStats?.Approved ?? 0,
                 projStats?.Rejected ?? 0,
                 projStats?.Completed ?? 0,
-                projStats?.AvgScore.HasValue == true
-                    ? Math.Round(projStats.AvgScore!.Value, 2) : null,
+                averageOriginalityScore,            // Task 1: normalized
                 activeYear is not null,
                 activeYear?.Name,
                 totalTechnologies,
                 totalDomains,
+                stuckProjectsCount,                 // Task 3: quick action flag
+                CanCloseAcademicYear: activeYear is not null, // Task 3: quick action flag
+                projectsByStatus.AsReadOnly(),      // Task 2
+                projectsByDomain.AsReadOnly(),      // Task 2
                 alerts.AsReadOnly(),
                 recent.AsReadOnly()
             );
         }
 
+        // stuckProjectsCount is now passed in from GetDashboardAsync,
+        // eliminating the duplicate CountAsync call that was previously here.
         private async Task<List<SystemAlertDto>> BuildSystemAlertsAsync(
-            int teamsWithoutSupervisor, bool noActiveYear, int underReviewCount)
+            int teamsWithoutSupervisor, bool noActiveYear, int stuckProjectsCount)
         {
             var alerts = new List<SystemAlertDto>();
 
@@ -121,26 +177,16 @@ namespace InnoTrack.Application.Services
                     $"{teamsWithoutSupervisor} team(s) have no supervisor assigned.",
                     teamsWithoutSupervisor));
 
-            // Projects in UnderReview for over 48 hours with no AI score
-            // — likely caused by a failed or never-executed Hangfire job
-            var cutoff = DateTime.UtcNow.AddHours(-48);
-            var stuck = await _unitOfWork.Repository<Project>().CountAsync(
-                p => p.Status == ProjectStatus.UnderReview
-                  && p.SubmittedAt < cutoff
-                  && p.OriginalityScore == null);
-
-            if (stuck > 0)
+            if (stuckProjectsCount > 0)
                 alerts.Add(new SystemAlertDto(
                     "Warning",
-                    $"{stuck} project(s) have been under review for over 48 hours with no AI score — " +
-                    $"they may have a stuck background job. Use POST /admin/projects/reset-stuck to recover.",
-                    stuck));
+                    $"{stuckProjectsCount} project(s) have been under review for over 48 hours with no AI score. " +
+                    $"Use POST /admin/projects/reset-stuck to recover.",
+                    stuckProjectsCount));
 
-            // Professors at maximum capacity
             var atCapacity = await _unitOfWork.Repository<Professor>()
                 .GetQueryable().AsNoTracking()
-                .CountAsync(p => p.IsActive
-                              && p.SupervisedTeams.Count(t => t.Project == null || t.Project.Status != ProjectStatus.Completed) >= p.MaxTeamLoad);
+                .CountAsync(p => p.IsActive && p.SupervisedTeams.Count >= p.MaxTeamLoad);
 
             if (atCapacity > 0)
                 alerts.Add(new SystemAlertDto(
@@ -149,6 +195,50 @@ namespace InnoTrack.Application.Services
                     atCapacity));
 
             return alerts;
+        }
+
+        public async Task CloseCurrentAcademicYearAsync(int adminId)
+        {
+            var activeYear = await _unitOfWork.Repository<AcademicYear>()
+                .FindAsync(y => y.IsActive)
+                ?? throw new InvalidOperationException(
+                    "No academic year is currently active. Nothing to close.");
+
+            activeYear.IsActive = false;
+            _unitOfWork.Repository<AcademicYear>().Update(activeYear);
+            await _unitOfWork.CompleteAsync();
+
+            _auditService.LogAction(adminId, "Close Academic Year",
+                $"Closed academic year '{activeYear.Name}'. " +
+                $"Students can no longer create new project drafts until a new year is opened.");
+        }
+
+        public async Task<int> ForceLogoutAllUsersAsync(int adminId)
+        {
+            // Admins are intentionally excluded — this action should never lock out
+            // the person executing it.
+            var activeSessions = await _unitOfWork.Repository<User>()
+                .GetQueryable()
+                .Where(u => u.RefreshToken != null && u.Role != UserRole.Admin)
+                .ToListAsync();
+
+            if (!activeSessions.Any()) return 0;
+
+            foreach (var user in activeSessions)
+            {
+                user.RefreshToken = null;
+                user.RefreshTokenExpiryTime = null;
+                _unitOfWork.Repository<User>().Update(user);
+            }
+
+            await _unitOfWork.CompleteAsync();
+
+            _auditService.LogAction(adminId, "Force Logout All",
+                $"Invalidated active sessions for {activeSessions.Count} user(s) " +
+                $"({activeSessions.Count(u => u.Role == UserRole.Student)} students, " +
+                $"{activeSessions.Count(u => u.Role == UserRole.Professor)} professors).");
+
+            return activeSessions.Count;
         }
 
         // AuditLog has no User navigation property — requires a LINQ join.

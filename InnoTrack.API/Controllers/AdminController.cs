@@ -521,5 +521,88 @@ namespace InnoTrack.API.Controllers
                 userId, action, from, to, pageNumber, pageSize);
             return Ok(result);
         }
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // QUICK ACTIONS
+        // All four are surfaced on the admin dashboard's "Quick Actions" panel.
+        // The dashboard DTO includes StuckProjectsCount and CanCloseAcademicYear
+        // flags so the front-end can enable/disable buttons appropriately.
+        // ══════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Quick Action 1 — Resets all projects stuck in 'UnderReview' for over 48 hours
+        /// with no AI originality score back to 'Draft', so students can resubmit.
+        /// Enabled on the dashboard when StuckProjectsCount > 0.
+        /// </summary>
+        [HttpPost("quick-actions/reset-stuck-projects")]
+        public async Task<IActionResult> QuickActionResetStuckProjects()
+        {
+            var adminId = GetUserId();
+            var count = await _adminService.ResetStuckProjectsAsync(adminId);
+
+            return Ok(new
+            {
+                message = count > 0
+                    ? $"{count} stuck project(s) reset to Draft. Teams have been notified."
+                    : "No stuck projects found — nothing to reset.",
+                resetCount = count
+            });
+        }
+
+        /// <summary>
+        /// Quick Action 2 — Closes (deactivates) the currently active academic year.
+        /// After this action, students cannot create new project drafts until an admin
+        /// opens a new year via PATCH /api/admin/academic-years/{id}/activate.
+        /// Enabled on the dashboard when CanCloseAcademicYear is true.
+        /// </summary>
+        [HttpPost("quick-actions/close-academic-year")]
+        public async Task<IActionResult> QuickActionCloseAcademicYear()
+        {
+            var adminId = GetUserId();
+            await _adminService.CloseCurrentAcademicYearAsync(adminId);
+
+            return Ok(new
+            {
+                message = "The current academic year has been closed. " +
+                          "Students can no longer create project drafts until a new year is opened."
+            });
+        }
+
+        /// <summary>
+        /// Quick Action 3 — Invalidates all active refresh tokens for every non-admin user,
+        /// forcing a full re-login on their next API request.
+        /// Use during security incidents or before planned maintenance windows.
+        /// </summary>
+        [HttpPost("quick-actions/force-logout-all")]
+        public async Task<IActionResult> QuickActionForceLogoutAll()
+        {
+            var adminId = GetUserId();
+            var terminatedCount = await _adminService.ForceLogoutAllUsersAsync(adminId);
+
+            return Ok(new
+            {
+                message = terminatedCount > 0
+                    ? $"{terminatedCount} active session(s) have been terminated."
+                    : "No active sessions found.",
+                terminatedCount
+            });
+        }
+
+        /// <summary>
+        /// Quick Action 4 — Opens (activates) a specific academic year, making it
+        /// the current year. Any previously active year is automatically deactivated.
+        /// Use this after closing a year to open the next one.
+        /// </summary>
+        [HttpPost("quick-actions/open-academic-year/{academicYearId:int}")]
+        public async Task<IActionResult> QuickActionOpenAcademicYear(int academicYearId)
+        {
+            var adminId = GetUserId();
+            await _academicYearService.ActivateAsync(academicYearId);
+
+            _auditService.LogAction(adminId, "Open Academic Year",
+                $"Academic year {academicYearId} activated via Quick Actions.");
+
+            return Ok(new { message = $"Academic year {academicYearId} is now active. Students can create project drafts." });
+        }
     }
 }

@@ -53,5 +53,21 @@ namespace InnoTrack.Application.Interfaces
         Task<PagedResult<AuditLogDto>> GetAuditLogsAsync(
             int? userId, string? action, DateTime? from, DateTime? to,
             int pageNumber, int pageSize);
+
+        // ── Quick Actions ─────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Deactivates the currently active academic year.
+        /// Students will be unable to create new project drafts until a new year is opened.
+        /// </summary>
+        Task CloseCurrentAcademicYearAsync(int adminId);
+
+        /// <summary>
+        /// Invalidates all active refresh tokens for every non-admin user,
+        /// forcing a full re-login on their next request.
+        /// Returns the count of sessions terminated.
+        /// </summary>
+        Task<int> ForceLogoutAllUsersAsync(int adminId);
+
     }
 }
