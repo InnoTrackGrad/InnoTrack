@@ -475,6 +475,7 @@ namespace InnoTrack.Infrastructure.Services
         {
             var project = await _context.Projects
                 .Include(p => p.Team)
+                    .ThenInclude(t => t.Members)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
             if (project == null) throw new KeyNotFoundException("Project not found.");
 
@@ -582,19 +583,39 @@ namespace InnoTrack.Infrastructure.Services
                 await _notificationService.SendProjectActivityLogAsync(projectId, "update", msg, "Team Leader", "FileText", "text-primary", "bg-primary/10");
             }
 
-            if (project.Team?.ProfessorId != null && logMessages.Any())
+            if (logMessages.Any())
             {
                 var shortTitle = project.Title.Trim();
                 if (shortTitle.Length > 80) shortTitle = shortTitle.Substring(0, 77) + "...";
                 var notificationMessage = $"Project '{shortTitle}': {string.Join(", ", logMessages)}.";
-                await _notificationService.SendNotificationAsync(
-                    userId: project.Team.ProfessorId.Value,
-                    title: "Project Details Updated",
-                    message: notificationMessage,
-                    type: NotificationType.Info,
-                    referenceId: project.Id,
-                    referenceType: ReferenceType.Project
-                );
+
+                if (project.Team?.ProfessorId != null)
+                {
+                    await _notificationService.SendNotificationAsync(
+                        userId: project.Team.ProfessorId.Value,
+                        title: "Project Details Updated",
+                        message: notificationMessage,
+                        type: NotificationType.Info,
+                        referenceId: project.Id,
+                        referenceType: ReferenceType.Project
+                    );
+                }
+
+                if (project.Team?.Members != null)
+                {
+                    var membersToNotify = project.Team.Members.Where(m => m.StudentId != userId).ToList();
+                    foreach (var member in membersToNotify)
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            userId: member.StudentId,
+                            title: "Project Details Updated",
+                            message: notificationMessage,
+                            type: NotificationType.Info,
+                            referenceId: project.Id,
+                            referenceType: ReferenceType.Project
+                        );
+                    }
+                }
             }
         }
 
