@@ -13,13 +13,15 @@ namespace InnoTrack.Application.Services
         private readonly IMapper _mapper;
         private readonly IJoinCodeGenerator _codeGenerator;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<TeamService> _logger;
     
-        public TeamService(IUnitOfWork unitOfWork, IMapper mapper, IJoinCodeGenerator codeGenerator, INotificationService notificationService)
+        public TeamService(IUnitOfWork unitOfWork, IMapper mapper, IJoinCodeGenerator codeGenerator, INotificationService notificationService, ILogger<TeamService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _codeGenerator = codeGenerator;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<TeamResponseDto> CreateTeamAsync(int leaderStudentId, CreateTeamDto request)
@@ -170,9 +172,9 @@ namespace InnoTrack.Application.Services
                             NotificationType.Success, team.Id, ReferenceType.System);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    _logger.LogWarning(ex, "Failed to send notification when joining team {TeamId}.", team.Id);
                 }
 
                 return new DirectJoinResponseDto(
@@ -237,7 +239,10 @@ namespace InnoTrack.Application.Services
                     $"You have been removed from the team '{team?.Name}'.", 
                     NotificationType.Warning);
             }
-            catch { }
+            catch (Exception ex) 
+            { 
+                _logger.LogWarning(ex, "Failed to send notification for removal of member {MemberId} from team {TeamId}.", memberIdToRemove, leaderRecord.TeamId);
+            }
 
             return leaderRecord.TeamId;
         }
@@ -265,7 +270,10 @@ namespace InnoTrack.Application.Services
                     await _notificationService.SendNotificationAsync(leader.StudentId, "Member Left", $"{student.FullName} has left the team.", NotificationType.Info);
                 }
             }
-            catch { }
+            catch (Exception ex) 
+            { 
+                _logger.LogWarning(ex, "Failed to send notification when member {StudentId} left team {TeamId}.", studentId, memberRecord.TeamId);
+            }
         }
 
         public async Task DeleteTeamAsync(int userId)
@@ -326,7 +334,10 @@ namespace InnoTrack.Application.Services
                     await _notificationService.SendNotificationAsync(member.StudentId, "Team Deleted", $"The team '{team?.Name}' has been deleted by the leader.", NotificationType.Error);
                 }
             }
-            catch { }
+            catch (Exception ex) 
+            { 
+                _logger.LogWarning(ex, "Failed to send team deletion notifications for team {TeamId}.", teamId);
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Common;
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -14,17 +14,20 @@ namespace InnoTrack.Application.Services
         private readonly IPasswordHasher _passwordHasher;
         private readonly INotificationService _notificationService;
         private readonly IAuditService _auditService;
+        private readonly ILogger<AdminService> _logger;
 
         public AdminService(
             IUnitOfWork unitOfWork,
             IPasswordHasher passwordHasher,
             INotificationService notificationService,
-            IAuditService auditService)
+            IAuditService auditService,
+            ILogger<AdminService> logger)
         {
             _unitOfWork = unitOfWork;
             _passwordHasher = passwordHasher;
             _notificationService = notificationService;
             _auditService = auditService;
+            _logger = logger;
         }
 
         // ── Dashboard ────────────────────────────────────────────────────────────
@@ -392,7 +395,10 @@ namespace InnoTrack.Application.Services
                     $"You have been assigned by an administrator as supervisor for team '{team.Name}'.",
                     NotificationType.Info);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify professor {ProfessorId} of new team {TeamId} assignment.", professorId, team.Id);
+            }
 
             // Notify team members
             var members = await _unitOfWork.Repository<TeamMember>()
@@ -407,7 +413,10 @@ namespace InnoTrack.Application.Services
                         $"Prof. {professor.FullName} has been assigned as your team's supervisor by an administrator.",
                         NotificationType.Info);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to notify team member {StudentId} about new supervisor assignment.", member.StudentId);
+                }
             }
         }
 
@@ -434,7 +443,10 @@ namespace InnoTrack.Application.Services
                         "Your team's supervisor has been unassigned by an administrator. A new supervisor will be assigned soon.",
                         NotificationType.Warning);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to notify team member {StudentId} about supervisor removal.", member.StudentId);
+                }
             }
         }
 
@@ -581,7 +593,10 @@ namespace InnoTrack.Application.Services
                         $"An administrator has updated your project '{project.Title}' to '{newStatus}'.",
                         notifType, project.Id, ReferenceType.Project);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to notify team member {StudentId} about project {ProjectId} status override.", member.StudentId, project.Id);
+                }
             }
         }
 
@@ -629,7 +644,10 @@ namespace InnoTrack.Application.Services
                     $"You have been assigned to supervise team '{team.Name}' on project '{project.Title}' by an administrator.",
                     NotificationType.Info, project.Id, ReferenceType.Project);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify professor {ProfessorId} of reassigned team {TeamId}.", newProfessorId, team.Id);
+            }
 
             // Notify team members
             var members = await _unitOfWork.Repository<TeamMember>()
@@ -644,7 +662,10 @@ namespace InnoTrack.Application.Services
                         $"Prof. {professor.FullName} has been assigned as your new supervisor by an administrator.",
                         NotificationType.Info, project.Id, ReferenceType.Project);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to notify team member {StudentId} about supervisor reassignment to prof {ProfessorId}.", member.StudentId, professor.Id);
+                }
             }
         }
 
@@ -692,7 +713,10 @@ namespace InnoTrack.Application.Services
                             NotificationType.Warning,
                             project.Id, ReferenceType.Project);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to notify team member {StudentId} about stuck project reset for project {ProjectId}.", member.StudentId, project.Id);
+                    }
                 }
             }
 

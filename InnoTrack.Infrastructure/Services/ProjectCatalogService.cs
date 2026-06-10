@@ -15,13 +15,15 @@ namespace InnoTrack.Infrastructure.Services
         private readonly ApplicationDbContext _context;
         private readonly IPythonAiClient _aiClient;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<ProjectCatalogService> _logger;
 
 
-        public ProjectCatalogService(ApplicationDbContext context, IPythonAiClient aiClient, INotificationService notificationService)
+        public ProjectCatalogService(ApplicationDbContext context, IPythonAiClient aiClient, INotificationService notificationService, ILogger<ProjectCatalogService> logger)
         {
             _context = context;
             _aiClient = aiClient;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<PagedResult<ProjectCatalogItemDto>> GetProjectsAsync(
@@ -664,7 +666,10 @@ namespace InnoTrack.Infrastructure.Services
                             referenceType: ReferenceType.System
                         );
                     }
-                    catch { }
+                    catch (Exception ex) 
+                    { 
+                        _logger.LogWarning(ex, "Failed to send notification to professor {ProfessorId} when project {ProjectId} was recalled.", professorId.Value, projectId);
+                    }
                 }
             }
             catch
