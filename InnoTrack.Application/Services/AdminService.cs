@@ -71,6 +71,9 @@ namespace InnoTrack.Application.Services
             // ── Academic year ────────────────────────────────────────────────────
             var activeYear = await _unitOfWork.Repository<AcademicYear>()
                 .FindAsync(y => y.IsActive);
+            // ── System data counts ───────────────────────────────────────────────
+            var totalTechnologies = await _unitOfWork.Repository<Technology>().GetQueryable().CountAsync();
+            var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>().GetQueryable().CountAsync();
 
             var totalTechnologies = await _unitOfWork.Repository<Technology>().GetQueryable().CountAsync();
             var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>().GetQueryable().CountAsync();
