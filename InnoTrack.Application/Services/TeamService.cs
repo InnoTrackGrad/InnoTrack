@@ -206,9 +206,33 @@ namespace InnoTrack.Application.Services
             var team = await _unitOfWork.Repository<Team>().GetByIdAsync(leaderRecord.TeamId)
                 ?? throw new KeyNotFoundException("Team not found.");
 
+            string oldName = team.Name;
             team.Name = newName.Trim();
+
             _unitOfWork.Repository<Team>().Update(team);
             await _unitOfWork.CompleteAsync();
+
+            var teamMembers = await _unitOfWork.Repository<TeamMember>()
+                .GetAllAsync(tm => tm.TeamId == team.Id);
+
+            foreach (var member in teamMembers.Where(m => m.StudentId != userId))
+            {
+                try
+                {
+                    await _notificationService.SendNotificationAsync(
+                        userId: member.StudentId,
+                        title: "Team Renamed",
+                        message: $"Your team '{oldName}' has been renamed to '{team.Name}' by the leader.",
+                        type: NotificationType.Info,
+                        referenceId: team.Id,
+                        referenceType: ReferenceType.System
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send rename notification to user {UserId}.", member.StudentId);
+                }
+            }
         }
 
         public async Task<int> RemoveMemberAsync(int leaderId, int memberIdToRemove)
@@ -235,10 +259,13 @@ namespace InnoTrack.Application.Services
             try 
             {
                 await _notificationService.SendNotificationAsync(
-                    memberIdToRemove, 
-                    "Removed from Team", 
-                    $"You have been removed from the team '{team?.Name}'.", 
-                    NotificationType.Warning);
+                                    userId: memberIdToRemove,
+                                    title: "Removed from Team",
+                                    message: $"You have been removed from the team '{team?.Name}'.",
+                                    type: NotificationType.Warning,
+                                    referenceId: null, 
+                                    referenceType: ReferenceType.System
+                                );
             }
             catch (Exception ex) 
             { 
@@ -264,15 +291,24 @@ namespace InnoTrack.Application.Services
 
             try
             {
-                var leader = await _unitOfWork.Repository<TeamMember>().FindAsync(tm => tm.TeamId == memberRecord.TeamId && tm.Role == TeamMemberRole.Leader);
+                var leader = await _unitOfWork.Repository<TeamMember>()
+                    .FindAsync(tm => tm.TeamId == memberRecord.TeamId && tm.Role == TeamMemberRole.Leader);
                 var student = await _unitOfWork.Repository<Student>().GetByIdAsync(studentId);
+
                 if (leader != null && student != null)
                 {
-                    await _notificationService.SendNotificationAsync(leader.StudentId, "Member Left", $"{student.FullName} has left the team.", NotificationType.Info);
+                    await _notificationService.SendNotificationAsync(
+                        userId: leader.StudentId,
+                        title: "Member Left",
+                        message: $"{student.FullName} has left the team.",
+                        type: NotificationType.Warning,
+                        referenceId: memberRecord.TeamId,
+                        referenceType: ReferenceType.System
+                    );
                 }
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 _logger.LogWarning(ex, "Failed to send notification when member {StudentId} left team {TeamId}.", studentId, memberRecord.TeamId);
             }
         }
@@ -332,11 +368,18 @@ namespace InnoTrack.Application.Services
             {
                 foreach (var member in teamMembers.Where(m => m.StudentId != userId))
                 {
-                    await _notificationService.SendNotificationAsync(member.StudentId, "Team Deleted", $"The team '{team?.Name}' has been deleted by the leader.", NotificationType.Error);
+                    await _notificationService.SendNotificationAsync(
+                        userId: member.StudentId,
+                        title: "Team Deleted",
+                        message: $"The team '{team?.Name}' has been deleted by the leader.",
+                        type: NotificationType.Error,
+                        referenceId: null,
+                        referenceType: ReferenceType.System
+                    );
                 }
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 _logger.LogWarning(ex, "Failed to send team deletion notifications for team {TeamId}.", teamId);
             }
         }
