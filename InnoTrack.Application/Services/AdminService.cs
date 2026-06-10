@@ -72,6 +72,9 @@ namespace InnoTrack.Application.Services
             var activeYear = await _unitOfWork.Repository<AcademicYear>()
                 .FindAsync(y => y.IsActive);
 
+            var totalTechnologies = await _unitOfWork.Repository<Technology>().GetQueryable().CountAsync();
+            var totalDomains = await _unitOfWork.Repository<InnoTrack.Domain.Entities.Domain>().GetQueryable().CountAsync();
+
             // ── Alerts (computed in memory — small result sets) ──────────────────
             var alerts = await BuildSystemAlertsAsync(
                 teamsWithoutSupervisor, activeYear is null, projStats?.UnderReview ?? 0);
@@ -94,6 +97,8 @@ namespace InnoTrack.Application.Services
                     ? Math.Round(projStats.AvgScore!.Value, 2) : null,
                 activeYear is not null,
                 activeYear?.Name,
+                totalTechnologies,
+                totalDomains,
                 alerts.AsReadOnly(),
                 recent.AsReadOnly()
             );
