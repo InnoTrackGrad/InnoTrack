@@ -6,7 +6,8 @@ namespace InnoTrack.Application.Interfaces
     public interface IProfessorAdminService
     {
         Task<ProfessorAdminViewDto> CreateProfessorAsync(CreateProfessorDto dto);
-        Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(int pageNumber, int pageSize);
+        Task DeleteProfessorByAdminAsync(int adminId, int professorId);
+        Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(string? search, int pageNumber, int pageSize);  
         Task<ProfessorAdminViewDto> GetProfessorByIdAsync(int professorId);
         Task UpdateProfessorAsync(int professorId, UpdateProfessorAdminDto dto);
         Task SetProfessorActiveStatusAsync(int professorId, bool isActive);

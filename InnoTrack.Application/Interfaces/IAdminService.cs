@@ -25,8 +25,9 @@ namespace InnoTrack.Application.Interfaces
         Task SoftDeleteStudentAsync(int adminId, int studentId);
 
         // ── Team Management ──────────────────────────────────────────────────────
-        Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(int pageNumber, int pageSize);
+        Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, int pageNumber, int pageSize);
         Task AssignSupervisorToTeamAsync(int teamId, int professorId);
+        Task DeleteTeamByAdminAsync(int adminId, int teamId);
         Task RemoveSupervisorFromTeamAsync(int teamId);
 
         // ── Project Management ───────────────────────────────────────────────────

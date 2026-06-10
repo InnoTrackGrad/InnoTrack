@@ -13,11 +13,13 @@ namespace InnoTrack.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IAuditService _auditService;
 
-        public ProfessorAdminService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+        public ProfessorAdminService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, IAuditService auditService)
         {
             _unitOfWork = unitOfWork;
             _passwordHasher = passwordHasher;
+            _auditService = auditService;
         }
 
         public async Task<ProfessorAdminViewDto> CreateProfessorAsync(CreateProfessorDto dto)
@@ -55,25 +57,66 @@ namespace InnoTrack.Application.Services
                 professor.IsActive, professor.CreatedAt);
         }
 
-        public async Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(
-            int pageNumber, int pageSize)
+        public async Task DeleteProfessorByAdminAsync(int adminId, int professorId)
         {
+            var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId)
+                ?? throw new KeyNotFoundException("Professor not found.");
+
+            var activeSupervisions = await _unitOfWork.Repository<Team>()
+                .AnyAsync(t => t.ProfessorId == professorId &&
+                               t.Project != null &&
+                               (t.Project.Status == ProjectStatus.In_Progress || t.Project.Status == ProjectStatus.Approved || t.Project.Status == ProjectStatus.Draft));
+
+            if (activeSupervisions)
+                throw new InvalidOperationException("Cannot delete this professor because they are currently supervising active teams. Reassign the teams first.");
+
+            professor.IsActive = false;
+            professor.IsDeleted = true;
+
+            _unitOfWork.Repository<Professor>().Update(professor); 
+            await _unitOfWork.CompleteAsync();
+
+            _auditService.LogAction(adminId, "Admin Disable Professor", $"Disabled professor account: {professor.FullName}");
+        }
+
+        public async Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(string? search, int pageNumber, int pageSize)
+        {
+            var activeYearId = await _unitOfWork.Repository<AcademicYear>()
+                .GetQueryable()
+                .Where(y => y.IsActive)
+                .Select(y => y.Id)
+                .FirstOrDefaultAsync();
+
             var query = _unitOfWork.Repository<Professor>()
                 .GetQueryable()
                 .AsNoTracking()
                 .Include(p => p.Department)
-                .OrderBy(p => p.FirstName).ThenBy(p => p.LastName);
+                .Include(p => p.SupervisedTeams)
+                    .ThenInclude(t => t.Project)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(p =>
+                    p.FirstName.ToLower().Contains(cleanSearch) ||
+                    p.LastName.ToLower().Contains(cleanSearch) ||
+                    p.Email.ToLower().Contains(cleanSearch) ||
+                    p.Department.Name.ToLower().Contains(cleanSearch));
+            }
 
             var totalCount = await query.CountAsync();
 
             var items = await query
+                .OrderBy(p => p.FirstName).ThenBy(p => p.LastName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => new ProfessorAdminViewDto(
                     p.Id, p.FullName, p.Email,
                     p.DepartmentId, p.Department.Name,
                     p.MaxTeamLoad,
-                    p.SupervisedTeams.Count,
+                    p.SupervisedTeams.Count(t => t.Project == null ||
+                        (t.Project.AcademicYearId == activeYearId && t.Project.Status != ProjectStatus.Completed)),
                     p.IsActive, p.CreatedAt))
                 .ToListAsync();
 

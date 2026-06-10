@@ -370,36 +370,43 @@ namespace InnoTrack.Application.Services
 
         // ── Team Management ──────────────────────────────────────────────────────
 
-        public async Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(
-            int pageNumber, int pageSize)
+        public async Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, int pageNumber, int pageSize)
         {
             var query = _unitOfWork.Repository<Team>()
-                .GetQueryable()
-                .AsNoTracking()
-                .Include(t => t.Members)
-                .Include(t => t.Project)
-                .Include(t => t.Supervisor);
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(t => t.Members).ThenInclude(m => m.Student)
+                    .Include(t => t.Project)
+                    .Include(t => t.Supervisor)
+                    .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(t =>
+                    t.Name.ToLower().Contains(cleanSearch) ||
+                    (t.Project != null && t.Project.Title.ToLower().Contains(cleanSearch)) ||
+                    (t.Supervisor != null && (t.Supervisor.FirstName + " " + t.Supervisor.LastName).ToLower().Contains(cleanSearch)));
+            }
 
             var totalCount = await query.CountAsync();
 
             var teams = await query
-                .OrderBy(t => t.Name)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(t => new AdminTeamListItemDto(
-                    t.Id, t.Name,
-                    t.Members.Count(m => m.Student != null && !m.Student.IsDeleted),
-                    t.Project != null ? (int?)t.Project.Id : null,
-                    t.Project != null ? t.Project.Title : null,
-                    t.Project != null ? t.Project.Status.ToString() : null,
-                    t.Project != null ? t.Project.OriginalityScore : null,
-                    t.ProfessorId,
-                    t.Supervisor != null
-                        ? t.Supervisor.FirstName + " " + t.Supervisor.LastName
-                        : null,
-                    t.Supervisor != null && t.Supervisor.IsActive,
-                    t.CreatedAt))
-                .ToListAsync();
+                    .OrderBy(t => t.Name)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(t => new AdminTeamListItemDto(
+                        t.Id, t.Name,
+                        t.Members.Count(m => m.Student != null && !m.Student.IsDeleted),
+                        t.Project != null ? (int?)t.Project.Id : null,
+                        t.Project != null ? t.Project.Title : null,
+                        t.Project != null ? t.Project.Status.ToString() : null,
+                        t.Project != null ? t.Project.OriginalityScore : null,
+                        t.ProfessorId,
+                        t.Supervisor != null ? t.Supervisor.FirstName + " " + t.Supervisor.LastName : null,
+                        t.Supervisor != null && t.Supervisor.IsActive,
+                        t.CreatedAt))
+                    .ToListAsync();
 
             return new PagedResult<AdminTeamListItemDto>(teams, totalCount, pageNumber, pageSize);
         }
@@ -459,6 +466,51 @@ namespace InnoTrack.Application.Services
                 {
                     _logger.LogWarning(ex, "Failed to notify team member {StudentId} about new supervisor assignment.", member.StudentId);
                 }
+            }
+        }
+
+        public async Task DeleteTeamByAdminAsync(int adminId, int teamId)
+        {
+            var team = await _unitOfWork.Repository<Team>()
+                .GetQueryable()
+                .Include(t => t.Project)
+                .FirstOrDefaultAsync(t => t.Id == teamId)
+                ?? throw new KeyNotFoundException("Team not found.");
+
+            if (team.Project != null &&
+               (team.Project.Status == ProjectStatus.In_Progress || team.Project.Status == ProjectStatus.Completed))
+            {
+                throw new InvalidOperationException("Cannot delete a team with an Active or Completed project. Archive or Abandon the project first.");
+            }
+
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var drafts = await _unitOfWork.Repository<ProjectDraft>().GetAllAsync(d => d.TeamId == teamId);
+                foreach (var d in drafts) _unitOfWork.Repository<ProjectDraft>().Delete(d);
+
+                var requests = await _unitOfWork.Repository<JoinRequest>().GetAllAsync(r => r.TeamId == teamId);
+                foreach (var r in requests) _unitOfWork.Repository<JoinRequest>().Delete(r);
+
+                var members = await _unitOfWork.Repository<TeamMember>().GetAllAsync(m => m.TeamId == teamId);
+                foreach (var m in members) _unitOfWork.Repository<TeamMember>().Delete(m);
+
+                if (team.Project != null)
+                {
+                    _unitOfWork.Repository<Project>().Delete(team.Project);
+                }
+
+                _unitOfWork.Repository<Team>().Delete(team);
+
+                await _unitOfWork.CompleteAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+                _auditService.LogAction(adminId, "Admin Delete Team", $"Deleted team '{team.Name}' and unlinked all members.");
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
             }
         }
 

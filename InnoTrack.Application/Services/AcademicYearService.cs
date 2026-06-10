@@ -11,8 +11,13 @@ namespace InnoTrack.Application.Services
     public class AcademicYearService : IAcademicYearService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditService _auditService;
 
-        public AcademicYearService(IUnitOfWork unitOfWork) => _unitOfWork = unitOfWork;
+        public AcademicYearService(IUnitOfWork unitOfWork, IAuditService auditService)
+        {
+            _unitOfWork = unitOfWork;
+            _auditService = auditService;
+        }
 
         public async Task<AcademicYearDto> CreateAsync(CreateAcademicYearDto dto)
         {
@@ -40,6 +45,24 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
 
             return MapToDto(academicYear, projectCount: 0);
+        }
+
+        public async Task DeleteAcademicYearAsync(int adminId, int yearId)
+        {
+            var year = await _unitOfWork.Repository<AcademicYear>().GetByIdAsync(yearId)
+                ?? throw new KeyNotFoundException("Academic Year not found.");
+
+            if (year.IsActive)
+                throw new InvalidOperationException("Cannot delete the current active academic year.");
+
+            var hasProjects = await _unitOfWork.Repository<Project>().AnyAsync(p => p.AcademicYearId == yearId);
+            if (hasProjects)
+                throw new InvalidOperationException("Cannot delete this academic year because it contains registered project records.");
+
+            _unitOfWork.Repository<AcademicYear>().Delete(year);
+            await _unitOfWork.CompleteAsync();
+
+            _auditService.LogAction(adminId, "Delete Academic Year", $"Deleted academic year configuration: {year.Name}");
         }
 
         public async Task<PagedResult<AcademicYearDto>> GetAllAsync(int pageNumber, int pageSize)

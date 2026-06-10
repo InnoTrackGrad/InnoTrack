@@ -6,6 +6,7 @@ namespace InnoTrack.Application.Interfaces
     public interface IAcademicYearService
     {
         Task<AcademicYearDto> CreateAsync(CreateAcademicYearDto dto);
+        Task DeleteAcademicYearAsync(int adminId, int yearId);
         Task<PagedResult<AcademicYearDto>> GetAllAsync(int pageNumber, int pageSize);
         Task<AcademicYearDto?> GetActiveAsync();
         Task ActivateAsync(int academicYearId);

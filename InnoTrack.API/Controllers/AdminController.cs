@@ -164,13 +164,28 @@ namespace InnoTrack.API.Controllers
             return CreatedAtAction(nameof(GetProfessorById), new { professorId = result.Id }, result);
         }
 
+        /// <summary>
+        /// Deletes a professor account.
+        /// Deletion is blocked if the professor is supervising teams with
+        /// Draft, Approved, In Progress, or Completed projects.
+        /// Reassign those teams before attempting deletion.
+        /// </summary>
+        [HttpDelete("professors/{professorId:int}")]
+        public async Task<IActionResult> DeleteProfessor(int professorId)
+        {
+            var adminId = GetUserId();
+            await _professorAdminService.DeleteProfessorByAdminAsync(adminId, professorId);
+            return NoContent();
+        }
+
         /// <summary>Returns all professor accounts with current team load info, paginated.</summary>
         [HttpGet("professors")]
         public async Task<IActionResult> GetAllProfessors(
+            [FromQuery] string? search,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _professorAdminService.GetAllProfessorsAsync(pageNumber, pageSize);
+            var result = await _professorAdminService.GetAllProfessorsAsync(search, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -232,10 +247,11 @@ namespace InnoTrack.API.Controllers
         /// </summary>
         [HttpGet("teams")]
         public async Task<IActionResult> GetAllTeams(
+             [FromQuery] string? search,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _adminService.GetAllTeamsAsync(pageNumber, pageSize);
+            var result = await _adminService.GetAllTeamsAsync(search, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -255,6 +271,19 @@ namespace InnoTrack.API.Controllers
             _auditService.LogAction(adminId, "Assign Supervisor",
                 $"Admin assigned professor {dto.ProfessorId} to team {teamId}.");
 
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Deletes a team and removes all related data including members,
+        /// join requests, drafts, and the associated project (if eligible).
+        /// Teams with In Progress or Completed projects cannot be deleted.
+        /// </summary>
+        [HttpDelete("teams/{teamId:int}")]
+        public async Task<IActionResult> DeleteTeam(int teamId)
+        {
+            var adminId = GetUserId();
+            await _adminService.DeleteTeamByAdminAsync(adminId, teamId);
             return NoContent();
         }
 
@@ -410,6 +439,19 @@ namespace InnoTrack.API.Controllers
                 $"Created academic year '{dto.Name}' (ID {result.Id}).");
 
             return CreatedAtAction(nameof(GetAllAcademicYears), null, result);
+        }
+
+        /// <summary>
+        /// Deletes an academic year configuration.
+        /// Deletion is blocked if the academic year is currently active
+        /// or if there are projects associated with it.
+        /// </summary>
+        [HttpDelete("academic-years/{academicYearId:int}")]
+        public async Task<IActionResult> DeleteAcademicYear(int academicYearId)
+        {
+            var adminId = GetUserId();
+            await _academicYearService.DeleteAcademicYearAsync(adminId, academicYearId);
+            return NoContent();
         }
 
         /// <summary>Returns all academic years ordered by start date descending, paginated.</summary>
