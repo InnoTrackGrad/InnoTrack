@@ -712,7 +712,8 @@ namespace InnoTrack.Infrastructure.Services
             var aiResponse = await _aiClient.AnalyzeProjectAsync(aiRequest);
 
             var topProjects = aiResponse.TopSimilarProjects ?? new List<PythonSimilarProjectDto>();
-            decimal overallScore = topProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m;
+            decimal overallScore = aiResponse.OverallOriginalityScore > 0 
+                ? aiResponse.OverallOriginalityScore : (topProjects.FirstOrDefault()?.FinalOriginalityScore ?? 100m);
 
             var similarProjects = new List<SimilarProjectResultDto>();
             foreach (var sp in topProjects)
