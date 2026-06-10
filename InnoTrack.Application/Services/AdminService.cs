@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Application.Interfaces;
@@ -134,7 +135,7 @@ namespace InnoTrack.Application.Services
             var atCapacity = await _unitOfWork.Repository<Professor>()
                 .GetQueryable().AsNoTracking()
                 .CountAsync(p => p.IsActive
-                              && p.SupervisedTeams.Count >= p.MaxTeamLoad);
+                              && p.SupervisedTeams.Count(t => t.Project == null || t.Project.Status != ProjectStatus.Completed) >= p.MaxTeamLoad);
 
             if (atCapacity > 0)
                 alerts.Add(new SystemAlertDto(

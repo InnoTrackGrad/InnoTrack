@@ -164,11 +164,14 @@ namespace InnoTrack.API.Controllers
             return CreatedAtAction(nameof(GetProfessorById), new { professorId = result.Id }, result);
         }
 
-        /// <summary>Returns all professor accounts with current team load info.</summary>
+        /// <summary>Returns all professor accounts with current team load info, paginated.</summary>
         [HttpGet("professors")]
-        public async Task<IActionResult> GetAllProfessors()
+        public async Task<IActionResult> GetAllProfessors(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
         {
-            return Ok(await _professorAdminService.GetAllProfessorsAsync());
+            var result = await _professorAdminService.GetAllProfessorsAsync(pageNumber, pageSize);
+            return Ok(result);
         }
 
         /// <summary>Returns full details for a single professor.</summary>
@@ -409,11 +412,14 @@ namespace InnoTrack.API.Controllers
             return CreatedAtAction(nameof(GetAllAcademicYears), null, result);
         }
 
-        /// <summary>Returns all academic years ordered by start date descending.</summary>
+        /// <summary>Returns all academic years ordered by start date descending, paginated.</summary>
         [HttpGet("academic-years")]
-        public async Task<IActionResult> GetAllAcademicYears()
+        public async Task<IActionResult> GetAllAcademicYears(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            return Ok(await _academicYearService.GetAllAsync());
+            var result = await _academicYearService.GetAllAsync(pageNumber, pageSize);
+            return Ok(result);
         }
 
         /// <summary>Returns the currently active academic year, or 404 if none is configured.</summary>

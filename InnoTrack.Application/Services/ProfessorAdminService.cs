@@ -1,4 +1,5 @@
 ﻿// InnoTrack.Application/Services/ProfessorAdminService.cs
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Professors;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -54,13 +55,20 @@ namespace InnoTrack.Application.Services
                 professor.IsActive, professor.CreatedAt);
         }
 
-        public async Task<IReadOnlyList<ProfessorAdminViewDto>> GetAllProfessorsAsync()
+        public async Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(
+            int pageNumber, int pageSize)
         {
-            var result = await _unitOfWork.Repository<Professor>()
+            var query = _unitOfWork.Repository<Professor>()
                 .GetQueryable()
                 .AsNoTracking()
                 .Include(p => p.Department)
-                .OrderBy(p => p.FirstName).ThenBy(p => p.LastName)
+                .OrderBy(p => p.FirstName).ThenBy(p => p.LastName);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(p => new ProfessorAdminViewDto(
                     p.Id, p.FullName, p.Email,
                     p.DepartmentId, p.Department.Name,
@@ -69,9 +77,8 @@ namespace InnoTrack.Application.Services
                     p.IsActive, p.CreatedAt))
                 .ToListAsync();
 
-            return result.AsReadOnly();
+            return new PagedResult<ProfessorAdminViewDto>(items, totalCount, pageNumber, pageSize);
         }
-
         public async Task<ProfessorAdminViewDto> GetProfessorByIdAsync(int professorId)
         {
             var professor = await _unitOfWork.Repository<Professor>()

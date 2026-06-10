@@ -1,4 +1,5 @@
 ﻿// InnoTrack.Application/Services/AcademicYearService.cs
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -41,18 +42,24 @@ namespace InnoTrack.Application.Services
             return MapToDto(academicYear, projectCount: 0);
         }
 
-        public async Task<IReadOnlyList<AcademicYearDto>> GetAllAsync()
+        public async Task<PagedResult<AcademicYearDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var years = await _unitOfWork.Repository<AcademicYear>()
+            var query = _unitOfWork.Repository<AcademicYear>()
                 .GetQueryable()
                 .AsNoTracking()
-                .OrderByDescending(y => y.StartDate)
+                .OrderByDescending(y => y.StartDate);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(y => new AcademicYearDto(
                     y.Id, y.Name, y.StartDate, y.EndDate, y.IsActive,
                     y.Projects.Count))
                 .ToListAsync();
 
-            return years.AsReadOnly();
+            return new PagedResult<AcademicYearDto>(items, totalCount, pageNumber, pageSize);
         }
 
         public async Task<AcademicYearDto?> GetActiveAsync()

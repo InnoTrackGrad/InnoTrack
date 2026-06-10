@@ -1,4 +1,5 @@
 using AutoMapper;
+using Castle.Core.Logging;
 using InnoTrack.Application.DTOs.Teams;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Application.Services;
@@ -15,6 +16,7 @@ namespace InnoTrack.Tests
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IJoinCodeGenerator> _mockCodeGenerator;
         private readonly Mock<INotificationService> _notificationService;
+        private readonly Mock<Microsoft.Extensions.Logging.ILogger<TeamService>> _logger;
         private readonly TeamService _teamService;
 
         public TeamServiceTests()
@@ -23,7 +25,7 @@ namespace InnoTrack.Tests
             _mockMapper = new Mock<IMapper>();
             _mockCodeGenerator = new Mock<IJoinCodeGenerator>();
             _notificationService = new Mock<INotificationService>();
-            _teamService = new TeamService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCodeGenerator.Object, _notificationService.Object);
+            _teamService = new TeamService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCodeGenerator.Object, _notificationService.Object, _logger.Object);
         }
 
         [Fact]
