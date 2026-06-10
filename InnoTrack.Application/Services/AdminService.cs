@@ -297,22 +297,57 @@ namespace InnoTrack.Application.Services
             if (student.IsDeleted)
                 throw new InvalidOperationException("Student account is already deleted.");
 
-            // Guard: cannot delete a team leader who has an active project
             var membership = await _unitOfWork.Repository<TeamMember>()
                 .FindAsync(tm => tm.StudentId == studentId);
 
-            if (membership?.Role == TeamMemberRole.Leader)
+            if (membership != null)
             {
-                var hasActive = await _unitOfWork.Repository<Project>().AnyAsync(
-                    p => p.TeamId == membership.TeamId
-                      && p.Status != ProjectStatus.Abandoned
-                      && p.Status != ProjectStatus.Rejected
-                      && p.Status != ProjectStatus.Completed);
+                var teamId = membership.TeamId;
 
-                if (hasActive)
-                    throw new InvalidOperationException(
-                        "Cannot delete a student who leads a team with an active project. " +
-                        "Resolve or reassign the project first, or use team admin to remove them from leadership.");
+                if (membership.Role == TeamMemberRole.Leader)
+                {
+                    var hasActiveProject = await _unitOfWork.Repository<Project>().AnyAsync(
+                        p => p.TeamId == teamId
+                          && p.Status != ProjectStatus.Abandoned
+                          && p.Status != ProjectStatus.Rejected
+                          && p.Status != ProjectStatus.Completed);
+
+                    if (hasActiveProject)
+                    {
+                        throw new InvalidOperationException(
+                            "Cannot delete a student who leads a team with an active project. " +
+                            "Resolve or reassign the project first.");
+                    }
+
+                    var otherMembers = await _unitOfWork.Repository<TeamMember>()
+                        .GetQueryable()
+                        .Where(tm => tm.TeamId == teamId && tm.StudentId != studentId)
+                        .OrderBy(tm => tm.JoinedAt)
+                        .ToListAsync();
+
+                    if (otherMembers.Any())
+                    {
+                        var newLeader = otherMembers.First();
+                        newLeader.Role = TeamMemberRole.Leader;
+                        _unitOfWork.Repository<TeamMember>().Update(newLeader);
+                    }
+                    else
+                    {
+                        var drafts = await _unitOfWork.Repository<ProjectDraft>().GetAllAsync(d => d.TeamId == teamId);
+                        foreach (var draft in drafts) _unitOfWork.Repository<ProjectDraft>().Delete(draft);
+
+                        var joinRequests = await _unitOfWork.Repository<JoinRequest>().GetAllAsync(r => r.TeamId == teamId);
+                        foreach (var request in joinRequests) _unitOfWork.Repository<JoinRequest>().Delete(request);
+
+                        var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamId);
+                        if (team != null) _unitOfWork.Repository<Team>().Delete(team);
+                    }
+                }
+
+                _unitOfWork.Repository<TeamMember>().Delete(membership);
+
+                var myRequests = await _unitOfWork.Repository<JoinRequest>().GetAllAsync(r => r.StudentId == studentId);
+                foreach (var req in myRequests) _unitOfWork.Repository<JoinRequest>().Delete(req);
             }
 
             student.IsDeleted = true;
@@ -326,6 +361,7 @@ namespace InnoTrack.Application.Services
             _auditService.LogAction(adminId, "Soft Delete Student",
                 $"Admin soft-deleted student ID {studentId} ('{student.FullName}').");
         }
+
 
         // ── Team Management ──────────────────────────────────────────────────────
 
@@ -347,7 +383,7 @@ namespace InnoTrack.Application.Services
                 .Take(pageSize)
                 .Select(t => new AdminTeamListItemDto(
                     t.Id, t.Name,
-                    t.Members.Count,
+                    t.Members.Count(m => m.Student != null && !m.Student.IsDeleted),
                     t.Project != null ? (int?)t.Project.Id : null,
                     t.Project != null ? t.Project.Title : null,
                     t.Project != null ? t.Project.Status.ToString() : null,
