@@ -50,6 +50,8 @@ namespace InnoTrack.Application.Services
             var teamsWithoutSupervisor = await _unitOfWork.Repository<Team>()
                 .CountAsync(t => t.ProfessorId == null);
 
+            var draftCount = await _unitOfWork.Repository<ProjectDraft>().GetQueryable().CountAsync();
+
             // ── Project counts in one DB round-trip ──────────────────────────────
             var projStats = await _unitOfWork.Repository<Project>()
                 .GetQueryable().AsNoTracking()
@@ -57,7 +59,6 @@ namespace InnoTrack.Application.Services
                 .Select(g => new
                 {
                     Total = g.Count(),
-                    Draft = g.Count(p => p.Status == ProjectStatus.Draft),
                     UnderReview = g.Count(p => p.Status == ProjectStatus.UnderReview),
                     InProgress = g.Count(p => p.Status == ProjectStatus.In_Progress),
                     Approved = g.Count(p => p.Status == ProjectStatus.Approved),
@@ -104,13 +105,13 @@ namespace InnoTrack.Application.Services
             // Build status chart from already-computed projStats (zero extra DB hits)
             var projectsByStatus = new[]
             {
-        new ChartDataPointDto("Draft",        projStats?.Draft       ?? 0),
-        new ChartDataPointDto("Under Review", projStats?.UnderReview ?? 0),
-        new ChartDataPointDto("In Progress",  projStats?.InProgress  ?? 0),
-        new ChartDataPointDto("Approved",     projStats?.Approved    ?? 0),
-        new ChartDataPointDto("Rejected",     projStats?.Rejected    ?? 0),
-        new ChartDataPointDto("Completed",    projStats?.Completed   ?? 0),
-    }
+                new ChartDataPointDto("Draft", draftCount),
+                new ChartDataPointDto("Under Review", projStats?.UnderReview ?? 0),
+                new ChartDataPointDto("In Progress",  projStats?.InProgress  ?? 0),
+                new ChartDataPointDto("Approved",     projStats?.Approved    ?? 0),
+                new ChartDataPointDto("Rejected",     projStats?.Rejected    ?? 0),
+                new ChartDataPointDto("Completed",    projStats?.Completed   ?? 0),
+            }
             .Where(x => x.Count > 0)               // omit zero-count statuses from pie/bar charts
             .OrderByDescending(x => x.Count)
             .ToList()
@@ -137,8 +138,8 @@ namespace InnoTrack.Application.Services
                 totalStudents, activeStudents,
                 totalProfs, activeProfs, newStudentsWeek,
                 totalTeams, teamsWithoutSupervisor,
-                projStats?.Total ?? 0,
-                projStats?.Draft ?? 0,
+                (projStats?.Total ?? 0) + draftCount,
+                draftCount,
                 projStats?.UnderReview ?? 0,
                 projStats?.InProgress ?? 0,
                 projStats?.Approved ?? 0,
