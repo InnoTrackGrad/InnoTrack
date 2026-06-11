@@ -125,6 +125,9 @@ namespace InnoTrack.API.Controllers
 
             var report = await _projectAnalysisService.GetOriginalityReportAsync(projectId, userId, role);
 
+            var egyptTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+            var localGeneratedAt = TimeZoneInfo.ConvertTimeFromUtc(report.GeneratedAt, egyptTimeZone);
+
             var pdfDocument = Document.Create(container =>
             {
                 container.Page(page =>
@@ -151,7 +154,7 @@ namespace InnoTrack.API.Controllers
                             inner.Item().Text($"Project Title: {report.ProjectTitle}").SemiBold().FontSize(14);
                             inner.Item().Text($"Team: {report.TeamName}");
                             inner.Item().Text($"Supervisor: {report.SupervisorName ?? "Not Assigned"}");
-                            inner.Item().Text($"Generated On: {report.GeneratedAt:MMMM dd, yyyy - HH:mm}");
+                            inner.Item().Text($"Generated On: {localGeneratedAt:MMMM dd, yyyy - HH:mm}");
                         });
 
                         col.Item().PaddingVertical(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
