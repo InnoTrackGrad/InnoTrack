@@ -1,8 +1,9 @@
-﻿using InnoTrack.Application.DTOs.AI;
+using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.Exceptions;
 using InnoTrack.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace InnoTrack.Application.Services
 {
@@ -23,6 +24,34 @@ namespace InnoTrack.Application.Services
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                
+                // Try to parse FastAPI validation error
+                if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+                {
+                    try
+                    {
+                        var json = JsonDocument.Parse(errorContent);
+                        if (json.RootElement.TryGetProperty("detail", out var detailArray) && detailArray.ValueKind == JsonValueKind.Array && detailArray.GetArrayLength() > 0)
+                        {
+                            var firstError = detailArray[0];
+                            if (firstError.TryGetProperty("msg", out var msgElement))
+                            {
+                                var fieldName = "Field";
+                                if (firstError.TryGetProperty("loc", out var locArray) && locArray.ValueKind == JsonValueKind.Array && locArray.GetArrayLength() > 1)
+                                {
+                                    var locVal = locArray[1].GetString();
+                                    if (!string.IsNullOrEmpty(locVal))
+                                    {
+                                        fieldName = char.ToUpper(locVal[0]) + locVal.Substring(1);
+                                    }
+                                }
+                                throw new ExternalServiceException($"{fieldName}: {msgElement.GetString()}");
+                            }
+                        }
+                    }
+                    catch (JsonException) { /* Fallback to raw error if parsing fails */ }
+                }
+
                 throw new ExternalServiceException($"AI Service Error ({response.StatusCode}): {errorContent}");
             }
 
