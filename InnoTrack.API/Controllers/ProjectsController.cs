@@ -113,7 +113,13 @@ namespace InnoTrack.API.Controllers
         [AuthorizeRoles(UserRole.Student, UserRole.Professor)]
         public async Task<IActionResult> DownloadReportPdf(int projectId)
         {
-            var report = await _projectAnalysisService.GetOriginalityReportAsync(projectId);
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+                return Unauthorized("Invalid User Token.");
+
+            var report = await _projectAnalysisService.GetOriginalityReportAsync(projectId, userId, role);
 
             var pdfDocument = Document.Create(container =>
             {

@@ -185,7 +185,7 @@ namespace InnoTrack.Application.Services
             }
         }
 
-        public async Task<OriginalityReportDto> GetOriginalityReportAsync(int projectId)
+        public async Task<OriginalityReportDto> GetOriginalityReportAsync(int projectId, int userId, string role)
         {
             var report = await _unitOfWork.Repository<OriginalityReport>()
                 .GetQueryable()
@@ -198,25 +198,43 @@ namespace InnoTrack.Application.Services
             if (report == null)
                 throw new KeyNotFoundException("AI report not generated yet for this project.");
 
+            if (role == UserRole.Student.ToString())
+            {
+                var isLeader = await _unitOfWork.Repository<TeamMember>().AnyAsync(tm =>
+                    tm.TeamId == report.Project!.TeamId &&
+                    tm.StudentId == userId &&
+                    tm.Role == TeamMemberRole.Leader);
+
+                if (!isLeader)
+                    throw new UnauthorizedAccessException("Only the team leader is allowed to view and download the originality report.");
+            }
+            else if (role == UserRole.Professor.ToString())
+            {
+                var isSupervisor = report.Project?.Team?.ProfessorId == userId;
+
+                if (!isSupervisor)
+                    throw new UnauthorizedAccessException("Only the assigned supervisor can access this project's originality report.");
+            }
+
             decimal displayScore = report.OverallScore <= 1m ? report.OverallScore * 100m : report.OverallScore;
 
             return new OriginalityReportDto(
-                report.ProjectId,
-                report.Project?.Title ?? "Unknown Project",
-                report.Project?.Team?.Name ?? "Unknown Team",
-                report.Project?.Team?.Supervisor?.FullName ?? "Unknown Supervisor",
-                Math.Round(displayScore, 2),
-                report.Summary ?? "No summary available",
-                report.GeneratedAt,
-                report.SimilarProjects
-                    .Select(sp => new SimilarProjectResultDto(
-                            sp.ReferencedProjectId,
-                            sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
-                            Math.Round(NormalizePercent(sp.SimilarityPercentage), 2)
-                        ))
-                    .ToList()
-                    .AsReadOnly()
-            );
+                    report.ProjectId,
+                    report.Project?.Title ?? "Unknown Project",
+                    report.Project?.Team?.Name ?? "Unknown Team",
+                    report.Project?.Team?.Supervisor?.FullName ?? "Unknown Supervisor",
+                    Math.Round(displayScore, 2),
+                    report.Summary ?? "No summary available",
+                    report.GeneratedAt,
+                    report.SimilarProjects
+                        .Select(sp => new SimilarProjectResultDto(
+                                sp.ReferencedProjectId,
+                                sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
+                                Math.Round(NormalizePercent(sp.SimilarityPercentage), 2)
+                            ))
+                        .ToList()
+                        .AsReadOnly()
+                );
         }
 
         private static decimal NormalizePercent(decimal score)
