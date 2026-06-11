@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Professors
+namespace InnoTrack.Application.DTOs.Professors
 {
     public record ProfessorProfileDto(
         int Id,
@@ -9,7 +9,8 @@
         string DepartmentName,
         int MaxTeamLoad,
         int CurrentTeamLoad,
-        bool IsActive
+        bool IsActive,
+        string? ProfilePictureUrl
     )
     {
         public bool IsAvailable => CurrentTeamLoad < MaxTeamLoad;

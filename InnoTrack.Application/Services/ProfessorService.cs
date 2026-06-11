@@ -1,4 +1,4 @@
-﻿// InnoTrack.Application/Services/ProfessorService.cs
+// InnoTrack.Application/Services/ProfessorService.cs
 using InnoTrack.Application.DTOs.Professors;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -30,7 +30,7 @@ namespace InnoTrack.Application.Services
             return new ProfessorProfileDto(
                 professor.Id, professor.FirstName, professor.LastName,
                 professor.Email, professor.DepartmentId, professor.Department.Name,
-                professor.MaxTeamLoad, currentLoad, professor.IsActive);
+                professor.MaxTeamLoad, currentLoad, professor.IsActive, professor.ProfilePictureURL);
         }
 
         public async Task UpdateProfileAsync(int professorId, UpdateProfessorProfileDto dto)

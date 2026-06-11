@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Users;
+using InnoTrack.Application.DTOs.Users;
 using InnoTrack.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +58,26 @@ namespace InnoTrack.API.Controllers
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _userService.ChangePasswordAsync(userId, request);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Uploads a profile picture for the authenticated user.
+        /// </summary>
+        /// <param name="file">The image file to upload.</param>
+        /// <returns>Returns the relative path of the uploaded picture.</returns>
+        [HttpPost("me/profile-picture")]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file was uploaded.");
+
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            using var stream = file.OpenReadStream();
+            var relativePath = await _userService.UploadProfilePictureAsync(
+                userId, stream, file.FileName, file.ContentType, file.Length);
+
+            return Ok(new { ProfilePictureUrl = relativePath });
         }
     }
 }

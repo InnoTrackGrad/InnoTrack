@@ -1,11 +1,16 @@
-﻿namespace InnoTrack.Application.DTOs.Students
+namespace InnoTrack.Application.DTOs.Students
 {
     public record StudentPublicProfileDto(
         int Id,
         string FullName,
+        string FirstName,
+        string LastName,
+        string Email,
         string DepartmentName,
         decimal? GPA,
         int GraduationYear,
-        IReadOnlyList<string> Skills
+        bool HasTeam,
+        IReadOnlyList<string> Skills,
+        string? ProfilePictureUrl
     );
 }

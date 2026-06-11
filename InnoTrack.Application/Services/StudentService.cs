@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Admin;
+using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Application.DTOs.Students;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
@@ -35,7 +35,8 @@ namespace InnoTrack.Application.Services
                 student.GPA,
                 student.GraduationYear,
                 hasTeam,
-                skills
+                skills,
+                student.ProfilePictureURL
                 );
         }
 
@@ -100,13 +101,20 @@ namespace InnoTrack.Application.Services
 
             var skills = await GetStudentSkillNamesAsync(studentId);
 
+            var hasTeam = await _unitOfWork.Repository<TeamMember>().AnyAsync(tm => tm.StudentId == studentId);
+
             return new StudentPublicProfileDto(
                 student.Id,
                 student.FullName,
+                student.FirstName,
+                student.LastName,
+                student.Email,
                 department?.Name ?? string.Empty,
                 student.GPA,
                 student.GraduationYear,
-                skills
+                hasTeam,
+                skills,
+                student.ProfilePictureURL
             );
         }
         private async Task<IReadOnlyList<string>> GetStudentSkillNamesAsync(int studentId)
