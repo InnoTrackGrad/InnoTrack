@@ -10,6 +10,7 @@ namespace InnoTrack.Application.DTOs.Projects
         List<int> TechnologyIds,
         string? ProblemStatement,
         string? ProposedSolution,
-        string? Objectives
+        string? Objectives,
+        decimal? OriginalityScore
     );
 }

@@ -379,6 +379,7 @@ namespace InnoTrack.Infrastructure.Services
                     CreatedByUserId = userId,
                     Year = dto.Year,
                     StudentNames = dto.StudentNames,
+                    OriginalityScore = dto.OriginalityScore,
                 };
                 _context.ProjectDrafts.Add(draft);
                 await _context.SaveChangesAsync();
@@ -422,6 +423,10 @@ namespace InnoTrack.Infrastructure.Services
                 if (textChanged)
                 {
                     draft.OriginalityScore = null;
+                }
+                else if (dto.OriginalityScore.HasValue)
+                {
+                    draft.OriginalityScore = dto.OriginalityScore.Value;
                 }
                 draft.Title = dto.Title;
                 draft.Abstract = dto.Abstract;
