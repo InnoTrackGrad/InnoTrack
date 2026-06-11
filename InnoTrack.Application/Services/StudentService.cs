@@ -36,7 +36,8 @@ namespace InnoTrack.Application.Services
                 student.GraduationYear,
                 hasTeam,
                 skills,
-                student.ProfilePictureURL
+                student.ProfilePictureURL,
+                student.ProfileBannerColor
                 );
         }
 
@@ -47,6 +48,9 @@ namespace InnoTrack.Application.Services
 
             if (dto.GPA.HasValue)
                 student.GPA = dto.GPA.Value;
+
+            if (dto.ProfileBannerColor != null)
+                student.ProfileBannerColor = dto.ProfileBannerColor;
 
             _unitOfWork.Repository<Student>().Update(student);
 
@@ -114,7 +118,8 @@ namespace InnoTrack.Application.Services
                 student.GraduationYear,
                 hasTeam,
                 skills,
-                student.ProfilePictureURL
+                student.ProfilePictureURL,
+                student.ProfileBannerColor
             );
         }
         private async Task<IReadOnlyList<string>> GetStudentSkillNamesAsync(int studentId)

@@ -74,7 +74,7 @@ namespace InnoTrack.Application.Services
                 throw new ArgumentException("File exceeds the maximum allowed size of 5 MB.");
 
             var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "profiles");
 
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
