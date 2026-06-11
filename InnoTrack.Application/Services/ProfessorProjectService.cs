@@ -112,6 +112,11 @@ namespace InnoTrack.Application.Services
             {
                 project.ApprovedAt = DateTime.UtcNow;
             }
+            else
+            {
+                team.ProfessorId = null;
+                _unitOfWork.Repository<Team>().Update(team);
+            }
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();
@@ -391,6 +396,10 @@ namespace InnoTrack.Application.Services
 
             // Remove project, it's now a draft
             _unitOfWork.Repository<Project>().Delete(project);
+            
+            // Clear the professor association so they are no longer in the team chat
+            team.ProfessorId = null;
+            _unitOfWork.Repository<Team>().Update(team);
             
             // Wait, what about feedback? Feedback is tied to ProjectId which is about to be deleted.
             // Since this is a rejection, we send the feedback in the notification and it's also saved 

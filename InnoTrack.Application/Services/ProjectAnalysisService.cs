@@ -147,6 +147,16 @@ namespace InnoTrack.Application.Services
                 project.Status = status;
                 _unitOfWork.Repository<Project>().Update(project);
 
+                if (status == ProjectStatus.Rejected && project.TeamId.HasValue)
+                {
+                    var teamToUpdate = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value);
+                    if (teamToUpdate != null && teamToUpdate.ProfessorId.HasValue)
+                    {
+                        teamToUpdate.ProfessorId = null;
+                        _unitOfWork.Repository<Team>().Update(teamToUpdate);
+                    }
+                }
+
                 await _unitOfWork.CompleteAsync();
                 await _unitOfWork.CommitTransactionAsync();
 
