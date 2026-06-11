@@ -230,7 +230,7 @@ namespace InnoTrack.Application.Services
                         .Select(sp => new SimilarProjectResultDto(
                                 sp.ReferencedProjectId,
                                 sp.ReferencedProject?.Title ?? $"Project #{sp.ReferencedProjectId}",
-                                Math.Round(NormalizePercent(sp.SimilarityPercentage), 2)
+                                Math.Round(ToDisplayPercentage(sp.SimilarityPercentage), 2)
                             ))
                         .ToList()
                         .AsReadOnly()
@@ -240,6 +240,11 @@ namespace InnoTrack.Application.Services
         private static decimal NormalizePercent(decimal score)
         {
             return score > 1m ? score / 100m : score;
+        }
+
+        private static decimal ToDisplayPercentage(decimal score)
+        {
+            return score <= 1m && score > 0m ? score * 100m : score;
         }
     }
 }

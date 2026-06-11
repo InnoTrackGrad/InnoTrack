@@ -96,20 +96,23 @@ namespace InnoTrack.API.Controllers
         }
 
         /// <summary>
-        /// Generates and downloads the AI originality analysis report as a PDF document.
+        /// Generates and securely downloads the AI originality analysis report as a PDF document.
+        /// Access is strictly restricted: ONLY the designated Team Leader or the assigned Supervisor can generate/download this report (Protected against IDOR).
         /// </summary>
         /// <param name="projectId">
         /// The identifier of the analyzed project.
         /// </param>
         /// <returns>
-        /// Returns a downloadable PDF containing originality scores,
-        /// AI analysis summary, and similarity breakdown.
+        /// Returns a downloadable PDF containing originality scores, AI analysis summary, and similar projects with its similarity percentage.
         /// </returns>
         /// <remarks>
-        /// The report is dynamically generated using QuestPDF
-        /// based on the stored AI analysis results.
+        /// The report is dynamically generated using QuestPDF based on the stored AI analysis results. 
+        /// Validates user roles and team associations dynamically from the JWT claims before processing.
         /// </remarks>
-        [HttpGet("{projectId}/originality-report/pdf")]
+        /// <response code="200">Returns the generated PDF file.</response>
+        /// <response code="401">If the user token is invalid or missing.</response>
+        /// <response code="403">If the user is not the Team Leader or the assigned Supervisor for this specific project.</response>
+        /// <response code="404">If the project or its AI analysis report does not exist.</response>        [HttpGet("{projectId}/originality-report/pdf")]
         [AuthorizeRoles(UserRole.Student, UserRole.Professor)]
         public async Task<IActionResult> DownloadReportPdf(int projectId)
         {
