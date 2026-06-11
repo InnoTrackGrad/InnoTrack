@@ -112,7 +112,8 @@ namespace InnoTrack.API.Controllers
         /// <response code="200">Returns the generated PDF file.</response>
         /// <response code="401">If the user token is invalid or missing.</response>
         /// <response code="403">If the user is not the Team Leader or the assigned Supervisor for this specific project.</response>
-        /// <response code="404">If the project or its AI analysis report does not exist.</response>        [HttpGet("{projectId}/originality-report/pdf")]
+        /// <response code="404">If the project or its AI analysis report does not exist.</response>        
+        [HttpGet("{projectId}/originality-report/pdf")]
         [AuthorizeRoles(UserRole.Student, UserRole.Professor)]
         public async Task<IActionResult> DownloadReportPdf(int projectId)
         {
