@@ -93,6 +93,15 @@ namespace InnoTrack.Infrastructure.Services
                 );
             }
 
+            if (filter.MaxOriginalityScore.HasValue)
+            {
+                var maxScore = filter.MaxOriginalityScore.Value;
+                query = query.Where(p => 
+                    p.OriginalityScore <= maxScore || 
+                    (p.OriginalityScore > 0 && p.OriginalityScore <= 1 && (p.OriginalityScore * 100) <= maxScore)
+                );
+            }
+
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 query = query.Where(p =>
