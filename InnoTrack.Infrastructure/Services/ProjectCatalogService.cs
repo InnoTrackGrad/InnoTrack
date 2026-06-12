@@ -88,8 +88,8 @@ namespace InnoTrack.Infrastructure.Services
             {
                 var minScore = filter.MinOriginalityScore.Value;
                 query = query.Where(p => 
-                    p.OriginalityScore >= minScore || 
-                    (p.OriginalityScore > 0 && p.OriginalityScore <= 1 && (p.OriginalityScore * 100) >= minScore)
+                    (p.OriginalityScore > 1 && p.OriginalityScore >= minScore) || 
+                    (p.OriginalityScore >= 0 && p.OriginalityScore <= 1 && (p.OriginalityScore * 100) >= minScore)
                 );
             }
 
@@ -97,8 +97,8 @@ namespace InnoTrack.Infrastructure.Services
             {
                 var maxScore = filter.MaxOriginalityScore.Value;
                 query = query.Where(p => 
-                    p.OriginalityScore <= maxScore || 
-                    (p.OriginalityScore > 0 && p.OriginalityScore <= 1 && (p.OriginalityScore * 100) <= maxScore)
+                    (p.OriginalityScore > 1 && p.OriginalityScore <= maxScore) || 
+                    (p.OriginalityScore >= 0 && p.OriginalityScore <= 1 && (p.OriginalityScore * 100) <= maxScore)
                 );
             }
 
