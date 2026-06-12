@@ -48,7 +48,8 @@ namespace InnoTrack.Application.Services
             // ── Team counts ──────────────────────────────────────────────────────
             var totalTeams = await _unitOfWork.Repository<Team>().GetQueryable().CountAsync();
             var teamsWithoutSupervisor = await _unitOfWork.Repository<Team>()
-                .CountAsync(t => t.ProfessorId == null);
+                .CountAsync(t => t.ProfessorId == null &&
+                                 (t.Project == null || t.Project.Status != ProjectStatus.Completed));
 
             var draftCount = await _unitOfWork.Repository<ProjectDraft>().GetQueryable().CountAsync();
 
@@ -187,12 +188,13 @@ namespace InnoTrack.Application.Services
 
             var atCapacity = await _unitOfWork.Repository<Professor>()
                 .GetQueryable().AsNoTracking()
-                .CountAsync(p => p.IsActive && p.SupervisedTeams.Count >= p.MaxTeamLoad);
+                .CountAsync(p => p.IsActive
+                              && p.SupervisedTeams.Count(t => t.Project == null || t.Project.Status != ProjectStatus.Completed) >= p.MaxTeamLoad);
 
             if (atCapacity > 0)
                 alerts.Add(new SystemAlertDto(
                     "Info",
-                    $"{atCapacity} professor(s) are at maximum supervision capacity.",
+                    $"{atCapacity} professor(s) are at maximum active supervision capacity.",
                     atCapacity));
 
             return alerts;
