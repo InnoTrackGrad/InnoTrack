@@ -40,15 +40,15 @@ namespace InnoTrack.Application.Services
             if (existingProject != null)
                 throw new InvalidOperationException("Your team already has an active or submitted project.");
 
-            var supervisor = await _unitOfWork.Repository<Professor>()
-                .GetQueryable()
-                .Include(p => p.SupervisedTeams)
-                .FirstOrDefaultAsync(p => p.Id == supervisorId);
-
+            var supervisor = await _unitOfWork.Repository<Professor>().GetByIdAsync(supervisorId);
             if (supervisor == null)
                 throw new KeyNotFoundException("Supervisor not found.");
 
-            if (supervisor.SupervisedTeams.Count >= supervisor.MaxTeamLoad)
+            var currentActiveLoad = await _unitOfWork.Repository<Team>()
+                 .CountAsync(t => t.ProfessorId == supervisorId &&
+                     (t.Project == null || t.Project.Status != ProjectStatus.Completed));
+
+            if (currentActiveLoad >= supervisor.MaxTeamLoad)
                 throw new InvalidOperationException($"Dr. {supervisor.FullName} has reached their maximum capacity of teams.");
 
             var team = await _unitOfWork.Repository<Team>().GetByIdAsync(draft.TeamId);
