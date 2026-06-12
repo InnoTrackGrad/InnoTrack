@@ -24,6 +24,8 @@ namespace InnoTrack.Domain.Entities
 
         [MaxLength(2048)]
         public string? ProfilePictureURL { get; set; }
+        [MaxLength(7)]
+        public string? ProfileBannerColor { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastOnlineAt { get; set; }
 

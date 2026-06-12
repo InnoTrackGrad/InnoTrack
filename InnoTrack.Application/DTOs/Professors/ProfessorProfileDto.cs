@@ -10,7 +10,8 @@ namespace InnoTrack.Application.DTOs.Professors
         int MaxTeamLoad,
         int CurrentTeamLoad,
         bool IsActive,
-        string? ProfilePictureUrl
+        string? ProfilePictureUrl,
+        string? ProfileBannerColor
     )
     {
         public bool IsAvailable => CurrentTeamLoad < MaxTeamLoad;
