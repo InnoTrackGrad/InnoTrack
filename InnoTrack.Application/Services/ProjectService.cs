@@ -64,8 +64,6 @@ namespace InnoTrack.Application.Services
             Project project;
             try
             {
-                team.ProfessorId = supervisorId;
-                _unitOfWork.Repository<Team>().Update(team);
 
                 project = new Project
                 {
@@ -87,6 +85,7 @@ namespace InnoTrack.Application.Services
                     ProposalDepartment = dto.Department,
                     ProposalTeamMembers = dto.TeamMembers,
                     ProposalMessage = dto.Message,
+                    ProposedSupervisorId = supervisorId,
                 };
 
                 await _unitOfWork.Repository<Project>().AddAsync(project);

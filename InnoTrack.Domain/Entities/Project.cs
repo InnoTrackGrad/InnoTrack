@@ -64,6 +64,9 @@ namespace InnoTrack.Domain.Entities
         [Column(TypeName = "nvarchar(max)")]
         public string? ProposalMessage { get; set; }
 
+        public int? ProposedSupervisorId { get; set; }
+        public Professor? ProposedSupervisor { get; set; }
+
         public ICollection<ProjectTechnology> ProjectTechnologies { get; set; } = new HashSet<ProjectTechnology>();
         public ICollection<ProjectAttachment> Attachments { get; set; } = new HashSet<ProjectAttachment>();
         public ICollection<Feedback> Feedbacks { get; set; } = new HashSet<Feedback>();

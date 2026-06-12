@@ -65,7 +65,7 @@ namespace InnoTrack.Application.Services
 
             var query = _unitOfWork.Repository<Project>().GetQueryable()
                 .AsNoTracking()
-                .Where(p => p.Status == ProjectStatus.UnderReview && p.Team != null && p.Team.ProfessorId == professorId);
+                .Where(p => p.Status == ProjectStatus.UnderReview && p.Team != null && (p.ProposedSupervisorId == professorId || p.Team.ProfessorId == professorId));
 
             var totalCount = await query.CountAsync();
 
@@ -97,7 +97,7 @@ namespace InnoTrack.Application.Services
             var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value)
                 ?? throw new KeyNotFoundException("Team not found.");
 
-            if (team.ProfessorId != professorId)
+            if (project.ProposedSupervisorId != professorId && team.ProfessorId != professorId)
                 throw new UnauthorizedAccessException(
                     "You are not authorized to review this project.");
 
@@ -111,12 +111,13 @@ namespace InnoTrack.Application.Services
             if (approve)
             {
                 project.ApprovedAt = DateTime.UtcNow;
+                team.ProfessorId = professorId;
             }
             else
             {
                 team.ProfessorId = null;
-                _unitOfWork.Repository<Team>().Update(team);
             }
+            _unitOfWork.Repository<Team>().Update(team);
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.CompleteAsync();
@@ -357,7 +358,7 @@ namespace InnoTrack.Application.Services
             var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value)
                 ?? throw new KeyNotFoundException("Team not found.");
 
-            if (team.ProfessorId != professorId)
+            if (project.ProposedSupervisorId != professorId && team.ProfessorId != professorId)
                 throw new UnauthorizedAccessException(
                     "You are not authorized to request revisions on this project.");
 
@@ -427,7 +428,7 @@ namespace InnoTrack.Application.Services
             var stats = await _unitOfWork.Repository<Project>()
                 .GetQueryable()
                 .AsNoTracking()
-                .Where(p => p.Team != null && p.Team.ProfessorId == professorId)
+                .Where(p => (p.Team != null && p.Team.ProfessorId == professorId) || p.ProposedSupervisorId == professorId)
                 .GroupBy(_ => 1)
                 .Select(g => new
                 {
