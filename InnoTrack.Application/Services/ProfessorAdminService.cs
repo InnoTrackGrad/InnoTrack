@@ -160,11 +160,12 @@ namespace InnoTrack.Application.Services
             if (dto.MaxTeamLoad.HasValue)
             {
                 var currentLoad = await _unitOfWork.Repository<Team>()
-                    .CountAsync(t => t.ProfessorId == professorId);
+                    .CountAsync(t => t.ProfessorId == professorId &&
+                                     (t.Project == null || t.Project.Status != ProjectStatus.Completed));
 
                 if (dto.MaxTeamLoad.Value < currentLoad)
                     throw new InvalidOperationException(
-                        $"Cannot reduce capacity below the current team load ({currentLoad} supervised teams). " +
+                        $"Cannot reduce capacity below the current active team load ({currentLoad} supervised teams). " +
                         $"Reassign teams first.");
 
                 professor.MaxTeamLoad = dto.MaxTeamLoad.Value;
