@@ -1,4 +1,4 @@
-﻿// InnoTrack.Application/DTOs/Professors/ProfessorProjectDetailDto.cs
+// InnoTrack.Application/DTOs/Professors/ProfessorProjectDetailDto.cs
 namespace InnoTrack.Application.DTOs.Professors
 {
     /// <summary>
@@ -24,7 +24,9 @@ namespace InnoTrack.Application.DTOs.Professors
         DateTime CreatedAt,
         DateTime? SubmittedAt,
         IReadOnlyList<ProjectFeedbackItemDto> FeedbackHistory,
-        bool HasOriginalityReport
+        bool HasOriginalityReport,
+        string? ProposalDepartment = null,
+        string? ProposalMessage = null
     );
 
     public record ProjectTeamMemberDto(

@@ -332,7 +332,9 @@ namespace InnoTrack.Application.Services
                 technologies,
                 project.CreatedAt, project.SubmittedAt,
                 feedbackHistory,
-                hasReport
+                hasReport,
+                project.ProposalDepartment,
+                project.ProposalMessage
             );
         }
 
