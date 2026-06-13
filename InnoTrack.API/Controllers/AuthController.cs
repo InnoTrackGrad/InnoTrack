@@ -28,6 +28,11 @@ namespace InnoTrack.API.Controllers
         [EnableRateLimiting("auth")]
         public async Task<IActionResult> RequestOtp([FromBody] RequestOtpDto request)
         {
+            if (await _authService.IsEmailRegisteredAsync(request.Email))
+            {
+                return Conflict(new { Message = "Email is already registered." });
+            }
+
             await _otpService.GenerateAndSendOtpAsync(request.Email);
             return Ok(new { Message = "OTP sent successfully." });
         }

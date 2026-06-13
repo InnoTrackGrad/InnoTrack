@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Auth;
+using InnoTrack.Application.DTOs.Auth;
 
 namespace InnoTrack.Application.Interfaces
 {
@@ -11,5 +11,6 @@ namespace InnoTrack.Application.Interfaces
         Task ResetPasswordAsync(ResetPasswordDto dto);
         Task LogoutAsync(int userId);
         Task<AuthResponseDto> RefreshTokenAsync(string token, string refreshToken);
+        Task<bool> IsEmailRegisteredAsync(string email);
     }
 }

@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Auth;
+using InnoTrack.Application.DTOs.Auth;
 using InnoTrack.Application.Interfaces;
 using InnoTrack.Domain.Entities;
 using InnoTrack.Domain.Entities.Enums;
@@ -201,6 +201,12 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
 
             return new AuthResponseDto(newAccessToken, newRefreshTokens.rawToken, user.RefreshTokenExpiryTime.Value, user.FullName, user.Role.ToString());
+        }
+
+        public async Task<bool> IsEmailRegisteredAsync(string email)
+        {
+            var existingUser = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == email);
+            return existingUser != null;
         }
     }
 }
