@@ -94,5 +94,30 @@ namespace InnoTrack.Application.Services
 
             return relativePath;
         }
+
+        public async Task RemoveProfilePictureAsync(int userId)
+        {
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+            if (user == null)
+                throw new KeyNotFoundException("User not found.");
+
+            if (!string.IsNullOrEmpty(user.ProfilePictureURL))
+            {
+                var currentDir = Directory.GetCurrentDirectory();
+                // ProfilePictureURL is typically /uploads/profiles/file.png
+                // We need to convert it to a physical path
+                var relativePath = user.ProfilePictureURL.TrimStart('/');
+                var filePath = Path.Combine(currentDir, relativePath);
+
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+
+                user.ProfilePictureURL = null;
+                _unitOfWork.Repository<User>().Update(user);
+                await _unitOfWork.CompleteAsync();
+            }
+        }
     }
 }

@@ -79,5 +79,17 @@ namespace InnoTrack.API.Controllers
 
             return Ok(new { ProfilePictureUrl = relativePath });
         }
+
+        /// <summary>
+        /// Removes the profile picture for the authenticated user.
+        /// </summary>
+        /// <returns>Returns no content on successful removal.</returns>
+        [HttpDelete("me/profile-picture")]
+        public async Task<IActionResult> RemoveProfilePicture()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _userService.RemoveProfilePictureAsync(userId);
+            return NoContent();
+        }
     }
 }
