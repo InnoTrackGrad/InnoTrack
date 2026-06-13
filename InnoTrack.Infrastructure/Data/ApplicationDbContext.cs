@@ -53,8 +53,8 @@ namespace InnoTrack.Infrastructure.Data
         public DbSet<Feedback> Feedbacks { get; set; }
 
         public DbSet<AuditLog> AuditLogs { get; set; }
-
         public DbSet<AcademicYear> AcademicYears { get; set; }
+        public DbSet<OtpVerification> OtpVerifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

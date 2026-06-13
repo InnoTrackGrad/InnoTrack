@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.DTOs.Auth;
+using InnoTrack.Application.DTOs.Auth;
 using InnoTrack.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +12,47 @@ namespace InnoTrack.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IOtpService _otpService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IOtpService otpService)
         {
             _authService = authService;
+            _otpService = otpService;
+        }
+
+        /// <summary>
+        /// Requests a 6-digit OTP code sent to the specified university email address.
+        /// </summary>
+        [HttpPost("request-otp")]
+        [AllowAnonymous]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> RequestOtp([FromBody] RequestOtpDto request)
+        {
+            await _otpService.GenerateAndSendOtpAsync(request.Email);
+            return Ok(new { Message = "OTP sent successfully." });
+        }
+
+        /// <summary>
+        /// Verifies the 6-digit OTP code sent to the email address.
+        /// </summary>
+        [HttpPost("verify-otp")]
+        [AllowAnonymous]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto request)
+        {
+            try
+            {
+                var isValid = await _otpService.VerifyOtpAsync(request.Email, request.Otp);
+                if (isValid)
+                {
+                    return Ok(new { Success = true, Message = "Email verified successfully." });
+                }
+                return BadRequest(new { Success = false, Message = "Verification failed." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Success = false, Message = ex.Message });
+            }
         }
 
         /// <summary>

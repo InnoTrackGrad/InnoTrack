@@ -122,6 +122,7 @@ builder.Services.AddScoped<IProfessorAdminService, ProfessorAdminService>();
 builder.Services.AddScoped<IProfessorService, ProfessorService>();
 builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(InnoTrack.Application.Mappings.MappingProfile).Assembly);
 builder.Services.AddSingleton<IJoinCodeGenerator, JoinCodeGenerator>();
