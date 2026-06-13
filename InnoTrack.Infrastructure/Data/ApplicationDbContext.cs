@@ -76,7 +76,8 @@ namespace InnoTrack.Infrastructure.Data
 
             modelBuilder.Entity<User>()
                         .HasIndex(u => u.Email)
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
             modelBuilder.Entity<Team>()
                         .HasIndex(t => t.JoinCode)
@@ -97,7 +98,8 @@ namespace InnoTrack.Infrastructure.Data
 
             modelBuilder.Entity<Skill>()
                         .HasIndex(s => s.Name)
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
             modelBuilder.Entity<Domain.Entities.Domain>()
                         .HasIndex(d => d.Name)
