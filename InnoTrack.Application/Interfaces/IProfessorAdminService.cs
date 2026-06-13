@@ -7,7 +7,8 @@ namespace InnoTrack.Application.Interfaces
     {
         Task<ProfessorAdminViewDto> CreateProfessorAsync(CreateProfessorDto dto);
         Task DeleteProfessorByAdminAsync(int adminId, int professorId);
-        Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(string? search, int pageNumber, int pageSize);  
+        Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(
+            string? search, int? departmentId, bool? isActive, bool? hasCapacity,int pageNumber, int pageSize);
         Task<ProfessorAdminViewDto> GetProfessorByIdAsync(int professorId);
         Task UpdateProfessorAsync(int professorId, UpdateProfessorAdminDto dto);
         Task SetProfessorActiveStatusAsync(int professorId, bool isActive);

@@ -65,12 +65,25 @@ namespace InnoTrack.Application.Services
             _auditService.LogAction(adminId, "Delete Academic Year", $"Deleted academic year configuration: {year.Name}");
         }
 
-        public async Task<PagedResult<AcademicYearDto>> GetAllAsync(int pageNumber, int pageSize)
+        public async Task<PagedResult<AcademicYearDto>> GetAllAsync(
+            string? search, bool? isActive, int pageNumber, int pageSize)
         {
             var query = _unitOfWork.Repository<AcademicYear>()
                 .GetQueryable()
-                .AsNoTracking()
-                .OrderByDescending(y => y.StartDate);
+                .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(y => y.Name.ToLower().Contains(term));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(y => y.IsActive == isActive.Value);
+            }
+
+            query = query.OrderByDescending(y => y.StartDate);
 
             var totalCount = await query.CountAsync();
 
@@ -84,7 +97,6 @@ namespace InnoTrack.Application.Services
 
             return new PagedResult<AcademicYearDto>(items, totalCount, pageNumber, pageSize);
         }
-
         public async Task<AcademicYearDto?> GetActiveAsync()
         {
             var year = await _unitOfWork.Repository<AcademicYear>()
