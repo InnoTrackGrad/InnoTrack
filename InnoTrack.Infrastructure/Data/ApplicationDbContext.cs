@@ -162,6 +162,7 @@ namespace InnoTrack.Infrastructure.Data
                         .HasMaxLength(20);
 
             modelBuilder.Entity<Project>()
+                        .ToTable(tb => tb.HasTrigger("SomeTrigger"))
                         .Property(p => p.Status)
                         .HasConversion<string>()
                         .HasMaxLength(20);
