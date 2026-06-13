@@ -1,4 +1,4 @@
-﻿using InnoTrack.API.Attributes;
+using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Application.DTOs.Professors;
 using InnoTrack.Application.Interfaces;
@@ -182,10 +182,13 @@ namespace InnoTrack.API.Controllers
         [HttpGet("professors")]
         public async Task<IActionResult> GetAllProfessors(
             [FromQuery] string? search,
+            [FromQuery] int? departmentId,
+            [FromQuery] bool? isActive,
+            [FromQuery] bool? hasCapacity,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _professorAdminService.GetAllProfessorsAsync(search, pageNumber, pageSize);
+            var result = await _professorAdminService.GetAllProfessorsAsync(search, departmentId, isActive, hasCapacity, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -247,11 +250,13 @@ namespace InnoTrack.API.Controllers
         /// </summary>
         [HttpGet("teams")]
         public async Task<IActionResult> GetAllTeams(
-             [FromQuery] string? search,
+            [FromQuery] string? search,
+            [FromQuery] bool? hasSupervisor, // true = Assigned, false = Unassigned
+            [FromQuery] string? projectStatus, // e.g., "In Progress", "No Project", "Completed"
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _adminService.GetAllTeamsAsync(search, pageNumber, pageSize);
+            var result = await _adminService.GetAllTeamsAsync(search, hasSupervisor, projectStatus, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -314,13 +319,15 @@ namespace InnoTrack.API.Controllers
         /// </summary>
         [HttpGet("projects")]
         public async Task<IActionResult> GetAllProjects(
-            [FromQuery] string? status,
+            [FromQuery] string? search,
+            [FromQuery] string? status, // e.g., "In Progress", "Abandoned", "Completed"
+            [FromQuery] int? domainId,
             [FromQuery] int? academicYearId,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
             var result = await _adminService.GetAllProjectsAsync(
-                status, academicYearId, pageNumber, pageSize);
+                search, status, domainId, academicYearId, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -510,7 +517,7 @@ namespace InnoTrack.API.Controllers
         /// </summary>
         [HttpGet("audit-logs")]
         public async Task<IActionResult> GetAuditLogs(
-            [FromQuery] int? userId,
+            [FromQuery] string? search,
             [FromQuery] string? action,
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to,
@@ -518,7 +525,7 @@ namespace InnoTrack.API.Controllers
             [FromQuery] int pageSize = 30)
         {
             var result = await _adminService.GetAuditLogsAsync(
-                userId, action, from, to, pageNumber, pageSize);
+                search, action, from, to, pageNumber, pageSize);
             return Ok(result);
         }
 

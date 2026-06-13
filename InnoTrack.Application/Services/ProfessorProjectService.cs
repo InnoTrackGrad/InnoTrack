@@ -234,6 +234,7 @@ namespace InnoTrack.Application.Services
                             tm.Student!.FullName,
                             tm.Role.ToString(),
                             tm.Student.Email ?? string.Empty,
+                            tm.Student.ProfilePictureURL,
                             tm.Student.StudentSkills
                                 .Select(sk => sk.Skill?.Name ?? string.Empty)
                                 .Where(n => n.Length > 0)

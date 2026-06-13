@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Common;
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Domain.Entities.Enums;
 
@@ -25,14 +25,14 @@ namespace InnoTrack.Application.Interfaces
         Task SoftDeleteStudentAsync(int adminId, int studentId);
 
         // ── Team Management ──────────────────────────────────────────────────────
-        Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, int pageNumber, int pageSize);
+        Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, bool? hasSupervisor, string? projectStatus, int pageNumber, int pageSize);
         Task AssignSupervisorToTeamAsync(int teamId, int professorId);
         Task DeleteTeamByAdminAsync(int adminId, int teamId);
         Task RemoveSupervisorFromTeamAsync(int teamId);
 
         // ── Project Management ───────────────────────────────────────────────────
         Task<PagedResult<AdminProjectListItemDto>> GetAllProjectsAsync(
-            string? status, int? academicYearId, int pageNumber, int pageSize);
+            string? search, string? status, int? domainId, int? academicYearId, int pageNumber, int pageSize);
 
         Task<AdminProjectDetailDto> GetProjectDetailAsync(int projectId);
 
@@ -51,7 +51,7 @@ namespace InnoTrack.Application.Interfaces
 
         // ── Audit Logs ───────────────────────────────────────────────────────────
         Task<PagedResult<AuditLogDto>> GetAuditLogsAsync(
-            int? userId, string? action, DateTime? from, DateTime? to,
+            string? search, string? action, DateTime? from, DateTime? to,
             int pageNumber, int pageSize);
 
         // ── Quick Actions ─────────────────────────────────────────────────────────────

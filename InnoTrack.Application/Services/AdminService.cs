@@ -463,7 +463,7 @@ namespace InnoTrack.Application.Services
 
         // ── Team Management ──────────────────────────────────────────────────────
 
-        public async Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, int pageNumber, int pageSize)
+        public async Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, bool? hasSupervisor, string? projectStatus, int pageNumber, int pageSize)
         {
             var query = _unitOfWork.Repository<Team>()
                     .GetQueryable()
@@ -472,6 +472,26 @@ namespace InnoTrack.Application.Services
                     .Include(t => t.Project)
                     .Include(t => t.Supervisor)
                     .AsQueryable();
+
+            if (hasSupervisor.HasValue)
+            {
+                if (hasSupervisor.Value)
+                    query = query.Where(t => t.ProfessorId != null);
+                else
+                    query = query.Where(t => t.ProfessorId == null);
+            }
+
+            if (!string.IsNullOrWhiteSpace(projectStatus))
+            {
+                if (projectStatus.Equals("No Project", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(t => t.Project == null);
+                }
+                else if (Enum.TryParse<ProjectStatus>(projectStatus, true, out var parsedStatus))
+                {
+                    query = query.Where(t => t.Project != null && t.Project.Status == parsedStatus);
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -640,7 +660,7 @@ namespace InnoTrack.Application.Services
         // ── Project Management ───────────────────────────────────────────────────
 
         public async Task<PagedResult<AdminProjectListItemDto>> GetAllProjectsAsync(
-            string? status, int? academicYearId, int pageNumber, int pageSize)
+            string? search, string? status, int? domainId, int? academicYearId, int pageNumber, int pageSize)
         {
             IQueryable<Project> query = _unitOfWork.Repository<Project>()
                 .GetQueryable().AsNoTracking()
@@ -649,12 +669,29 @@ namespace InnoTrack.Application.Services
                 .Include(p => p.Domain)
                 .Include(p => p.AcademicYear);
 
-            if (!string.IsNullOrWhiteSpace(status)
-                && Enum.TryParse<ProjectStatus>(status, ignoreCase: true, out var ps))
-                query = query.Where(p => p.Status == ps);
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var normalizedStatus = status.Replace(" ", "_");
+                if (Enum.TryParse<ProjectStatus>(normalizedStatus, ignoreCase: true, out var ps))
+                {
+                    query = query.Where(p => p.Status == ps);
+                }
+            }
+
+            if (domainId.HasValue)
+                query = query.Where(p => p.DomainId == domainId.Value);
 
             if (academicYearId.HasValue)
                 query = query.Where(p => p.AcademicYearId == academicYearId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(p =>
+                    p.Title.ToLower().Contains(cleanSearch) ||
+                    (p.Team != null && p.Team.Name.ToLower().Contains(cleanSearch)) ||
+                    (p.Team != null && p.Team.Supervisor != null && (p.Team.Supervisor.FirstName + " " + p.Team.Supervisor.LastName).ToLower().Contains(cleanSearch)));
+            }
 
             var totalCount = await query.CountAsync();
 
@@ -913,7 +950,7 @@ namespace InnoTrack.Application.Services
         // ── Audit Logs ───────────────────────────────────────────────────────────
 
         public async Task<PagedResult<AuditLogDto>> GetAuditLogsAsync(
-            int? userId, string? action, DateTime? from, DateTime? to,
+            string? search, string? action, DateTime? from, DateTime? to,
             int pageNumber, int pageSize)
         {
             // AuditLog has no navigation property to User — join required
@@ -923,11 +960,20 @@ namespace InnoTrack.Application.Services
                     on log.UserId equals user.Id
                 select new { log, user.FirstName, user.LastName };
 
-            if (userId.HasValue)
-                query = query.Where(x => x.log.UserId == userId.Value);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(x => 
+                    (x.FirstName + " " + x.LastName).ToLower().Contains(cleanSearch) ||
+                    x.log.Action.ToLower().Contains(cleanSearch) ||
+                    x.log.Details.ToLower().Contains(cleanSearch));
+            }
 
             if (!string.IsNullOrWhiteSpace(action))
-                query = query.Where(x => x.log.Action.Contains(action));
+            {
+                var cleanAction = action.Trim().ToLower();
+                query = query.Where(x => x.log.Action.ToLower().Contains(cleanAction));
+            }
 
             if (from.HasValue)
                 query = query.Where(x => x.log.Timestamp >= from.Value);

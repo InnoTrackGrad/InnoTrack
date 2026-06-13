@@ -7,7 +7,7 @@ namespace InnoTrack.Application.DTOs.Chat
         IReadOnlyList<ChatMessageDetailDto> Messages
     );
 
-    public record ChatMemberDto(int Id, string FullName, string Role, string Initials, DateTime? LastOnlineAt = null);
+    public record ChatMemberDto(int Id, string FullName, string Role, string Initials, string? ProfilePictureUrl, DateTime? LastOnlineAt = null);
 
     public record ChatMessageDetailDto(
         int Id,

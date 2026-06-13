@@ -49,7 +49,7 @@ namespace InnoTrack.Application.Services
                 var skills = skillData.GetValueOrDefault(member.StudentId, new List<string>());
 
                 memberDetails.Add(new TeamMemberDetailDto(
-                    student.Id, student.FullName, member.Role.ToString(), student.Email, skills.AsReadOnly()
+                    student.Id, student.FullName, member.Role.ToString(), student.Email, student.ProfilePictureURL, skills.AsReadOnly()
                 ));
             }
 

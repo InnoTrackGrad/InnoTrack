@@ -17,6 +17,7 @@ namespace InnoTrack.Application.DTOs.Teams
         string FullName,
         string Role,
         string Email,
+        string? ProfilePictureUrl,
         IReadOnlyList<string> Skills
     );
 }

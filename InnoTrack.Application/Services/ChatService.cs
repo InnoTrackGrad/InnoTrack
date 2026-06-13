@@ -39,7 +39,7 @@ namespace InnoTrack.Application.Services
                     .Select(member =>
                     {
                         var initials = $"{member.Student!.FirstName[0]}{member.Student.LastName[0]}".ToUpperInvariant();
-                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials, member.Student.LastOnlineAt);
+                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials, member.Student.ProfilePictureURL, member.Student.LastOnlineAt);
                     }).ToList();
 
             var team = await _unitOfWork.Repository<Team>()
@@ -50,7 +50,7 @@ namespace InnoTrack.Application.Services
             if (team?.Supervisor != null)
             {
                 var profInitials = $"{team.Supervisor.FirstName[0]}{team.Supervisor.LastName[0]}".ToUpperInvariant();
-                memberDtos.Add(new ChatMemberDto(team.ProfessorId!.Value, team.Supervisor.FullName, "Professor", profInitials, team.Supervisor.LastOnlineAt));
+                memberDtos.Add(new ChatMemberDto(team.ProfessorId!.Value, team.Supervisor.FullName, "Professor", profInitials, team.Supervisor.ProfilePictureURL, team.Supervisor.LastOnlineAt));
             }
 
             var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
@@ -391,14 +391,14 @@ namespace InnoTrack.Application.Services
                     .Select(member =>
                     {
                         var initials = $"{member.Student!.FirstName[0]}{member.Student.LastName[0]}".ToUpperInvariant();
-                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials, member.Student.LastOnlineAt);
+                        return new ChatMemberDto(member.StudentId, member.Student.FullName, member.Role.ToString(), initials, member.Student.ProfilePictureURL, member.Student.LastOnlineAt);
                     }).ToList();
 
             var professorUser = await _unitOfWork.Repository<User>().GetByIdAsync(professorId);
             if (professorUser != null)
             {
                 var profInitials = $"{professorUser.FirstName[0]}{professorUser.LastName[0]}".ToUpperInvariant();
-                memberDtos.Add(new ChatMemberDto(professorId, professorUser.FullName, "Professor", profInitials, professorUser.LastOnlineAt));
+                memberDtos.Add(new ChatMemberDto(professorId, professorUser.FullName, "Professor", profInitials, professorUser.ProfilePictureURL, professorUser.LastOnlineAt));
             }
 
             var hiddenMessageIds = await _unitOfWork.Repository<ChatMessageHidden>()
@@ -411,6 +411,7 @@ namespace InnoTrack.Application.Services
                 .GetQueryable()
                 .Where(m => m.ChatRoomId == chatRoom.Id && !hiddenMessageIds.Contains(m.Id))
                 .Include(m => m.Sender)
+                .Include(m => m.Attachments)
                 .OrderByDescending(m => m.SentAt)
                 .Take(50)
                 .ToListAsync();
@@ -435,7 +436,13 @@ namespace InnoTrack.Application.Services
                 msg.ParentMessageId,
                 reactions.Where(r => r.ChatMessageId == msg.Id)
                          .Select(r => new ChatMessageReactionDto(r.UserId, r.Emoji))
-                         .ToList()
+                         .ToList(),
+                msg.Attachments.FirstOrDefault() != null ? new ChatMessageAttachmentDto(
+                    msg.Attachments.First().FileName,
+                    msg.Attachments.First().FileName.Contains("_") ? msg.Attachments.First().FileName.Substring(msg.Attachments.First().FileName.IndexOf("_") + 1) : msg.Attachments.First().FileName,
+                    msg.Attachments.First().FileType ?? "application/octet-stream",
+                    msg.Attachments.First().FileSize
+                ) : null
             )).ToList();
 
             return new TeamChatDto(
