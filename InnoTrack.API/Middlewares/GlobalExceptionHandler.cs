@@ -30,6 +30,7 @@ namespace InnoTrack.API.Middlewares
                 ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
 
                 InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
+                Microsoft.EntityFrameworkCore.DbUpdateException => (StatusCodes.Status409Conflict, "Conflict"),
 
                 AppException appEx => (appEx.StatusCode, appEx.GetType().Name.Replace("Exception", string.Empty)),
 
@@ -39,7 +40,11 @@ namespace InnoTrack.API.Middlewares
             var rootCause = exception.GetBaseException().Message;
             var detail = exception.Message;
             
-            if (exception.InnerException != null && rootCause != exception.Message)
+            if (exception is Microsoft.EntityFrameworkCore.DbUpdateException && rootCause.Contains("IX_Users_Email"))
+            {
+                detail = "This email is already registered.";
+            }
+            else if (exception.InnerException != null && rootCause != exception.Message)
             {
                 detail += $" (Inner issue: {rootCause})";
             }
