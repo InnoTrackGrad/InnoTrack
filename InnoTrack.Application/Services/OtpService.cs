@@ -48,14 +48,9 @@ namespace InnoTrack.Application.Services
             await _unitOfWork.CompleteAsync();
 
             // 4. Send Email
-            string htmlBody = $@"
-                <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
-                    <h2>InnoTrack Verification Code</h2>
-                    <p>Your 6-digit verification code is: <strong>{plainOtp}</strong></p>
-                    <p>This code will expire in 5 minutes.</p>
-                </div>";
+            string emailBody = $"Hello,\n\nYour registration verification code is: {plainOtp}\nThis code will expire in 5 minutes.";
             
-            await _emailService.SendEmailAsync(email, "InnoTrack - Your Verification Code", htmlBody);
+            await _emailService.SendEmailAsync(email, "InnoTrack - Verification Code", emailBody);
 
             return true;
         }
