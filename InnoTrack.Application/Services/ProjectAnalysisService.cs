@@ -125,10 +125,10 @@ namespace InnoTrack.Application.Services
 
                 var (status, notifTitle, notifMessage, notifType) = overallScore switch
                 {
-                    var score when score < _thresholds.AutoRejectBelow
+                    var score when score < (_thresholds.AutoRejectBelow * 100m)
                                     => (ProjectStatus.Rejected, "Project Rejected", $"Originality score {score}% is too low.", NotificationType.Error),
 
-                    var score when score <= _thresholds.RequireManualReviewBelow
+                    var score when score <= (_thresholds.RequireManualReviewBelow * 100m)
                                     => (ProjectStatus.UnderReview, "AI Analysis — Review Required", $"Originality score {score}%. Professor approval required.", NotificationType.Warning),
 
                     _ => (ProjectStatus.UnderReview, "AI Analysis Passed", $"Originality score {overallScore}%. Awaiting professor review.", NotificationType.Success)
@@ -144,17 +144,59 @@ namespace InnoTrack.Application.Services
                     return;
                 }
 
-                project.Status = status;
-                _unitOfWork.Repository<Project>().Update(project);
-
-                if (status == ProjectStatus.Rejected && project.TeamId.HasValue)
+                if (status == ProjectStatus.Rejected)
                 {
-                    var teamToUpdate = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value);
-                    if (teamToUpdate != null && teamToUpdate.ProfessorId.HasValue)
+                    var teamLeader = await _unitOfWork.Repository<TeamMember>()
+                        .FindAsync(tm => tm.TeamId == project.TeamId && tm.Role == TeamMemberRole.Leader);
+
+                    var draft = new ProjectDraft
                     {
-                        teamToUpdate.ProfessorId = null;
-                        _unitOfWork.Repository<Team>().Update(teamToUpdate);
+                        Title = project.Title,
+                        Abstract = project.Abstract,
+                        Description = project.Description,
+                        Year = project.Year ?? project.CreatedAt.Year,
+                        StudentNames = project.StudentNames,
+                        OriginalityScore = NormalizePercent(overallScore),
+                        CreatedAt = DateTime.UtcNow,
+                        TeamId = project.TeamId ?? 0,
+                        CreatedByUserId = teamLeader?.StudentId ?? 0,
+                        DomainId = project.DomainId,
+                        ProblemStatement = project.ProblemStatement,
+                        ProposedSolution = project.ProposedSolution,
+                        Objectives = project.Objectives
+                    };
+
+                    await _unitOfWork.Repository<ProjectDraft>().AddAsync(draft);
+                    await _unitOfWork.CompleteAsync();
+
+                    var projectTechs = await _unitOfWork.Repository<ProjectTechnology>()
+                        .GetAllAsync(pt => pt.ProjectId == project.Id);
+
+                    foreach (var pt in projectTechs)
+                    {
+                        await _unitOfWork.Repository<ProjectDraftTechnology>().AddAsync(new ProjectDraftTechnology
+                        {
+                            ProjectDraftId = draft.Id,
+                            TechnologyId = pt.TechnologyId
+                        });
                     }
+
+                    if (project.TeamId.HasValue)
+                    {
+                        var teamToUpdate = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId.Value);
+                        if (teamToUpdate != null && teamToUpdate.ProfessorId.HasValue)
+                        {
+                            teamToUpdate.ProfessorId = null;
+                            _unitOfWork.Repository<Team>().Update(teamToUpdate);
+                        }
+                    }
+
+                    _unitOfWork.Repository<Project>().Delete(project);
+                }
+                else
+                {
+                    project.Status = status;
+                    _unitOfWork.Repository<Project>().Update(project);
                 }
 
                 await _unitOfWork.CompleteAsync();

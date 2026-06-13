@@ -105,51 +105,81 @@ namespace InnoTrack.Application.Services
                 throw new InvalidOperationException(
                     "Only projects with 'UnderReview' status can be reviewed.");
 
-            project.Status = approve ? ProjectStatus.In_Progress : ProjectStatus.Rejected;
-            project.UpdatedAt = DateTime.UtcNow;
-
             if (approve)
             {
+                project.Status = ProjectStatus.In_Progress;
+                project.UpdatedAt = DateTime.UtcNow;
                 project.ApprovedAt = DateTime.UtcNow;
                 team.ProfessorId = professorId;
+                _unitOfWork.Repository<Team>().Update(team);
+                _unitOfWork.Repository<Project>().Update(project);
+                await _unitOfWork.CompleteAsync();
+
+                var message = $"Your project '{project.Title}' has been Approved by the supervisor.";
+                await NotifyTeamMembersAsync(project.TeamId.Value, "Project Review Update",
+                    message, NotificationType.Success, project.Id);
+
+                var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
+                var log = new ProjectActivityLog
+                {
+                    ProjectId = projectId,
+                    Type = "status",
+                    Message = "Proposal approved — project moved to In Progress",
+                    ActorName = professor?.FullName ?? "Supervisor",
+                    IconName = "GitCommit",
+                    ColorClass = "text-emerald-500",
+                    BgClass = "bg-emerald-500/10"
+                };
+                await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
+                await _unitOfWork.CompleteAsync();
+
+                await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
             }
             else
             {
+                var draft = new ProjectDraft
+                {
+                    Title = project.Title,
+                    Abstract = project.Abstract,
+                    Description = project.Description,
+                    Year = project.Year ?? project.CreatedAt.Year,
+                    StudentNames = project.StudentNames,
+                    OriginalityScore = project.OriginalityScore,
+                    CreatedAt = DateTime.UtcNow,
+                    TeamId = project.TeamId.Value,
+                    CreatedByUserId = project.Team?.Members.FirstOrDefault(m => m.Role == TeamMemberRole.Leader)?.StudentId ?? 0,
+                    DomainId = project.DomainId,
+                    ProblemStatement = project.ProblemStatement,
+                    ProposedSolution = project.ProposedSolution,
+                    Objectives = project.Objectives,
+                };
+                
+                await _unitOfWork.Repository<ProjectDraft>().AddAsync(draft);
+                
+                var techRepo = _unitOfWork.Repository<ProjectDraftTechnology>();
+                foreach (var tech in project.ProjectTechnologies)
+                {
+                    await techRepo.AddAsync(new ProjectDraftTechnology
+                    {
+                        ProjectDraft = draft,
+                        TechnologyId = tech.TechnologyId
+                    });
+                }
+
+                _unitOfWork.Repository<Project>().Delete(project);
+                
                 team.ProfessorId = null;
+                _unitOfWork.Repository<Team>().Update(team);
+                
+                await _unitOfWork.CompleteAsync();
+
+                await NotifyTeamMembersAsync(
+                    project.TeamId.Value,
+                    "Project Review Update",
+                    $"Your project '{project.Title}' has been Rejected by the supervisor. It has been moved to drafts.",
+                    NotificationType.Error,
+                    null);
             }
-            _unitOfWork.Repository<Team>().Update(team);
-
-            _unitOfWork.Repository<Project>().Update(project);
-            await _unitOfWork.CompleteAsync();
-
-            var teamMembers = await _unitOfWork.Repository<TeamMember>()
-                .GetAllAsync(tm => tm.TeamId == project.TeamId);
-
-            var verdict = approve ? "Approved" : "Rejected";
-            var message = $"Your project '{project.Title}' has been {verdict} by the supervisor.";
-            var notifType = approve ? NotificationType.Success : NotificationType.Error;
-
-            await NotifyTeamMembersAsync(project.TeamId.Value, "Project Review Update",
-                message, notifType, project.Id);
-
-            // Log activity
-            var professor = await _unitOfWork.Repository<Professor>().GetByIdAsync(professorId);
-            var log = new ProjectActivityLog
-            {
-                ProjectId = projectId,
-                Type = "status",
-                Message = approve
-                    ? "Proposal approved — project moved to In Progress"
-                    : "Proposal rejected by supervisor",
-                ActorName = professor?.FullName ?? "Supervisor",
-                IconName = approve ? "GitCommit" : "History",
-                ColorClass = approve ? "text-emerald-500" : "text-red-500",
-                BgClass = approve ? "bg-emerald-500/10" : "bg-red-500/10"
-            };
-            await _unitOfWork.Repository<ProjectActivityLog>().AddAsync(log);
-            await _unitOfWork.CompleteAsync();
-
-            await _notificationService.SendProjectActivityLogAsync(projectId, log.Type, log.Message, log.ActorName, log.IconName, log.ColorClass, log.BgClass);
         }
 
         public async Task<IReadOnlyList<ProfessorSupervisedProjectDto>> GetSupervisedProjectsAsync(
@@ -268,7 +298,7 @@ namespace InnoTrack.Application.Services
                 .FirstOrDefaultAsync(p => p.Id == projectId)
                 ?? throw new KeyNotFoundException("Project not found.");
 
-            if (project.Team?.ProfessorId != professorId)
+            if (project.Team?.ProfessorId != professorId && !(project.ProposedSupervisorId == professorId && project.Status == ProjectStatus.UnderReview))
                 throw new UnauthorizedAccessException(
                     "You are not authorized to view this project.");
 
