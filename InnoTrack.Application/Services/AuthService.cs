@@ -30,34 +30,65 @@ namespace InnoTrack.Application.Services
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
             var existingUser = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == request.Email);
-            if (existingUser != null)
-                throw new InvalidOperationException("Email is already registered.");
-
             var passwordHash = _passwordHasher.Hash(request.Password);
-
             var refreshTokens = _tokenService.GenerateRefreshToken();
 
-            var newStudent = new Student
-            {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Email = request.Email,
-                PasswordHash = passwordHash,
-                DepartmentId = request.DepartmentId,
-                GraduationYear = request.GraduationYear,
-                GPA = request.GPA,
-                CreatedAt = DateTime.UtcNow,
-                Role = UserRole.Student,
-                RefreshToken = refreshTokens.hashedToken,
-                RefreshTokenExpiryTime = refreshTokens.expiryDate
-            };
+            Student studentToSave;
 
-            await _unitOfWork.Repository<Student>().AddAsync(newStudent);
+            if (existingUser != null)
+            {
+                if (!existingUser.IsDeleted)
+                {
+                    throw new InvalidOperationException("Email is already registered.");
+                }
+                else
+                {
+                    if (existingUser is not Student existingStudent)
+                    {
+                        throw new InvalidOperationException("This email is associated with a non-student account.");
+                    }
+
+                    existingStudent.IsDeleted = false;
+                    existingStudent.IsActive = true;
+                    existingStudent.FirstName = request.FirstName;
+                    existingStudent.LastName = request.LastName;
+                    existingStudent.PasswordHash = passwordHash;
+                    existingStudent.DepartmentId = request.DepartmentId;
+                    existingStudent.GraduationYear = request.GraduationYear;
+                    existingStudent.GPA = request.GPA;
+                    existingStudent.RefreshToken = refreshTokens.hashedToken;
+                    existingStudent.RefreshTokenExpiryTime = refreshTokens.expiryDate;
+
+                    _unitOfWork.Repository<Student>().Update(existingStudent);
+                    studentToSave = existingStudent;
+                }
+            }
+            else
+            {
+                studentToSave = new Student
+                {
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Email = request.Email,
+                    PasswordHash = passwordHash,
+                    DepartmentId = request.DepartmentId,
+                    GraduationYear = request.GraduationYear,
+                    GPA = request.GPA,
+                    CreatedAt = DateTime.UtcNow,
+                    Role = UserRole.Student,
+                    IsActive = true,
+                    RefreshToken = refreshTokens.hashedToken,
+                    RefreshTokenExpiryTime = refreshTokens.expiryDate
+                };
+
+                await _unitOfWork.Repository<Student>().AddAsync(studentToSave);
+            }
+
             await _unitOfWork.CompleteAsync();
 
-            var accessToken = _tokenService.GenerateAccessToken(newStudent);
+            var accessToken = _tokenService.GenerateAccessToken(studentToSave);
 
-            return new AuthResponseDto(accessToken, refreshTokens.rawToken, newStudent.RefreshTokenExpiryTime.Value, newStudent.FullName, newStudent.Role.ToString());
+            return new AuthResponseDto(accessToken, refreshTokens.rawToken, studentToSave.RefreshTokenExpiryTime.Value, studentToSave.FullName, studentToSave.Role.ToString());
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
