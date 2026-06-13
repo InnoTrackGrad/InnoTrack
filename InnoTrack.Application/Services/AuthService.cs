@@ -205,7 +205,7 @@ namespace InnoTrack.Application.Services
 
         public async Task<bool> IsEmailRegisteredAsync(string email)
         {
-            var existingUser = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == email);
+            var existingUser = await _unitOfWork.Repository<User>().FindAsync(u => u.Email == email && !u.IsDeleted);
             return existingUser != null;
         }
     }
