@@ -62,6 +62,9 @@ namespace InnoTrack.Application.Services
             if (team == null)
                 throw new KeyNotFoundException("Team not found.");
 
+            if (draft.OriginalityScore == null || draft.OriginalityScore < 60)
+                throw new InvalidOperationException("Project originality must be at least 60% before sending to a supervisor.");
+
             var activeAcademicYear = await _unitOfWork.Repository<AcademicYear>()
                 .FindAsync(y => y.IsActive);
             if (activeAcademicYear == null)
