@@ -6,7 +6,8 @@ namespace InnoTrack.Application.DTOs.Projects
         string DepartmentName,
         string Email,
         int CurrentTeamLoad,
-        int MaxTeamLoad
+        int MaxTeamLoad,
+        bool IsActive
     )
     {
         public bool IsAvailable => CurrentTeamLoad < MaxTeamLoad;

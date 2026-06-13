@@ -348,7 +348,8 @@ namespace InnoTrack.Infrastructure.Services
                     p.Department.Name,
                     p.Email,
                     p.SupervisedTeams.Count(t => t.Project == null || t.Project.Status != ProjectStatus.Completed),
-                    p.MaxTeamLoad
+                    p.MaxTeamLoad,
+                    p.IsActive
                 ))
                 .ToListAsync();
 
