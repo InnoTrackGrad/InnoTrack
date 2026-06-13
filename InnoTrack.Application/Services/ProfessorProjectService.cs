@@ -162,10 +162,15 @@ namespace InnoTrack.Application.Services
                 .Include(p => p.Domain)
                 .Include(p => p.ProjectTechnologies)
                     .ThenInclude(pt => pt.Technology)
-                .Where(p => p.Team != null && p.Team.ProfessorId == professorId &&
-                   (p.Status == ProjectStatus.UnderReview ||
-                    p.Status == ProjectStatus.Approved ||
-                    p.Status == ProjectStatus.In_Progress))
+                .Where(p => p.Team != null && 
+                   (
+                       (p.Team.ProfessorId == professorId &&
+                        (p.Status == ProjectStatus.UnderReview ||
+                         p.Status == ProjectStatus.Approved ||
+                         p.Status == ProjectStatus.In_Progress))
+                       ||
+                       (p.ProposedSupervisorId == professorId && p.Status == ProjectStatus.UnderReview)
+                   ))
                 .OrderByDescending(p => p.SubmittedAt ?? p.CreatedAt)
                 .ToListAsync();
 
