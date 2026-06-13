@@ -109,17 +109,7 @@ namespace InnoTrack.Application.Services
                 throw;
             }
 
-            try
-            {
-                await _notificationService.SendNotificationAsync(
-                    supervisorId,
-                    "New Project Submission",
-                    $"A new project '{project.Title}' has been submitted for your review.",
-                    NotificationType.Info,
-                    project.Id,
-                    ReferenceType.Project);
-            }
-            catch { }
+            // Removed immediate notification to supervisor. Will be sent by AI Analysis Service if approved.
 
             BackgroundJob.Enqueue<IProjectAnalysisService>(aiService => aiService.ProcessProjectAiReportAsync(project.Id));
 

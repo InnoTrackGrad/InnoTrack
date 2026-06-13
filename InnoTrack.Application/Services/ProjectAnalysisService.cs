@@ -204,13 +204,12 @@ namespace InnoTrack.Application.Services
 
                 try
                 {
-                    var team = await _unitOfWork.Repository<Team>().GetByIdAsync(project.TeamId ?? 0);
-                    if (team?.ProfessorId != null)
+                    if (status != ProjectStatus.Rejected && project.ProposedSupervisorId.HasValue)
                     {
                         await _notificationService.SendNotificationAsync(
-                            team.ProfessorId.Value,
-                            "AI Originality Analysis Completed",
-                            $"AI Report generated for '{project.Title}'. Score: {overallScore}%. Review is required.",
+                            project.ProposedSupervisorId.Value,
+                            "New Project Submission",
+                            $"A new project '{project.Title}' has been submitted for your review. AI Originality Score: {overallScore}%.",
                             NotificationType.Info,
                             project.Id,
                             ReferenceType.Project);
