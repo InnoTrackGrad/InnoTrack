@@ -501,6 +501,11 @@ namespace InnoTrack.Application.Services
                 {
                     query = query.Where(t => t.Project == null);
                 }
+                else if (cleanStatus.Equals("Draft", StringComparison.OrdinalIgnoreCase))
+                {
+                    var teamsWithDrafts = _unitOfWork.Repository<ProjectDraft>().GetQueryable().Select(d => d.TeamId).Distinct();
+                    query = query.Where(t => t.Project == null && teamsWithDrafts.Contains(t.Id));
+                }
                 else
                 {
                     if (cleanStatus.Equals("Under Review", StringComparison.OrdinalIgnoreCase) ||
@@ -681,10 +686,53 @@ namespace InnoTrack.Application.Services
             string? search, string? status, int? domainId, int? academicYearId,
             int pageNumber, int pageSize)
         {
+            if (!string.IsNullOrWhiteSpace(status) && status.Trim().Equals("Draft", StringComparison.OrdinalIgnoreCase))
+            {
+                var draftQuery = _unitOfWork.Repository<ProjectDraft>()
+                    .GetQueryable().AsNoTracking()
+                    .Include(d => d.Team).ThenInclude(t => t.Supervisor)
+                    .Include(d => d.Domain)
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var cleanSearch = search.Trim().ToLower();
+                    draftQuery = draftQuery.Where(d =>
+                        d.Title.ToLower().Contains(cleanSearch) ||
+                        (d.Team != null && d.Team.Name.ToLower().Contains(cleanSearch)) ||
+                        (d.Team != null && d.Team.Supervisor != null &&
+                         (d.Team.Supervisor.FirstName + " " + d.Team.Supervisor.LastName).ToLower().Contains(cleanSearch))
+                    );
+                }
+
+                if (domainId.HasValue)
+                    draftQuery = draftQuery.Where(d => d.DomainId == domainId.Value);
+
+                var totalDrafts = await draftQuery.CountAsync();
+
+                var drafts = await draftQuery
+                    .OrderByDescending(d => d.CreatedAt)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(d => new AdminProjectListItemDto(
+                        d.Id, d.Title, "Draft",
+                        d.TeamId, d.Team != null ? d.Team.Name : null,
+                        d.Team != null ? d.Team.ProfessorId : null,
+                        d.Team != null && d.Team.Supervisor != null
+                            ? d.Team.Supervisor.FirstName + " " + d.Team.Supervisor.LastName
+                            : null,
+                        d.Domain.Name,
+                        d.Year.ToString(),
+                        d.OriginalityScore, false,
+                        d.CreatedAt, null, null))
+                    .ToListAsync();
+
+                return new PagedResult<AdminProjectListItemDto>(drafts, totalDrafts, pageNumber, pageSize);
+            }
+
             IQueryable<Project> query = _unitOfWork.Repository<Project>()
                 .GetQueryable().AsNoTracking()
-                .Include(p => p.Team)
-                    .ThenInclude(t => t!.Supervisor)
+                .Include(p => p.Team).ThenInclude(t => t!.Supervisor)
                 .Include(p => p.Domain)
                 .Include(p => p.AcademicYear);
 
@@ -717,6 +765,10 @@ namespace InnoTrack.Application.Services
                 if (Enum.TryParse<ProjectStatus>(cleanStatus, true, out var parsedStatus))
                 {
                     query = query.Where(p => p.Status == parsedStatus);
+                }
+                else
+                {
+                    query = query.Where(p => false);
                 }
             }
 
