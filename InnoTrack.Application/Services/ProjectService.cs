@@ -44,6 +44,13 @@ namespace InnoTrack.Application.Services
             if (supervisor == null)
                 throw new KeyNotFoundException("Supervisor not found.");
 
+            if (supervisor.DepartmentId != dto.DepartmentId)
+                throw new InvalidOperationException("Selected professor does not belong to the selected department.");
+
+            var department = await _unitOfWork.Repository<Department>().GetByIdAsync(dto.DepartmentId);
+            if (department == null)
+                throw new KeyNotFoundException("Department not found.");
+
             var currentActiveLoad = await _unitOfWork.Repository<Team>()
                  .CountAsync(t => t.ProfessorId == supervisorId &&
                      (t.Project == null || t.Project.Status != ProjectStatus.Completed));
@@ -82,7 +89,7 @@ namespace InnoTrack.Application.Services
                     ProblemStatement = draft.ProblemStatement,
                     ProposedSolution = draft.ProposedSolution,
                     Objectives = draft.Objectives,
-                    ProposalDepartment = dto.Department,
+                    ProposalDepartment = department.Name,
                     ProposalTeamMembers = dto.TeamMembers,
                     ProposalMessage = dto.Message,
                     ProposedSupervisorId = supervisorId,

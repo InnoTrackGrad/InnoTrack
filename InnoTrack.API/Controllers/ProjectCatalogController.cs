@@ -86,9 +86,9 @@ namespace InnoTrack.API.Controllers
         /// Returns a list of professors available for project supervision.
         /// </returns>
         [HttpGet("supervisors")]
-        public async Task<IActionResult> GetSupervisors()
+        public async Task<IActionResult> GetSupervisors([FromQuery] int? departmentId = null)
         {
-            var result = await _catalogService.GetSupervisorsAsync();
+            var result = await _catalogService.GetSupervisorsAsync(departmentId);
             return Ok(result);
         }
 

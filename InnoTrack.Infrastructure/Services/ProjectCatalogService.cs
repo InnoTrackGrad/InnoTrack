@@ -335,13 +335,21 @@ namespace InnoTrack.Infrastructure.Services
             return MapDraft(draft, teamMember.Role == TeamMemberRole.Leader);
         }
 
-        public async Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync()
+        public async Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync(int? departmentId = null)
         {
-            var supervisors = await _context.Professors
+            var query = _context.Professors
                 .AsNoTracking()
                 .Include(p => p.Department)
                 .Include(p => p.SupervisedTeams)
                     .ThenInclude(t => t.Project)
+                .AsQueryable();
+
+            if (departmentId.HasValue)
+            {
+                query = query.Where(p => p.DepartmentId == departmentId.Value);
+            }
+
+            var supervisors = await query
                 .Select(p => new SupervisorDto(
                     p.Id,
                     p.FullName,

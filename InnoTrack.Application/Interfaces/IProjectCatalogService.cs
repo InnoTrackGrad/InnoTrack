@@ -1,4 +1,4 @@
-﻿using InnoTrack.Application.Common;
+using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.AI;
 using InnoTrack.Application.DTOs.Projects;
 
@@ -14,7 +14,7 @@ namespace InnoTrack.Application.Interfaces
         Task<IReadOnlyList<ProjectDraftDto>> GetMyDraftsAsync(int userId);
         Task<ProjectDraftDto> GetDraftByIdAsync(int draftId, int userId);
 
-        Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync();
+        Task<IReadOnlyList<SupervisorDto>> GetSupervisorsAsync(int? departmentId = null);
         Task<SaveDraftResponseDto> SaveDraftAsync(int userId, SaveProjectDraftDto dto);
         Task<SaveDraftResponseDto> UpdateDraftAsync(int draftId, int userId, SaveProjectDraftDto dto);
         Task DeleteDraftAsync(int draftId, int userId);
