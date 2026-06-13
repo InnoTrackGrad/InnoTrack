@@ -98,8 +98,7 @@ namespace InnoTrack.Infrastructure.Data
 
             modelBuilder.Entity<Skill>()
                         .HasIndex(s => s.Name)
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
+                        .IsUnique();
 
             modelBuilder.Entity<Domain.Entities.Domain>()
                         .HasIndex(d => d.Name)
