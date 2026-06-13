@@ -1,4 +1,4 @@
-using InnoTrack.API.Attributes;
+﻿using InnoTrack.API.Attributes;
 using InnoTrack.Application.DTOs.Admin;
 using InnoTrack.Application.DTOs.Professors;
 using InnoTrack.Application.Interfaces;
@@ -188,7 +188,9 @@ namespace InnoTrack.API.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _professorAdminService.GetAllProfessorsAsync(search, departmentId, isActive, hasCapacity, pageNumber, pageSize);
+            var result = await _professorAdminService.GetAllProfessorsAsync(
+                search, departmentId, isActive, hasCapacity, pageNumber, pageSize);
+
             return Ok(result);
         }
 
@@ -256,7 +258,9 @@ namespace InnoTrack.API.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _adminService.GetAllTeamsAsync(search, hasSupervisor, projectStatus, pageNumber, pageSize);
+            var result = await _adminService.GetAllTeamsAsync(
+                search, hasSupervisor, projectStatus, pageNumber, pageSize);
+
             return Ok(result);
         }
 
@@ -328,6 +332,7 @@ namespace InnoTrack.API.Controllers
         {
             var result = await _adminService.GetAllProjectsAsync(
                 search, status, domainId, academicYearId, pageNumber, pageSize);
+
             return Ok(result);
         }
 
@@ -464,10 +469,12 @@ namespace InnoTrack.API.Controllers
         /// <summary>Returns all academic years ordered by start date descending, paginated.</summary>
         [HttpGet("academic-years")]
         public async Task<IActionResult> GetAllAcademicYears(
+            [FromQuery] string? search,
+            [FromQuery] bool? isActive,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
-            var result = await _academicYearService.GetAllAsync(pageNumber, pageSize);
+            var result = await _academicYearService.GetAllAsync(search, isActive, pageNumber, pageSize);
             return Ok(result);
         }
 
@@ -511,7 +518,7 @@ namespace InnoTrack.API.Controllers
         // ══════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Returns paginated audit log entries. Supports filtering by userId, action keyword,
+        /// Returns paginated audit log entries. Supports filtering by search keyword (name, action, details),
         /// and date range. Ordered by most recent first.
         /// Audit entries include the actor's resolved full name.
         /// </summary>

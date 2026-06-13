@@ -463,15 +463,26 @@ namespace InnoTrack.Application.Services
 
         // ── Team Management ──────────────────────────────────────────────────────
 
-        public async Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(string? search, bool? hasSupervisor, string? projectStatus, int pageNumber, int pageSize)
+        public async Task<PagedResult<AdminTeamListItemDto>> GetAllTeamsAsync(
+            string? search, bool? hasSupervisor, string? projectStatus,
+            int pageNumber, int pageSize)
         {
             var query = _unitOfWork.Repository<Team>()
-                    .GetQueryable()
-                    .AsNoTracking()
-                    .Include(t => t.Members).ThenInclude(m => m.Student)
-                    .Include(t => t.Project)
-                    .Include(t => t.Supervisor)
-                    .AsQueryable();
+                        .GetQueryable()
+                        .AsNoTracking()
+                        .Include(t => t.Members).ThenInclude(m => m.Student)
+                        .Include(t => t.Project)
+                        .Include(t => t.Supervisor)
+                        .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(t =>
+                    t.Name.ToLower().Contains(cleanSearch) ||
+                    (t.Project != null && t.Project.Title.ToLower().Contains(cleanSearch)) ||
+                    (t.Supervisor != null && (t.Supervisor.FirstName + " " + t.Supervisor.LastName).ToLower().Contains(cleanSearch)));
+            }
 
             if (hasSupervisor.HasValue)
             {
@@ -483,25 +494,32 @@ namespace InnoTrack.Application.Services
 
             if (!string.IsNullOrWhiteSpace(projectStatus))
             {
-                if (projectStatus.Equals("No Project", StringComparison.OrdinalIgnoreCase))
+                var cleanStatus = projectStatus.Trim();
+
+                if (cleanStatus.Equals("No Project", StringComparison.OrdinalIgnoreCase) ||
+                    cleanStatus.Equals("None", StringComparison.OrdinalIgnoreCase))
                 {
                     query = query.Where(t => t.Project == null);
                 }
-                else if (Enum.TryParse<ProjectStatus>(projectStatus, true, out var parsedStatus))
+                else
                 {
-                    query = query.Where(t => t.Project != null && t.Project.Status == parsedStatus);
+                    if (cleanStatus.Equals("Under Review", StringComparison.OrdinalIgnoreCase) ||
+                        cleanStatus.Equals("Under-Review", StringComparison.OrdinalIgnoreCase))
+                    {
+                        cleanStatus = "UnderReview";
+                    }
+                    else if (cleanStatus.Equals("In Progress", StringComparison.OrdinalIgnoreCase) ||
+                             cleanStatus.Equals("In-Progress", StringComparison.OrdinalIgnoreCase))
+                    {
+                        cleanStatus = "In_Progress";
+                    }
+
+                    if (Enum.TryParse<ProjectStatus>(cleanStatus, true, out var parsedStatus))
+                    {
+                        query = query.Where(t => t.Project != null && t.Project.Status == parsedStatus);
+                    }
                 }
             }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var cleanSearch = search.Trim().ToLower();
-                query = query.Where(t =>
-                    t.Name.ToLower().Contains(cleanSearch) ||
-                    (t.Project != null && t.Project.Title.ToLower().Contains(cleanSearch)) ||
-                    (t.Supervisor != null && (t.Supervisor.FirstName + " " + t.Supervisor.LastName).ToLower().Contains(cleanSearch)));
-            }
-
             var totalCount = await query.CountAsync();
 
             var teams = await query
@@ -660,7 +678,8 @@ namespace InnoTrack.Application.Services
         // ── Project Management ───────────────────────────────────────────────────
 
         public async Task<PagedResult<AdminProjectListItemDto>> GetAllProjectsAsync(
-            string? search, string? status, int? domainId, int? academicYearId, int pageNumber, int pageSize)
+            string? search, string? status, int? domainId, int? academicYearId,
+            int pageNumber, int pageSize)
         {
             IQueryable<Project> query = _unitOfWork.Repository<Project>()
                 .GetQueryable().AsNoTracking()
@@ -669,28 +688,46 @@ namespace InnoTrack.Application.Services
                 .Include(p => p.Domain)
                 .Include(p => p.AcademicYear);
 
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                var normalizedStatus = status.Replace(" ", "_");
-                if (Enum.TryParse<ProjectStatus>(normalizedStatus, ignoreCase: true, out var ps))
-                {
-                    query = query.Where(p => p.Status == ps);
-                }
-            }
-
-            if (domainId.HasValue)
-                query = query.Where(p => p.DomainId == domainId.Value);
-
-            if (academicYearId.HasValue)
-                query = query.Where(p => p.AcademicYearId == academicYearId.Value);
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var cleanSearch = search.Trim().ToLower();
                 query = query.Where(p =>
                     p.Title.ToLower().Contains(cleanSearch) ||
                     (p.Team != null && p.Team.Name.ToLower().Contains(cleanSearch)) ||
-                    (p.Team != null && p.Team.Supervisor != null && (p.Team.Supervisor.FirstName + " " + p.Team.Supervisor.LastName).ToLower().Contains(cleanSearch)));
+                    (p.Team != null && p.Team.Supervisor != null &&
+                     (p.Team.Supervisor.FirstName + " " + p.Team.Supervisor.LastName).ToLower().Contains(cleanSearch))
+                );
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var cleanStatus = status.Trim();
+
+                if (cleanStatus.Equals("Under Review", StringComparison.OrdinalIgnoreCase) ||
+                    cleanStatus.Equals("Under-Review", StringComparison.OrdinalIgnoreCase))
+                {
+                    cleanStatus = "UnderReview";
+                }
+                else if (cleanStatus.Equals("In Progress", StringComparison.OrdinalIgnoreCase) ||
+                         cleanStatus.Equals("In-Progress", StringComparison.OrdinalIgnoreCase))
+                {
+                    cleanStatus = "In_Progress";
+                }
+
+                if (Enum.TryParse<ProjectStatus>(cleanStatus, true, out var parsedStatus))
+                {
+                    query = query.Where(p => p.Status == parsedStatus);
+                }
+            }
+
+            if (domainId.HasValue)
+            {
+                query = query.Where(p => p.DomainId == domainId.Value);
+            }
+
+            if (academicYearId.HasValue)
+            {
+                query = query.Where(p => p.AcademicYearId == academicYearId.Value);
             }
 
             var totalCount = await query.CountAsync();
@@ -962,11 +999,11 @@ namespace InnoTrack.Application.Services
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var cleanSearch = search.Trim().ToLower();
-                query = query.Where(x => 
-                    (x.FirstName + " " + x.LastName).ToLower().Contains(cleanSearch) ||
-                    x.log.Action.ToLower().Contains(cleanSearch) ||
-                    x.log.Details.ToLower().Contains(cleanSearch));
+                var term = search.Trim().ToLower();
+                query = query.Where(x =>
+                    (x.FirstName + " " + x.LastName).ToLower().Contains(term) ||
+                    x.log.Action.ToLower().Contains(term) ||
+                    x.log.Details.ToLower().Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(action))

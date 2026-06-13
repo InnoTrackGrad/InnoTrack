@@ -1,4 +1,4 @@
-﻿namespace InnoTrack.Application.DTOs.Projects
+namespace InnoTrack.Application.DTOs.Projects
 {
     public record ProjectCatalogFilterDto(
         int? Year,
@@ -8,6 +8,7 @@
         int? SupervisorId,
         int? TechnologyId,
         decimal? MinOriginalityScore,
+        decimal? MaxOriginalityScore,
         bool? IsCurrentAcademicYear
     );
 }

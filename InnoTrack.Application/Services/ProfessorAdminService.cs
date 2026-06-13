@@ -1,4 +1,4 @@
-// InnoTrack.Application/Services/ProfessorAdminService.cs
+﻿// InnoTrack.Application/Services/ProfessorAdminService.cs
 using InnoTrack.Application.Common;
 using InnoTrack.Application.DTOs.Professors;
 using InnoTrack.Application.Interfaces;
@@ -79,21 +79,27 @@ namespace InnoTrack.Application.Services
             _auditService.LogAction(adminId, "Admin Disable Professor", $"Disabled professor account: {professor.FullName}");
         }
 
-        public async Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(string? search, int? departmentId, bool? isActive, bool? hasCapacity, int pageNumber, int pageSize)
+        public async Task<PagedResult<ProfessorAdminViewDto>> GetAllProfessorsAsync(
+            string? search, int? departmentId, bool? isActive, bool? hasCapacity,
+            int pageNumber, int pageSize)
         {
-            var activeYearId = await _unitOfWork.Repository<AcademicYear>()
-                .GetQueryable()
-                .Where(y => y.IsActive)
-                .Select(y => y.Id)
-                .FirstOrDefaultAsync();
-
             var query = _unitOfWork.Repository<Professor>()
-                .GetQueryable()
-                .AsNoTracking()
-                .Include(p => p.Department)
-                .Include(p => p.SupervisedTeams)
-                    .ThenInclude(t => t.Project)
-                .AsQueryable();
+                    .GetQueryable()
+                    .AsNoTracking()
+                    .Include(p => p.Department)
+                    .Include(p => p.SupervisedTeams)
+                        .ThenInclude(t => t.Project)
+                    .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(p =>
+                    p.FirstName.ToLower().Contains(term) ||
+                    p.LastName.ToLower().Contains(term) ||
+                    p.Email.ToLower().Contains(term) ||
+                    p.Department.Name.ToLower().Contains(term));
+            }
 
             if (departmentId.HasValue)
             {
@@ -105,44 +111,39 @@ namespace InnoTrack.Application.Services
                 query = query.Where(p => p.IsActive == isActive.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var cleanSearch = search.Trim().ToLower();
-                query = query.Where(p =>
-                    p.FirstName.ToLower().Contains(cleanSearch) ||
-                    p.LastName.ToLower().Contains(cleanSearch) ||
-                    p.Email.ToLower().Contains(cleanSearch) ||
-                    p.Department.Name.ToLower().Contains(cleanSearch));
-            }
-
             if (hasCapacity.HasValue)
             {
                 if (hasCapacity.Value)
                 {
-                    query = query.Where(p => p.MaxTeamLoad > p.SupervisedTeams.Count(t => t.Project == null || (t.Project.AcademicYearId == activeYearId && t.Project.Status != ProjectStatus.Completed)));
+                    query = query.Where(p => p.SupervisedTeams.Count(t =>
+                        t.Project == null || t.Project.Status != ProjectStatus.Completed) < p.MaxTeamLoad);
                 }
                 else
                 {
-                    query = query.Where(p => p.MaxTeamLoad <= p.SupervisedTeams.Count(t => t.Project == null || (t.Project.AcademicYearId == activeYearId && t.Project.Status != ProjectStatus.Completed)));
+                    query = query.Where(p => p.SupervisedTeams.Count(t =>
+                        t.Project == null || t.Project.Status != ProjectStatus.Completed) >= p.MaxTeamLoad);
                 }
             }
 
             var totalCount = await query.CountAsync();
 
-            var items = await query
-                .OrderBy(p => p.FirstName).ThenBy(p => p.LastName)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new ProfessorAdminViewDto(
-                    p.Id, p.FullName, p.Email,
-                    p.DepartmentId, p.Department.Name,
-                    p.MaxTeamLoad,
-                    p.SupervisedTeams.Count(t => t.Project == null ||
-                        (t.Project.AcademicYearId == activeYearId && t.Project.Status != ProjectStatus.Completed)),
-                    p.IsActive, p.CreatedAt))
-                .ToListAsync();
+            var professors = await query
+                    .OrderBy(p => p.FirstName).ThenBy(p => p.LastName)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new ProfessorAdminViewDto(
+                        p.Id,
+                        p.FullName,
+                        p.Email,
+                        p.DepartmentId,
+                        p.Department.Name,
+                        p.MaxTeamLoad,
+                        p.SupervisedTeams.Count(t => t.Project == null || t.Project.Status != ProjectStatus.Completed),
+                        p.IsActive,
+                        p.CreatedAt))
+                    .ToListAsync();
 
-            return new PagedResult<ProfessorAdminViewDto>(items, totalCount, pageNumber, pageSize);
+            return new PagedResult<ProfessorAdminViewDto>(professors, totalCount, pageNumber, pageSize);
         }
         public async Task<ProfessorAdminViewDto> GetProfessorByIdAsync(int professorId)
         {
