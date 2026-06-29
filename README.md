@@ -7,9 +7,15 @@ InnoTrack is a fully deployed graduation project built with **.NET 8** and **Cle
 - **API Swagger UI:** https://innotrack-aneshpdxd6habnd6.uaenorth-01.azurewebsites.net/swagger/index.html
 
 ## 🔐 Test Credentials (For Reviewers)
-To explore the live application or authorize endpoints in Swagger, you can use the following test account (bypasses the university email validation):
+To explore the live application, test Role-Based Access Control (RBAC), and authorize endpoints in Swagger, you can use the following test accounts:
+
+**1. Student Account:**
 - **Email:** `youssef419748@fci.bu.edu.eg`
 - **Password:** `Yy014789!!`
+
+**2. Professor Account:**
+- **Email:** `MAY.GALLAB@fci.bu.edu.eg`
+- **Password:** `DrMai@Fci2026!`
 
 ## 🛠️ Architecture & Tech Stack
 The project strictly follows **Clean Architecture** principles to separate concerns and ensure maintainability:
