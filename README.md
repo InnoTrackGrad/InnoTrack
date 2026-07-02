@@ -2,6 +2,8 @@
 
 InnoTrack is a fully deployed graduation project built with **.NET 8** and **Clean Architecture**. It provides a robust backend system to manage, track, and streamline academic projects, utilizing AI features to reduce redundancy.
 
+[![Build and deploy ASP.Net Core app to Azure Web App - InnoTrack](https://github.com/InnoTrackGrad/InnoTrack/actions/workflows/master_innotrack.yml/badge.svg)](https://github.com/InnoTrackGrad/InnoTrack/actions/workflows/master_innotrack.yml)
+
 ## 🔗 Live Links
 - **Front-End Application:** [InnoTrack Live](https://inno-track-front-end.vercel.app/login)
 - **API Swagger UI:** https://innotrack-aneshpdxd6habnd6.uaenorth-01.azurewebsites.net/swagger/index.html
